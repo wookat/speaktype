@@ -56,6 +56,14 @@ export class Dictation {
     this.state = state;
     this.message = message;
     this.deps.broadcast(this.status());
+    if (state === "error") {
+      setTimeout(() => {
+        if (this.state === "error") {
+          this.partial = "";
+          this.report("idle");
+        }
+      }, 5000);
+    }
   }
 
   private setPartial(text: string): void {

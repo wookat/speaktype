@@ -56,6 +56,7 @@ export default function App() {
     const offSettings = api.onSettings(({ settings: s, personas: p }) => {
       setSettings(s);
       setPersonas(p);
+      void api.doubaoReady().then(setDoubaoReady);
     });
     return () => {
       offStatus();
