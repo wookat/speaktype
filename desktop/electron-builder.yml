@@ -1,0 +1,29 @@
+appId: com.speaktype.desktop
+productName: SpeakType
+# uiohook-napi / koffi 均自带 N-API 预编译产物，无需 node-gyp 重编
+npmRebuild: false
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**
+  - "!node_modules/**/{test,tests,docs,example,examples}/**"
+asarUnpack:
+  - "**/*.node"
+  - node_modules/koffi/**
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SpeakType 语音输入法
+  artifactName: SpeakType-Setup-${version}.exe
+electronDownload:
+  cache: .electron-cache
