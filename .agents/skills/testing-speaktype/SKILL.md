@@ -56,6 +56,25 @@ immediately before each click.
   Background now pings the bridge and reloads/recreates the tab, and forwarding failures surface
   as a visible error instead of a permanent 「准备中…」 — if you ever see that state again with a
   silent console, that regression is back.
+- **`browser` in this project is plain `chrome`** (`@wxt-dev/browser` resolves to `globalThis.chrome`
+  in Chrome; there is no webextension-polyfill). So a content-script `onMessage` listener that
+  answers with `return Promise.resolve(...)` is silently dropped: `tabs.sendMessage` resolves with
+  `undefined` (no error, because the listener does exist). Symptom seen in practice: every record
+  attempt ends in 「doubao.com 标签页里的桥接未就绪…」 and a new pinned doubao tab is spawned each
+  time. Diagnose from an extension page console:
+  ```js
+  chrome.tabs.query({url:'*://*.doubao.com/*'}).then(t=>chrome.tabs.sendMessage(t[0].id,{target:'doubao-bridge',type:'ping'})).then(console.log)
+  // undefined => ping broken (needs sendResponse + `return true`); {alive:true} => ok
+  ```
+  Workaround to keep testing the rest of the pipeline without touching source: patch the built
+  file `.output\chrome-mv3\content-scripts\doubao-bridge.js`, changing the listener to
+  `(t,__s,__r)=>{ ... if(i.type===\`ping\`){__r({alive:!0});return} ... }`, then hit reload on the
+  extension card. Re-run `npm run build` afterwards to restore the pristine artifact.
+- Auto app-key extraction scans `script[src]` for a `voicegenie`-nearby `app_key`. On the current
+  `https://www.doubao.com/chat/` landing page there are only ~8 external scripts and **none of them
+  contain the string `voicegenie`** (the voice chunk is lazy-loaded when the page's own mic entry is
+  used), so extraction returns empty and the UI asks you to fill the key manually. Verify quickly by
+  evaluating a scan in the doubao tab before blaming the regex.
 - The app_key for the WS URL is extracted at runtime from doubao page JS (only near `voicegenie`,
   with a 6s budget). It is brittle by nature. To test the rest of the pipeline without relying on
   extraction, read the real key from a live capture (see the WS Hook helper below) and paste it

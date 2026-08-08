@@ -41,7 +41,7 @@ export function App() {
       <header className="flex items-baseline justify-between">
         <div>
           <h1 className="text-base font-semibold text-slate-900">SpeakType</h1>
-          <p className="text-[12px] text-slate-500">你说，我写 · Alt+Space 开始说话</p>
+          <p className="text-[12px] text-slate-500">你说，我写 · Alt+Q 开始说话</p>
         </div>
         {saved && <span className="text-[11px] text-emerald-600">已保存</span>}
       </header>
