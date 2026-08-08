@@ -28,6 +28,12 @@ type BridgeEvent =
   | { type: "error"; message: string };
 
 let bridge: BrowserWindow | null = null;
+let appKeyCaptured: (() => void) | null = null;
+
+/** 截到 app key（激活完成）时通知主窗口刷新状态 */
+export function onAppKeyCaptured(fn: () => void): void {
+  appKeyCaptured = fn;
+}
 let listeners = new Set<(ev: BridgeEvent) => void>();
 let loaded = false;
 
@@ -96,7 +102,10 @@ function emit(ev: BridgeEvent): void {
 
 ipcMain.on("doubao:event", (_e, ev: BridgeEvent) => {
   if (ev.type === "app-key") {
-    if (/^[A-Za-z0-9_-]{12,32}$/.test(ev.key)) setAppKeyCache(ev.key);
+    if (/^[A-Za-z0-9_-]{12,32}$/.test(ev.key)) {
+      setAppKeyCache(ev.key);
+      appKeyCaptured?.();
+    }
     return;
   }
   emit(ev);

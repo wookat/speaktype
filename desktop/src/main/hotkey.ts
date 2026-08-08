@@ -24,6 +24,7 @@ const KEY_NAMES: Record<string, number> = {
   RightShift: UiohookKey.ShiftRight,
   LeftShift: UiohookKey.Shift,
   Space: UiohookKey.Space,
+  Q: UiohookKey.Q,
   F1: UiohookKey.F1,
   F2: UiohookKey.F2,
   F3: UiohookKey.F3,

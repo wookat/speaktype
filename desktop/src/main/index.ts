@@ -5,7 +5,7 @@ import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
-import { ensureBridge, hasAppKey, showBridge } from "./doubao";
+import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
 import { HOLD_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import {
   clearHistory,
@@ -207,6 +207,8 @@ void app.whenReady().then(() => {
   toastWin = createToastWindow();
   recorderWin = createRecorderWindow();
   setupTray();
+
+  onAppKeyCaptured(() => pushSettings());
 
   const settings = getSettings();
   applyHotkeys(settings);

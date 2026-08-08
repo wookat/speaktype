@@ -3,7 +3,8 @@ import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { HistoryItem, Persona, Settings, Stats } from "../shared/types";
 
 export const DEFAULT_SETTINGS: Settings = {
-  hotkeyToggle: "Alt+Space",
+  // Alt+Space 是 Windows 系统菜单键，会让目标窗口进入菜单模态吃掉 Ctrl+V，默认避开
+  hotkeyToggle: "Alt+Q",
   hotkeyHold: "RightCtrl",
   holdDelayMs: 120,
   minRecordMs: 300,
