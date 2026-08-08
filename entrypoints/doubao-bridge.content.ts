@@ -6,6 +6,7 @@ import {
   type ToBridge,
 } from "@/lib/asr/doubao/messages";
 import { buildWsUrl, type DoubaoIds } from "@/lib/asr/doubao/protocol";
+import { getDoubaoAppKeyCache, setDoubaoAppKeyCache } from "@/lib/doubao-key";
 
 /**
  * 豆包语音识别桥接。
@@ -22,8 +23,6 @@ const ID_PATTERN = /^\d{15,22}$/;
  */
 const APP_KEY_PATTERN = /(?:api_?)?app_?key["'\s:=]+([A-Za-z0-9_-]{12,32})/i;
 const VOICE_HINT = /voicegenie/i;
-/** 扩展缓存位，与设置里的手填值分开 */
-const APP_KEY_CACHE = "local:doubaoAppKeyCache";
 /** 扫描预算：豆包的 chunk 动辗十几 MB，不能阻塞到超时 */
 const SCAN_BUDGET_MS = 6000;
 const SCAN_CONCURRENCY = 8;
@@ -89,7 +88,7 @@ function discoverIds(): DoubaoIds {
  */
 async function resolveAppKey(configured: string): Promise<string> {
   if (configured) return configured;
-  const cached = await storage.getItem<string>(APP_KEY_CACHE);
+  const cached = await getDoubaoAppKeyCache();
   if (cached) return cached;
 
   /** 只接受 voicegenie 附近的 key，避开页面里其它业务的 app_key */
@@ -107,7 +106,7 @@ async function resolveAppKey(configured: string): Promise<string> {
   for (const source of inline) {
     const key = findNearVoiceGenie(source);
     if (key) {
-      await storage.setItem(APP_KEY_CACHE, key);
+      await setDoubaoAppKeyCache(key);
       return key;
     }
   }
@@ -131,7 +130,7 @@ async function resolveAppKey(configured: string): Promise<string> {
   };
   await Promise.all(Array.from({ length: SCAN_CONCURRENCY }, worker));
 
-  if (found) await storage.setItem(APP_KEY_CACHE, found);
+  if (found) await setDoubaoAppKeyCache(found);
   return found;
 }
 
@@ -147,7 +146,7 @@ export default defineContentScript({
       if (ev.source !== window || ev.origin !== location.origin) return;
       const data = ev.data as { source?: string; appKey?: string } | null;
       if (data?.source !== HOOK_MESSAGE_SOURCE || typeof data.appKey !== "string") return;
-      if (/^[A-Za-z0-9_-]{12,32}$/.test(data.appKey)) void storage.setItem(APP_KEY_CACHE, data.appKey);
+      if (/^[A-Za-z0-9_-]{12,32}$/.test(data.appKey)) void setDoubaoAppKeyCache(data.appKey);
     });
 
     const emit = (msg: FromBridge) => {

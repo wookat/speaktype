@@ -36,16 +36,20 @@ export interface Settings {
 
 export type RecorderState = "idle" | "connecting" | "recording" | "processing" | "error";
 
+/** 错误态下 UI 可以挂的一键修复入口 */
+export type FixAction = "grant-mic" | "open-doubao";
+
 /** content script → background */
 export type UiToBg =
   | { type: "start-record"; selectionText: string }
   | { type: "stop-record" }
   | { type: "cancel-record" }
-  | { type: "get-state" };
+  | { type: "get-state" }
+  | { type: "run-fix"; action: FixAction };
 
 /** background → content script */
 export type BgToUi =
-  | { type: "state"; state: RecorderState; message?: string }
+  | { type: "state"; state: RecorderState; message?: string; action?: FixAction }
   | { type: "partial"; text: string }
   | { type: "final"; text: string; transcript: string }
   | { type: "level"; value: number }
@@ -58,7 +62,7 @@ export type BgToOffscreen =
   | { target: "offscreen"; type: "cancel" };
 
 export type OffscreenToBg =
-  | { target: "background"; type: "state"; state: RecorderState; message?: string }
+  | { target: "background"; type: "state"; state: RecorderState; message?: string; action?: FixAction }
   | { target: "background"; type: "partial"; text: string }
   | { target: "background"; type: "transcript"; text: string }
   | { target: "background"; type: "level"; value: number };

@@ -1,7 +1,14 @@
 import type { ToBridge } from "@/lib/asr/doubao/messages";
 import { polishText } from "@/lib/polish";
 import { getSettings } from "@/lib/settings";
-import type { BgToOffscreen, BgToUi, OffscreenToBg, RecorderState, UiToBg } from "@/lib/types";
+import type {
+  BgToOffscreen,
+  BgToUi,
+  FixAction,
+  OffscreenToBg,
+  RecorderState,
+  UiToBg,
+} from "@/lib/types";
 
 const OFFSCREEN_PATH = "offscreen.html";
 const DOUBAO_TAB_URL = "https://www.doubao.com/chat/";
@@ -38,9 +45,16 @@ export default defineBackground(() => {
     void browser.tabs.sendMessage(tabId, msg).catch(() => {});
   }
 
-  function setState(next: RecorderState, message?: string) {
+  function setState(next: RecorderState, message?: string, action?: FixAction) {
     state = next;
-    toUi({ type: "state", state: next, message });
+    toUi({ type: "state", state: next, message, action });
+  }
+
+  /** 错误提示上的一键修复：授权麦克风 / 去豆包页面激活登录态 */
+  async function runFix(action: FixAction) {
+    const url =
+      action === "grant-mic" ? browser.runtime.getURL("/permission.html") : DOUBAO_TAB_URL;
+    await browser.tabs.create({ url, active: true });
   }
 
   async function startRecording(tabId: number, selection: string) {
@@ -147,7 +161,7 @@ export default defineBackground(() => {
     }
 
     if ("target" in msg && msg.target === "background") {
-      if (msg.type === "state") setState(msg.state, msg.message);
+      if (msg.type === "state") setState(msg.state, msg.message, msg.action);
       else if (msg.type === "partial") toUi({ type: "partial", text: msg.text });
       else if (msg.type === "level") toUi({ type: "level", value: msg.value });
       else if (msg.type === "transcript") void handleTranscript(msg.text);
@@ -168,12 +182,19 @@ export default defineBackground(() => {
       toOffscreen({ target: "offscreen", type: "stop" });
     } else if (ui.type === "cancel-record") {
       toOffscreen({ target: "offscreen", type: "cancel" });
+    } else if (ui.type === "run-fix") {
+      void runFix(ui.action);
     } else if (ui.type === "get-state") {
       // 原生 chrome 会丢弃返回的 Promise，必须 sendResponse
       sendResponse({ state });
       return true;
     }
     return undefined;
+  });
+
+  // 装完就把麦克风授权做掉，别等用户第一次说话时撞一句 not-allowed
+  browser.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") void runFix("grant-mic");
   });
 
   // 全局快捷键：转发给当前标签页的悬浮条，由它决定开始还是停止

@@ -1,3 +1,5 @@
+import { toMicError } from "@/lib/mic";
+
 export const SAMPLE_RATE = 16000;
 
 export interface PcmCapture {
@@ -14,14 +16,18 @@ export interface CaptureHandlers {
  * AudioContext 直接以 16kHz 创建，由浏览器完成重采样，避免自己写重采样器。
  */
 export async function startPcmCapture(handlers: CaptureHandlers): Promise<PcmCapture> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
-  });
+  const stream = await navigator.mediaDevices
+    .getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    })
+    .catch((error: unknown) => {
+      throw toMicError(error) ?? error;
+    });
 
   const ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
   await ctx.audioWorklet.addModule(browser.runtime.getURL("/pcm-worklet.js"));
