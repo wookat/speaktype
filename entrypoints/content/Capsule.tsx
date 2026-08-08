@@ -12,11 +12,6 @@ import { getSettings, setSettings, watchSettings } from "@/lib/settings";
 import { insertText, isEditable, readSelection, resolveTarget, type TextTarget } from "@/lib/insert";
 import type { BgToUi, FixAction, RecorderState, Settings, UiToBg } from "@/lib/types";
 
-interface Anchor {
-  top: number;
-  left: number;
-}
-
 const HINTS: Record<RecorderState, string> = {
   idle: "点一下或长按说话",
   connecting: "准备中…",
@@ -43,7 +38,7 @@ export function Capsule() {
   const [fix, setFix] = useState<FixAction | null>(null);
   const [partial, setPartial] = useState("");
   const [level, setLevel] = useState(0);
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const [visible, setVisible] = useState(false);
   const [showPersonas, setShowPersonas] = useState(false);
   const targetRef = useRef<TextTarget | null>(null);
   const holdTimer = useRef<number | null>(null);
@@ -58,46 +53,31 @@ export function Capsule() {
     return watchSettings(setLocalSettings);
   }, []);
 
-  const reposition = useCallback(() => {
-    const target = targetRef.current;
-    if (!target || !target.isConnected) return;
-    const rect = target.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return;
-    setAnchor({
-      top: Math.min(window.innerHeight - 56, rect.bottom + 8),
-      left: Math.min(window.innerWidth - 360, Math.max(8, rect.left)),
-    });
-  }, []);
-
-  // 跟随焦点：只在可编辑元素上出现，避免全页面常驻打扰
+  // 跟随焦点决定出不出现和落字目标；位置永远固定在屏幕底部居中，不跟着输入框跑
   useEffect(() => {
     const onFocusIn = (ev: Event) => {
       const el = ev.target as Element | null;
       if (isEditable(el)) {
         targetRef.current = el;
-        reposition();
+        setVisible(true);
       }
     };
     const onFocusOut = () => {
       window.setTimeout(() => {
-        if (!isEditable(document.activeElement) && state === "idle") setAnchor(null);
+        if (!isEditable(document.activeElement) && state === "idle") setVisible(false);
       }, 150);
     };
     document.addEventListener("focusin", onFocusIn, true);
     document.addEventListener("focusout", onFocusOut, true);
-    window.addEventListener("scroll", reposition, true);
-    window.addEventListener("resize", reposition);
     if (isEditable(document.activeElement)) {
       targetRef.current = document.activeElement;
-      reposition();
+      setVisible(true);
     }
     return () => {
       document.removeEventListener("focusin", onFocusIn, true);
       document.removeEventListener("focusout", onFocusOut, true);
-      window.removeEventListener("scroll", reposition, true);
-      window.removeEventListener("resize", reposition);
     };
-  }, [reposition, state]);
+  }, [state]);
 
   const start = useCallback(() => {
     const target = resolveTarget(targetRef.current);
@@ -271,21 +251,20 @@ export function Capsule() {
     [settings],
   );
 
-  if (!anchor || !settings) return null;
+  if (!visible || !settings) return null;
 
   const recording = state === "recording" || state === "connecting";
   const bars = [0, 1, 2, 3, 4];
 
   return (
     <div
-      className="fixed z-[2147483647] font-sans"
-      style={{ top: anchor.top, left: anchor.left }}
+      className="fixed bottom-5 left-1/2 z-[2147483647] -translate-x-1/2 font-sans"
       onMouseDown={(e) => e.preventDefault()}
     >
-      <div className="flex w-max max-w-[360px] flex-col gap-1.5">
+      <div className="flex w-max max-w-[320px] flex-col items-center gap-1.5">
         {(partial || message) && (
           <div
-            className={`max-h-[76px] overflow-hidden rounded-2xl px-3 py-2 text-[13px] leading-snug shadow-lg backdrop-blur ${
+            className={`max-h-[68px] overflow-hidden rounded-2xl px-3 py-1.5 text-[12px] leading-snug shadow-lg backdrop-blur ${
               message ? "bg-red-50/95 text-red-700" : "bg-white/95 text-slate-700"
             }`}
           >
@@ -308,7 +287,7 @@ export function Capsule() {
           </div>
         )}
 
-        <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/5 backdrop-blur">
+        <div className="flex items-center gap-1 rounded-full bg-white/95 p-0.5 shadow-lg ring-1 ring-black/5 backdrop-blur">
           <button
             type="button"
             title={`${HINTS[state]}（${pttKey ? `按住 ${formatHotkey(pttKey)} 说话，或 ` : ""}Alt+Q）`}
@@ -327,7 +306,7 @@ export function Capsule() {
             onPointerLeave={() => {
               if (holdTimer.current) window.clearTimeout(holdTimer.current);
             }}
-            className={`flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium transition-colors ${
+            className={`flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors ${
               recording
                 ? "bg-red-500 text-white hover:bg-red-600"
                 : state === "processing"
@@ -356,7 +335,7 @@ export function Capsule() {
               type="button"
               title="选择改写风格"
               onClick={() => setShowPersonas((v) => !v)}
-              className="flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] text-slate-600 hover:bg-slate-100"
+              className="flex h-7 items-center gap-1 rounded-full px-2 text-[12px] text-slate-600 hover:bg-slate-100"
             >
               <span aria-hidden>{persona?.icon}</span>
               <span>{persona?.name}</span>
