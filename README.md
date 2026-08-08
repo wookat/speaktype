@@ -7,7 +7,8 @@
 ## 现状
 
 - Chrome MV3 扩展（WXT + React 19 + Tailwind 4），跟随焦点出现的 Shadow DOM 悬浮胶囊，不污染宿主页面样式。
-- 麦克风采集在 offscreen 文档里完成：一次授权，全站可用，`16kHz / mono / PCM16`、200ms 一包。
+- 麦克风采集在 offscreen 文档里完成：一次授权，全站可用，`16kHz / mono / PCM16`、200ms 一包。offscreen 弹不出权限气泡，所以授权走扩展内的 `permission.html` 页面，设置页与悬浮条上的错误提示都能一键跳过去。
+- 设置页只有三项常用旋钮（按住的键 / 改写风格 / 语言）+ 顶部就绪状态卡（麦克风、豆包语音各带一键修复），引擎与各家凭证收进「高级设置」。
 - 识别引擎可插拔：
   - `doubao`（默认）：复用豆包网页版同款流式识别（SAMI VoiceGenie），走用户自己已登录的 doubao.com 会话，不需要任何 API key。非官方接口，豆包改版可能失效，可一键切换到下面的官方引擎。
   - `webspeech`：浏览器内置，零配置兜底。
@@ -21,7 +22,7 @@
 ## 目录
 
 ```
-entrypoints/        扩展入口：background / content（悬浮 UI）/ offscreen（录音）/ popup（设置）/ doubao-bridge（豆包页内 WS 桥接）
+entrypoints/        扩展入口：background / content（悬浮 UI）/ offscreen（录音）/ popup（设置）/ permission（麦克风授权）/ doubao-bridge（豆包页内 WS 桥接）
 lib/                provider 层、录音与 PCM/WAV、润色、插入、设置
 public/             AudioWorklet
 worker/             Cloudflare Worker 中转（隐藏凭证 + 补火山鉴权头）

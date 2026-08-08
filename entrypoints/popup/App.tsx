@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PROVIDER_LABELS } from "@/lib/asr";
 import {
   EMPTY_HOTKEY,
@@ -10,9 +10,11 @@ import {
 } from "@/lib/hotkey";
 import { webSpeechAvailable } from "@/lib/asr/webspeech";
 import { getSettings, setSettings } from "@/lib/settings";
+import { getDoubaoAppKeyCache } from "@/lib/doubao-key";
 import type { AsrProviderId, Settings } from "@/lib/types";
 
 const PROVIDER_IDS: AsrProviderId[] = ["doubao", "webspeech", "volc", "zhipu"];
+const DOUBAO_URL = "https://www.doubao.com/chat/";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -73,22 +75,75 @@ function HotkeyRecorder({
   );
 }
 
+/** 首屏只回答一个问题：现在能不能直接说话？不能的话，一键去修 */
+function ReadyRow({
+  ok,
+  label,
+  fixLabel,
+  onFix,
+}: {
+  ok: boolean;
+  label: string;
+  fixLabel: string;
+  onFix: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-[13px]">
+      <span className={ok ? "text-slate-600" : "text-slate-900"}>
+        <span aria-hidden className={ok ? "text-emerald-600" : "text-amber-500"}>
+          {ok ? "●" : "○"}
+        </span>{" "}
+        {label}
+      </span>
+      {!ok && (
+        <button
+          type="button"
+          onClick={onFix}
+          className="shrink-0 rounded-full bg-slate-900 px-2.5 py-1 text-[12px] font-medium text-white hover:bg-slate-700"
+        >
+          {fixLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function App() {
   const [settings, setLocal] = useState<Settings | null>(null);
   const [saved, setSaved] = useState(false);
+  const [micOk, setMicOk] = useState<boolean | null>(null);
+  const [doubaoOk, setDoubaoOk] = useState<boolean | null>(null);
+
+  const refreshStatus = useCallback(async (current: Settings) => {
+    const status = await navigator.permissions
+      .query({ name: "microphone" as PermissionName })
+      .catch(() => null);
+    setMicOk(status ? status.state === "granted" : null);
+    const cached = await getDoubaoAppKeyCache();
+    setDoubaoOk(Boolean(current.doubaoAppKey || cached));
+  }, []);
 
   useEffect(() => {
-    void getSettings().then(setLocal);
-  }, []);
+    void getSettings().then((s) => {
+      setLocal(s);
+      void refreshStatus(s);
+    });
+  }, [refreshStatus]);
 
   const update = async (patch: Partial<Settings>) => {
     const next = await setSettings(patch);
     setLocal(next);
+    void refreshStatus(next);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1200);
   };
 
+  const openTab = (url: string) => void browser.tabs.create({ url });
+
   if (!settings) return <div className="p-4 text-[13px] text-slate-500">加载中…</div>;
+
+  const needsDoubao = settings.provider === "doubao";
+  const ready = micOk !== false && (!needsDoubao || doubaoOk !== false);
 
   return (
     <div className="space-y-4 p-4">
@@ -97,7 +152,7 @@ export function App() {
           <h1 className="text-base font-semibold text-slate-900">SpeakType</h1>
           <p className="text-[12px] text-slate-500">
             你说，我写 ·{" "}
-            {settings?.pushToTalk && settings.pushToTalkKey
+            {settings.pushToTalk && settings.pushToTalkKey
               ? `按住 ${settings.pushToTalkKey} 说话`
               : "Alt+Q 开始说话"}
           </p>
@@ -105,107 +160,42 @@ export function App() {
         {saved && <span className="text-[11px] text-emerald-600">已保存</span>}
       </header>
 
-      <Field label="识别引擎">
-        <select
-          className={inputClass}
-          value={settings.provider}
-          onChange={(e) => void update({ provider: e.target.value as AsrProviderId })}
-        >
-          {PROVIDER_IDS.map((id) => (
-            <option key={id} value={id}>
-              {PROVIDER_LABELS[id]}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      {settings.provider === "webspeech" && !webSpeechAvailable() && (
-        <p className="rounded-lg bg-amber-50 px-2.5 py-2 text-[12px] text-amber-700">
-          当前浏览器不支持内置识别，请改用火山或智谱引擎。
+      <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+        <p className="text-[12px] font-medium text-slate-500">
+          {ready ? "准备就绪，去任意输入框说话吧" : "还差一步就能用"}
         </p>
-      )}
-
-      {settings.provider === "doubao" && (
-        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
-          <p className="text-[12px] leading-snug text-slate-600">
-            用你自己已登录的 doubao.com 会话做识别，效果与豆包网页版一致，无需 API key。
-            <br />
-            识别时会自动在后台打开一个 doubao.com 标签页；这是非官方接口，豆包改版后可能失效，届时切回其它引擎即可。
+        <ReadyRow
+          ok={micOk !== false}
+          label="麦克风已授权"
+          fixLabel="去授权"
+          onFix={() => openTab(browser.runtime.getURL("/permission.html"))}
+        />
+        {needsDoubao && (
+          <ReadyRow
+            ok={doubaoOk !== false}
+            label="豆包语音已就绪"
+            fixLabel="去激活"
+            onFix={() => openTab(DOUBAO_URL)}
+          />
+        )}
+        {needsDoubao && doubaoOk === false && (
+          <p className="text-[11px] leading-snug text-slate-400">
+            在豆包页面登录后用一次它自带的语音输入，扩展会自动记住入口密钥，之后无需再管。
           </p>
-          <Field
-            label="语音入口 app key（可选）"
-            hint="留空时自动提取：在豆包页面用一次它自带的语音输入，扩展会从那次连接里截到 key 并缓存；实在取不到再从 DevTools → Network 的 voicegenie 连接拷 api_app_key 填这里"
-          >
-            <input
-              className={inputClass}
-              placeholder="留空＝自动提取"
-              value={settings.doubaoAppKey}
-              onChange={(e) => void update({ doubaoAppKey: e.target.value.trim() })}
-            />
-          </Field>
-        </div>
-      )}
+        )}
+      </div>
 
-      {settings.provider === "volc" && (
-        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
-          <Field label="中转地址" hint="火山流式接口的鉴权在请求头上，浏览器无法直接设置，需经中转（见仓库 worker/）">
-            <input
-              className={inputClass}
-              placeholder="https://speaktype-relay.workers.dev"
-              value={settings.proxyUrl}
-              onChange={(e) => void update({ proxyUrl: e.target.value.trim() })}
-            />
-          </Field>
-          <Field label="App ID（可选，自带凭证）">
-            <input
-              className={inputClass}
-              value={settings.volcAppKey}
-              onChange={(e) => void update({ volcAppKey: e.target.value.trim() })}
-            />
-          </Field>
-          <Field label="Access Token（可选，自带凭证）">
-            <input
-              type="password"
-              className={inputClass}
-              value={settings.volcAccessKey}
-              onChange={(e) => void update({ volcAccessKey: e.target.value.trim() })}
-            />
-          </Field>
-        </div>
-      )}
-
-      {settings.provider === "zhipu" && (
-        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
-          <Field label="智谱 API Key" hint="填写后直连开放平台；留空则走中转地址">
-            <input
-              type="password"
-              className={inputClass}
-              value={settings.zhipuApiKey}
-              onChange={(e) => void update({ zhipuApiKey: e.target.value.trim() })}
-            />
-          </Field>
-          <Field label="中转地址（可选）">
-            <input
-              className={inputClass}
-              value={settings.proxyUrl}
-              onChange={(e) => void update({ proxyUrl: e.target.value.trim() })}
-            />
-          </Field>
-        </div>
-      )}
-
-      <Field label="识别语言">
-        <select
-          className={inputClass}
-          value={settings.language}
-          onChange={(e) => void update({ language: e.target.value })}
+      {settings.pushToTalk && (
+        <Field
+          label="按住说话的键"
+          hint="在输入框里按住该键开始录音，松手结束。可用纯修饰键（Ctrl / Ctrl+Alt）或组合键（F2 / Ctrl+Space）"
         >
-          <option value="zh-CN">中文（普通话）</option>
-          <option value="en-US">English</option>
-          <option value="ja-JP">日本語</option>
-          <option value="yue-CN">粤语</option>
-        </select>
-      </Field>
+          <HotkeyRecorder
+            value={formatHotkey(parseHotkey(settings.pushToTalkKey))}
+            onChange={(next) => void update({ pushToTalkKey: next })}
+          />
+        </Field>
+      )}
 
       <Field label="改写风格">
         <select
@@ -221,79 +211,164 @@ export function App() {
         </select>
       </Field>
 
-      <div className="space-y-2 rounded-xl bg-slate-50 p-3">
-        <label className="flex items-center gap-2 text-[13px] text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.pushToTalk}
-            onChange={(e) => void update({ pushToTalk: e.target.checked })}
-          />
-          按住说话（松手就落字）
-        </label>
-        {settings.pushToTalk && (
-          <Field
-            label="按住的键"
-            hint="在输入框里按住该键超过 0.25 秒开始录音，松手结束；按住期间按了其它键则当普通快捷键放过。可用纯修饰键（Ctrl / Ctrl+Alt）或组合键（F2 / Ctrl+Space）"
-          >
-            <HotkeyRecorder
-              value={formatHotkey(parseHotkey(settings.pushToTalkKey))}
-              onChange={(next) => void update({ pushToTalkKey: next })}
-            />
-          </Field>
-        )}
-      </div>
+      <Field label="识别语言">
+        <select
+          className={inputClass}
+          value={settings.language}
+          onChange={(e) => void update({ language: e.target.value })}
+        >
+          <option value="zh-CN">中文（普通话）</option>
+          <option value="en-US">English</option>
+          <option value="ja-JP">日本語</option>
+          <option value="yue-CN">粤语</option>
+        </select>
+      </Field>
 
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-[13px] text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.polish}
-            onChange={(e) => void update({ polish: e.target.checked })}
-          />
-          AI 润色（关闭则只做本地口语清理）
-        </label>
-        <label className="flex items-center gap-2 text-[13px] text-slate-700">
-          <input
-            type="checkbox"
-            checked={settings.autoInsert}
-            onChange={(e) => void update({ autoInsert: e.target.checked })}
-          />
-          识别完成后自动插入光标处
-        </label>
-      </div>
+      <details className="rounded-xl border border-slate-200 px-3 py-2">
+        <summary className="cursor-pointer text-[13px] font-medium text-slate-700">高级设置</summary>
 
-      {settings.polish && (
-        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
-          <p className="text-[12px] leading-snug text-slate-600">
-            润色模型任选：填任意 OpenAI 兼容端点即可（DeepSeek / Kimi / 千问 / OpenAI / 本地 Ollama
-            …）。三项都留空时回退到智谱 key 或中转，都没有就只做本地口语清理，不影响识别。
-          </p>
-          <Field label="接口地址" hint="如 https://api.deepseek.com/v1（也可直接粘 /chat/completions 全路径）">
+        <div className="mt-3 space-y-4">
+          <label className="flex items-center gap-2 text-[13px] text-slate-700">
             <input
-              className={inputClass}
-              placeholder="https://api.deepseek.com/v1"
-              value={settings.llmBaseUrl}
-              onChange={(e) => void update({ llmBaseUrl: e.target.value.trim() })}
+              type="checkbox"
+              checked={settings.pushToTalk}
+              onChange={(e) => void update({ pushToTalk: e.target.checked })}
             />
-          </Field>
-          <Field label="API Key">
+            按住说话（关掉则只用按钮和 Alt+Q）
+          </label>
+          <label className="flex items-center gap-2 text-[13px] text-slate-700">
             <input
-              type="password"
-              className={inputClass}
-              value={settings.llmApiKey}
-              onChange={(e) => void update({ llmApiKey: e.target.value.trim() })}
+              type="checkbox"
+              checked={settings.autoInsert}
+              onChange={(e) => void update({ autoInsert: e.target.checked })}
             />
-          </Field>
-          <Field label="模型">
+            识别完成后自动插入光标处
+          </label>
+          <label className="flex items-center gap-2 text-[13px] text-slate-700">
             <input
-              className={inputClass}
-              placeholder="deepseek-chat"
-              value={settings.llmModel}
-              onChange={(e) => void update({ llmModel: e.target.value.trim() })}
+              type="checkbox"
+              checked={settings.polish}
+              onChange={(e) => void update({ polish: e.target.checked })}
             />
+            AI 润色（关闭则只做本地口语清理）
+          </label>
+
+          <Field label="识别引擎">
+            <select
+              className={inputClass}
+              value={settings.provider}
+              onChange={(e) => void update({ provider: e.target.value as AsrProviderId })}
+            >
+              {PROVIDER_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {PROVIDER_LABELS[id]}
+                </option>
+              ))}
+            </select>
           </Field>
+
+          {settings.provider === "webspeech" && !webSpeechAvailable() && (
+            <p className="rounded-lg bg-amber-50 px-2.5 py-2 text-[12px] text-amber-700">
+              当前浏览器不支持内置识别，请改用其它引擎。
+            </p>
+          )}
+
+          {settings.provider === "doubao" && (
+            <Field
+              label="豆包语音入口 app key（可选）"
+              hint="留空即自动提取；实在取不到再从 DevTools → Network 的 voicegenie 连接里拷 api_app_key"
+            >
+              <input
+                className={inputClass}
+                placeholder="留空＝自动提取"
+                value={settings.doubaoAppKey}
+                onChange={(e) => void update({ doubaoAppKey: e.target.value.trim() })}
+              />
+            </Field>
+          )}
+
+          {settings.provider === "volc" && (
+            <>
+              <Field label="中转地址" hint="火山流式接口的鉴权在请求头上，浏览器无法直接设置，需经中转（见仓库 worker/）">
+                <input
+                  className={inputClass}
+                  placeholder="https://speaktype-relay.workers.dev"
+                  value={settings.proxyUrl}
+                  onChange={(e) => void update({ proxyUrl: e.target.value.trim() })}
+                />
+              </Field>
+              <Field label="App ID（可选，自带凭证）">
+                <input
+                  className={inputClass}
+                  value={settings.volcAppKey}
+                  onChange={(e) => void update({ volcAppKey: e.target.value.trim() })}
+                />
+              </Field>
+              <Field label="Access Token（可选，自带凭证）">
+                <input
+                  type="password"
+                  className={inputClass}
+                  value={settings.volcAccessKey}
+                  onChange={(e) => void update({ volcAccessKey: e.target.value.trim() })}
+                />
+              </Field>
+            </>
+          )}
+
+          {settings.provider === "zhipu" && (
+            <>
+              <Field label="智谱 API Key" hint="填写后直连开放平台；留空则走中转地址">
+                <input
+                  type="password"
+                  className={inputClass}
+                  value={settings.zhipuApiKey}
+                  onChange={(e) => void update({ zhipuApiKey: e.target.value.trim() })}
+                />
+              </Field>
+              <Field label="中转地址（可选）">
+                <input
+                  className={inputClass}
+                  value={settings.proxyUrl}
+                  onChange={(e) => void update({ proxyUrl: e.target.value.trim() })}
+                />
+              </Field>
+            </>
+          )}
+
+          {settings.polish && (
+            <div className="space-y-3 rounded-xl bg-slate-50 p-3">
+              <p className="text-[12px] leading-snug text-slate-600">
+                润色模型任选：填任意 OpenAI 兼容端点（DeepSeek / Kimi / 千问 / OpenAI / 本地 Ollama
+                …）。留空就只做本地口语清理，不影响识别。
+              </p>
+              <Field label="接口地址" hint="如 https://api.deepseek.com/v1（也可直接粘 /chat/completions 全路径）">
+                <input
+                  className={inputClass}
+                  placeholder="https://api.deepseek.com/v1"
+                  value={settings.llmBaseUrl}
+                  onChange={(e) => void update({ llmBaseUrl: e.target.value.trim() })}
+                />
+              </Field>
+              <Field label="API Key">
+                <input
+                  type="password"
+                  className={inputClass}
+                  value={settings.llmApiKey}
+                  onChange={(e) => void update({ llmApiKey: e.target.value.trim() })}
+                />
+              </Field>
+              <Field label="模型">
+                <input
+                  className={inputClass}
+                  placeholder="deepseek-chat"
+                  value={settings.llmModel}
+                  onChange={(e) => void update({ llmModel: e.target.value.trim() })}
+                />
+              </Field>
+            </div>
+          )}
         </div>
-      )}
+      </details>
     </div>
   );
 }

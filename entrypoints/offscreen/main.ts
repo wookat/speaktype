@@ -1,7 +1,8 @@
 import { getProvider } from "@/lib/asr";
 import type { AsrSession } from "@/lib/asr";
 import { startPcmCapture, type PcmCapture } from "@/lib/audio/capture";
-import type { BgToOffscreen, OffscreenToBg, RecorderState } from "@/lib/types";
+import { toMicError } from "@/lib/mic";
+import type { BgToOffscreen, FixAction, OffscreenToBg, RecorderState } from "@/lib/types";
 
 let capture: PcmCapture | null = null;
 let session: AsrSession | null = null;
@@ -16,8 +17,17 @@ function send(msg: OffscreenToBg) {
   void browser.runtime.sendMessage(msg).catch(() => {});
 }
 
-function report(state: RecorderState, message?: string) {
-  send({ target: "background", type: "state", state, message });
+function report(state: RecorderState, message?: string, action?: FixAction) {
+  send({ target: "background", type: "state", state, message, action });
+}
+
+/** 错误 → 人话 + 可点的修复入口 */
+function describe(error: unknown, provider: string): { message: string; action?: FixAction } {
+  const mic = toMicError(error);
+  if (mic) return { message: mic.message, action: "grant-mic" };
+  const message = error instanceof Error ? error.message : String(error);
+  if (provider === "doubao" && /doubao|豆包/.test(message)) return { message, action: "open-doubao" };
+  return { message };
 }
 
 async function teardown() {
@@ -61,7 +71,8 @@ async function start(msg: Extract<BgToOffscreen, { type: "start" }>) {
     pendingEnd = null;
     session = null;
     await teardown();
-    report("error", error instanceof Error ? error.message : String(error));
+    const { message, action } = describe(error, msg.settings.provider);
+    report("error", message, action);
   }
 }
 
@@ -82,7 +93,8 @@ async function stop() {
     const text = await current.finish();
     send({ target: "background", type: "transcript", text });
   } catch (error) {
-    report("error", error instanceof Error ? error.message : String(error));
+    const { message, action } = describe(error, "");
+    report("error", message, action);
   } finally {
     busy = false;
   }

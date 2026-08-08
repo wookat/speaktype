@@ -10,7 +10,7 @@ import {
 import { findPersona } from "@/lib/personas";
 import { getSettings, setSettings, watchSettings } from "@/lib/settings";
 import { insertText, isEditable, readSelection, resolveTarget, type TextTarget } from "@/lib/insert";
-import type { BgToUi, RecorderState, Settings, UiToBg } from "@/lib/types";
+import type { BgToUi, FixAction, RecorderState, Settings, UiToBg } from "@/lib/types";
 
 interface Anchor {
   top: number;
@@ -40,6 +40,7 @@ export function Capsule() {
   const [settings, setLocalSettings] = useState<Settings | null>(null);
   const [state, setState] = useState<RecorderState>("idle");
   const [message, setMessage] = useState("");
+  const [fix, setFix] = useState<FixAction | null>(null);
   const [partial, setPartial] = useState("");
   const [level, setLevel] = useState(0);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -103,6 +104,7 @@ export function Capsule() {
     if (target) targetRef.current = target;
     setPartial("");
     setMessage("");
+    setFix(null);
     const startMsg: UiToBg = {
       type: "start-record",
       selectionText: readSelection(targetRef.current),
@@ -142,6 +144,7 @@ export function Capsule() {
         if (watchdog.current) window.clearTimeout(watchdog.current);
         setState(msg.state);
         if (msg.message) setMessage(msg.message);
+        setFix(msg.action ?? null);
         if (msg.state === "recording") setMessage("");
       } else if (msg.type === "partial") {
         setPartial(msg.text);
@@ -288,6 +291,20 @@ export function Capsule() {
           >
             {/* 只显示尾部：说得久了也不会把胶囊一直往下顶 */}
             {message || partial.slice(-140)}
+            {message && fix && (
+              <button
+                type="button"
+                onClick={() => {
+                  send({ type: "run-fix", action: fix });
+                  setMessage("");
+                  setFix(null);
+                  setState("idle");
+                }}
+                className="ml-2 rounded-full bg-red-600 px-2.5 py-0.5 text-[12px] font-medium text-white hover:bg-red-700"
+              >
+                {fix === "grant-mic" ? "去授权麦克风" : "打开豆包登录"}
+              </button>
+            )}
           </div>
         )}
 
