@@ -178,10 +178,14 @@ export default defineContentScript({
       );
     };
 
-    browser.runtime.onMessage.addListener((raw: unknown) => {
+    browser.runtime.onMessage.addListener((raw: unknown, _sender, sendResponse) => {
       const msg = raw as ToBridge;
       if (!msg || msg.target !== "doubao-bridge") return;
-      if (msg.type === "ping") return Promise.resolve({ alive: true });
+      if (msg.type === "ping") {
+        // browser 这里就是原生 chrome（无 polyfill）：返回 Promise 会被丢弃，必须 sendResponse
+        sendResponse({ alive: true });
+        return true;
+      }
       if (msg.type === "open") void open(msg.language, msg.appKey);
       else if (msg.type === "frame") {
         if (socket?.readyState === WebSocket.OPEN) socket.send(fromBase64(msg.data));

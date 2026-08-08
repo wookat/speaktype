@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="utf-8"><title>SpeakType 测试页</title>
+<style>
+body { font-family: sans-serif; max-width: 800px; margin: 40px auto; }
+.box { margin-bottom: 60px; }
+input, textarea, .ce { width: 100%; font-size: 15px; padding: 8px; box-sizing: border-box; }
+.ce { border: 1px solid #888; min-height: 80px; border-radius: 4px; }
+.spacer { height: 600px; background: repeating-linear-gradient(#fafafa, #eee 100px); }
+</style></head>
+<body>
+<h1>SpeakType 测试页</h1>
+<div class="box"><label>input[type=text]</label><input id="i1" type="text" placeholder="input 输入框"></div>
+<div class="box"><label>textarea</label><textarea id="t1" rows="4" placeholder="textarea 输入框"></textarea></div>
+<div class="box"><label>contenteditable</label><div id="c1" class="ce" contenteditable="true"></div></div>
+<div class="spacer">滚动占位</div>
+<p>底部</p>
+</body></html>
