@@ -9,11 +9,17 @@ export const DEFAULT_SETTINGS: Settings = {
   volcAccessKey: "",
   zhipuApiKey: "",
   doubaoAppKey: "",
+  llmBaseUrl: "",
+  llmApiKey: "",
+  llmModel: "",
   language: "zh-CN",
   personaId: "default",
   personas: BUILTIN_PERSONAS,
   polish: true,
   autoInsert: true,
+  pushToTalk: true,
+  // 对齐讯飞等输入法的习惯：按住 Ctrl 说话（纯修饰键不产生字符，按住期间按别的键则取消）
+  pushToTalkKey: "Ctrl",
 };
 
 const item = storage.defineItem<Settings>("local:settings", {

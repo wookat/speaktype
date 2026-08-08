@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 import { PROVIDER_LABELS } from "@/lib/asr";
+import {
+  EMPTY_HOTKEY,
+  formatHotkey,
+  hotkeyFromEvent,
+  isValidHotkey,
+  parseHotkey,
+  type Hotkey,
+} from "@/lib/hotkey";
 import { webSpeechAvailable } from "@/lib/asr/webspeech";
 import { getSettings, setSettings } from "@/lib/settings";
 import type { AsrProviderId, Settings } from "@/lib/types";
@@ -18,6 +26,52 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-slate-900";
+
+/** 录键位：进入录制后按下的第一组键就是新键位（松手时落定，支持纯 Ctrl 这种长按键） */
+function HotkeyRecorder({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [recording, setRecording] = useState(false);
+  const [draft, setDraft] = useState<Hotkey>(EMPTY_HOTKEY);
+
+  const label = recording ? formatHotkey(draft) || "按下想用的键…" : value || "未设置";
+
+  return (
+    <button
+      type="button"
+      className={`w-full rounded-lg border px-2.5 py-1.5 text-left text-[13px] outline-none ${
+        recording ? "border-slate-900 bg-slate-50" : "border-slate-200"
+      }`}
+      onClick={() => {
+        setDraft(EMPTY_HOTKEY);
+        setRecording(true);
+      }}
+      onBlur={() => setRecording(false)}
+      onKeyDown={(e) => {
+        if (!recording) return;
+        e.preventDefault();
+        if (e.key === "Escape") {
+          setRecording(false);
+          return;
+        }
+        setDraft(hotkeyFromEvent(e.nativeEvent));
+      }}
+      onKeyUp={(e) => {
+        if (!recording) return;
+        e.preventDefault();
+        if (!isValidHotkey(draft)) return;
+        onChange(formatHotkey(draft));
+        setRecording(false);
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 export function App() {
   const [settings, setLocal] = useState<Settings | null>(null);
@@ -41,7 +95,12 @@ export function App() {
       <header className="flex items-baseline justify-between">
         <div>
           <h1 className="text-base font-semibold text-slate-900">SpeakType</h1>
-          <p className="text-[12px] text-slate-500">你说，我写 · Alt+Q 开始说话</p>
+          <p className="text-[12px] text-slate-500">
+            你说，我写 ·{" "}
+            {settings?.pushToTalk && settings.pushToTalkKey
+              ? `按住 ${settings.pushToTalkKey} 说话`
+              : "Alt+Q 开始说话"}
+          </p>
         </div>
         {saved && <span className="text-[11px] text-emerald-600">已保存</span>}
       </header>
@@ -162,6 +221,28 @@ export function App() {
         </select>
       </Field>
 
+      <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+        <label className="flex items-center gap-2 text-[13px] text-slate-700">
+          <input
+            type="checkbox"
+            checked={settings.pushToTalk}
+            onChange={(e) => void update({ pushToTalk: e.target.checked })}
+          />
+          按住说话（松手就落字）
+        </label>
+        {settings.pushToTalk && (
+          <Field
+            label="按住的键"
+            hint="在输入框里按住该键超过 0.25 秒开始录音，松手结束；按住期间按了其它键则当普通快捷键放过。可用纯修饰键（Ctrl / Ctrl+Alt）或组合键（F2 / Ctrl+Space）"
+          >
+            <HotkeyRecorder
+              value={formatHotkey(parseHotkey(settings.pushToTalkKey))}
+              onChange={(next) => void update({ pushToTalkKey: next })}
+            />
+          </Field>
+        )}
+      </div>
+
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-[13px] text-slate-700">
           <input
@@ -180,6 +261,39 @@ export function App() {
           识别完成后自动插入光标处
         </label>
       </div>
+
+      {settings.polish && (
+        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
+          <p className="text-[12px] leading-snug text-slate-600">
+            润色模型任选：填任意 OpenAI 兼容端点即可（DeepSeek / Kimi / 千问 / OpenAI / 本地 Ollama
+            …）。三项都留空时回退到智谱 key 或中转，都没有就只做本地口语清理，不影响识别。
+          </p>
+          <Field label="接口地址" hint="如 https://api.deepseek.com/v1（也可直接粘 /chat/completions 全路径）">
+            <input
+              className={inputClass}
+              placeholder="https://api.deepseek.com/v1"
+              value={settings.llmBaseUrl}
+              onChange={(e) => void update({ llmBaseUrl: e.target.value.trim() })}
+            />
+          </Field>
+          <Field label="API Key">
+            <input
+              type="password"
+              className={inputClass}
+              value={settings.llmApiKey}
+              onChange={(e) => void update({ llmApiKey: e.target.value.trim() })}
+            />
+          </Field>
+          <Field label="模型">
+            <input
+              className={inputClass}
+              placeholder="deepseek-chat"
+              value={settings.llmModel}
+              onChange={(e) => void update({ llmModel: e.target.value.trim() })}
+            />
+          </Field>
+        </div>
+      )}
     </div>
   );
 }

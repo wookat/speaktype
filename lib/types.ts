@@ -17,6 +17,10 @@ export interface Settings {
   zhipuApiKey: string;
   /** 豆包网页版语音入口的 api_app_key；置空时桥接尝试从页面自动取 */
   doubaoAppKey: string;
+  /** 润色用的 OpenAI 兼容端点（DeepSeek/Kimi/千问/OpenAI 等均可）；置空时回退到智谱/中转 */
+  llmBaseUrl: string;
+  llmApiKey: string;
+  llmModel: string;
   language: string;
   personaId: string;
   personas: Persona[];
@@ -24,6 +28,10 @@ export interface Settings {
   polish: boolean;
   /** 识别到最终结果后自动插入光标处 */
   autoInsert: boolean;
+  /** 按住说话开关 */
+  pushToTalk: boolean;
+  /** 按住说话的键位，如 `Ctrl`、`Ctrl+Alt`、`F2` */
+  pushToTalkKey: string;
 }
 
 export type RecorderState = "idle" | "connecting" | "recording" | "processing" | "error";
