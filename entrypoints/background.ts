@@ -133,6 +133,21 @@ export default defineBackground(() => {
     return created.id;
   }
 
+  // 抢跑建联：按下热键的瞬间就把慢路径（offscreen 文档、豆包标签页）提前拉起来，
+  // 真正起录时就只剩 WebSocket 握手。探活很便宜，但仍限频避免连续 keydown 风暴。
+  let lastWarmUp = 0;
+  async function warmUp() {
+    const now = Date.now();
+    if (now - lastWarmUp < 5000) return;
+    lastWarmUp = now;
+    await ensureOffscreen().catch(() => {});
+    const settings = await getSettings();
+    if (settings.provider !== "doubao") return;
+    bridgeQueue = bridgeQueue.then(() => ensureBridgeTab()).catch(() => {
+      bridgeTabId = null;
+    });
+  }
+
   function forwardToBridge(msg: ToBridge) {
     bridgeQueue = bridgeQueue
       .then(async () => {
@@ -184,6 +199,8 @@ export default defineBackground(() => {
       toOffscreen({ target: "offscreen", type: "cancel" });
     } else if (ui.type === "run-fix") {
       void runFix(ui.action);
+    } else if (ui.type === "warm-up") {
+      void warmUp();
     } else if (ui.type === "get-state") {
       // 原生 chrome 会丢弃返回的 Promise，必须 sendResponse
       sendResponse({ state });

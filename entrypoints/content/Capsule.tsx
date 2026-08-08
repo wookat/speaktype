@@ -190,6 +190,8 @@ export function Capsule() {
       if (event.repeat || !matchesHotkey(event, pttKey)) return;
       if (!isEditable(document.activeElement)) return;
       armed = true;
+      // 抢跑：长按判定的 250ms 里先把 offscreen/豆包标签页拉起来，起录只剩握手
+      send({ type: "warm-up" });
       const begin = () => {
         talking = true;
         start();
