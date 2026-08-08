@@ -91,6 +91,14 @@ immediately before each click.
 - `get-state` (and any background `onMessage` reply) must also use `sendResponse(...) + return true`;
   verify from an extension page console with
   `chrome.runtime.sendMessage({type:'get-state'})` → expect `{state:"idle"}`, not `undefined`.
+- **Recurring dead-SW state**: the extension's MV3 service worker suspends after ~30s idle and on
+  this box sometimes never wakes again — clicking 说话 / push-to-talk / `runtime.sendMessage`
+  produce NO reaction and no error (`get-state` times out; `chrome://serviceworker-internals`
+  shows Running Status: STOPPED). It reproduced repeatedly during PR #5 testing (every few minutes
+  of idling). Recovery: reload the extension on `chrome://extensions` (the Start button on
+  serviceworker-internals starts the SW but messaging may still fail). Before declaring any
+  keyboard/UI feature broken, first confirm the SW is alive (e.g. the 说话 button reacts);
+  otherwise you will misattribute the failure.
 - To get the *actual* WS URL/params the real doubao web app uses, there is a helper extension
   "WS Hook (research)" (`C:\Users\Administrator\tts\wshook.log`) that logs `ws-open` / `ws-close` /
   `ws-send-audio` lines with full query strings — far faster than reading DevTools Network.
@@ -111,6 +119,9 @@ No credentials available. Only assert the graceful-failure UX: red bubble with a
 state returns to idle, nothing inserted, page does not crash.
 
 ## Misc UI-automation notes
+- The popup's React-controlled text inputs (LLM 接口地址/API Key/模型 etc.) drop characters when
+  typed fast via automation. Fill them with `Set-Clipboard -Value '...'` + click + Ctrl+A + Ctrl+V
+  and verify the DOM value afterwards.
 - Typing `chrome://…` into the omnibox with xdotool drops characters. Use
   `Set-Clipboard -Value 'chrome://extensions'` then Ctrl+V, or type `chrome`, send
   `shift+semicolon`, then `//extensions`.

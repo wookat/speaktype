@@ -25,6 +25,8 @@ const HINTS: Record<RecorderState, string> = {
   error: "出错了",
 };
 
+const BACKGROUND_DEAD = "扩展后台没响应：请到 chrome://extensions 重载 SpeakType 后重试";
+
 function send(msg: UiToBg) {
   void browser.runtime.sendMessage(msg).catch(() => {});
 }
@@ -40,6 +42,9 @@ export function Capsule() {
   const targetRef = useRef<TextTarget | null>(null);
   const holdTimer = useRef<number | null>(null);
   const holdFired = useRef(false);
+  const watchdog = useRef<number | null>(null);
+  const stateRef = useRef<RecorderState>("idle");
+  stateRef.current = state;
 
   useEffect(() => {
     void getSettings().then(setLocalSettings);
@@ -92,7 +97,21 @@ export function Capsule() {
     if (target) targetRef.current = target;
     setPartial("");
     setMessage("");
-    send({ type: "start-record", selectionText: readSelection(targetRef.current) });
+    const startMsg: UiToBg = {
+      type: "start-record",
+      selectionText: readSelection(targetRef.current),
+    };
+    // 后台 service worker 偶尔会挂掉且叫不醒（连接不上或没人应答）——不能让用户面对毫无反应的胶囊
+    void browser.runtime.sendMessage(startMsg).catch(() => {
+      setMessage(BACKGROUND_DEAD);
+      setState("error");
+    });
+    if (watchdog.current) window.clearTimeout(watchdog.current);
+    watchdog.current = window.setTimeout(() => {
+      if (stateRef.current !== "idle") return;
+      setMessage(BACKGROUND_DEAD);
+      setState("error");
+    }, 2500);
   }, []);
 
   const stop = useCallback(() => send({ type: "stop-record" }), []);
@@ -106,6 +125,7 @@ export function Capsule() {
     const listener = (raw: unknown) => {
       const msg = raw as BgToUi;
       if (msg.type === "state") {
+        if (watchdog.current) window.clearTimeout(watchdog.current);
         setState(msg.state);
         if (msg.message) setMessage(msg.message);
         if (msg.state === "recording") setMessage("");
@@ -185,19 +205,28 @@ export function Capsule() {
       reset();
     };
 
-    const onBlur = () => {
+    // 离开页面时 keyup 收不到了，必须主动收摊，否则录音一直挂着。
+    // 切标签页只保证 visibilitychange，切到别的程序只保证 window blur，所以两个都听。
+    const abort = () => {
       if (talking) cancel();
       reset();
+    };
+    const onVisibility = () => {
+      if (document.hidden) abort();
     };
 
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("keyup", onKeyUp, true);
-    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", abort);
+    window.addEventListener("pagehide", abort);
     return () => {
       clearTimer();
       document.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("keyup", onKeyUp, true);
-      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", abort);
+      window.removeEventListener("pagehide", abort);
     };
   }, [pttKey, start, stop, cancel]);
 
