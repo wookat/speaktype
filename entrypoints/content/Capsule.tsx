@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  formatHotkey,
+  isModifierKey,
+  isValidHotkey,
+  matchesHotkey,
+  parseHotkey,
+  releasesHotkey,
+} from "@/lib/hotkey";
 import { findPersona } from "@/lib/personas";
 import { getSettings, setSettings, watchSettings } from "@/lib/settings";
 import { insertText, isEditable, readSelection, resolveTarget, type TextTarget } from "@/lib/insert";
@@ -12,7 +20,7 @@ interface Anchor {
 const HINTS: Record<RecorderState, string> = {
   idle: "点一下或长按说话",
   connecting: "准备中…",
-  recording: "正在听，说完再点一下",
+  recording: "正在听，松手或再点一下结束",
   processing: "整理中…",
   error: "出错了",
 };
@@ -120,6 +128,79 @@ export function Capsule() {
     return () => browser.runtime.onMessage.removeListener(listener);
   }, [settings?.autoInsert, toggle]);
 
+  const cancel = useCallback(() => send({ type: "cancel-record" }), []);
+
+  // 按住说话：commands API 收不到松手，只能在页面内自己听 keydown/keyup。
+  // 纯修饰键组合（默认 Ctrl）要按住 250ms 才起录，期间按了别的键就当成普通快捷键放过。
+  const pttKey = useMemo(() => {
+    if (!settings?.pushToTalk) return null;
+    const parsed = parseHotkey(settings.pushToTalkKey);
+    return isValidHotkey(parsed) ? parsed : null;
+  }, [settings?.pushToTalk, settings?.pushToTalkKey]);
+
+  useEffect(() => {
+    if (!pttKey) return;
+    let armed = false; // 组合已按下，等待成为长按
+    let talking = false; // 已经在录音
+    let timer: number | null = null;
+
+    const clearTimer = () => {
+      if (timer != null) window.clearTimeout(timer);
+      timer = null;
+    };
+    const reset = () => {
+      clearTimer();
+      armed = false;
+      talking = false;
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (armed) {
+        // 长按期间按了别的键（Ctrl+C 之类）：让位给页面快捷键，丢掉这次录音
+        if (!matchesHotkey(event, pttKey) && !isModifierKey(event.key)) {
+          if (talking) cancel();
+          reset();
+        }
+        return;
+      }
+      if (event.repeat || !matchesHotkey(event, pttKey)) return;
+      if (!isEditable(document.activeElement)) return;
+      armed = true;
+      const begin = () => {
+        talking = true;
+        start();
+      };
+      if (pttKey.key) {
+        event.preventDefault();
+        begin();
+      } else {
+        timer = window.setTimeout(begin, 250);
+      }
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!armed || !releasesHotkey(event, pttKey)) return;
+      clearTimer();
+      if (talking) stop();
+      reset();
+    };
+
+    const onBlur = () => {
+      if (talking) cancel();
+      reset();
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("keyup", onKeyUp, true);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      clearTimer();
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("keyup", onKeyUp, true);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [pttKey, start, stop, cancel]);
+
   const persona = useMemo(
     () => (settings ? findPersona(settings.personas, settings.personaId) : null),
     [settings],
@@ -151,7 +232,7 @@ export function Capsule() {
         <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/5 backdrop-blur">
           <button
             type="button"
-            title={`${HINTS[state]}（Alt+Q）`}
+            title={`${HINTS[state]}（${pttKey ? `按住 ${formatHotkey(pttKey)} 说话，或 ` : ""}Alt+Q）`}
             onPointerDown={() => {
               holdFired.current = false;
               holdTimer.current = window.setTimeout(() => {

@@ -46,8 +46,29 @@ interface ChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
 
+/** 润色终端优先级：自带 OpenAI 兼容端点 > 智谱直连 > 中转 */
+function resolveEndpoint(
+  settings: Settings,
+): { url: string; model: string; apiKey: string } | null {
+  if (settings.llmBaseUrl && settings.llmApiKey) {
+    const base = settings.llmBaseUrl.replace(/\/$/, "");
+    return {
+      // 允许直接粘完整的 completions 地址，也允许只粘 base
+      url: /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`,
+      model: settings.llmModel || "gpt-4o-mini",
+      apiKey: settings.llmApiKey,
+    };
+  }
+  if (settings.zhipuApiKey)
+    return { url: ZHIPU_CHAT, model: POLISH_MODEL, apiKey: settings.zhipuApiKey };
+  if (settings.proxyUrl)
+    return { url: `${settings.proxyUrl.replace(/\/$/, "")}/polish`, model: POLISH_MODEL, apiKey: "" };
+  return null;
+}
+
 /**
- * AI 润色。有智谱 key 时直连，否则走中转；两者都没有就退化为本地清理。
+ * AI 润色。任意 OpenAI 兼容模型都能用（DeepSeek/Kimi/千问/OpenAI/本地 Ollama …），
+ * 一个都没配就退化为本地口语清理。
  */
 export async function polishText(
   settings: Settings,
@@ -57,19 +78,18 @@ export async function polishText(
   const cleaned = localCleanup(transcript);
   if (!settings.polish || !cleaned) return cleaned;
 
-  const direct = Boolean(settings.zhipuApiKey);
-  if (!direct && !settings.proxyUrl) return cleaned;
+  const endpoint = resolveEndpoint(settings);
+  if (!endpoint) return cleaned;
 
-  const url = direct ? ZHIPU_CHAT : `${settings.proxyUrl.replace(/\/$/, "")}/polish`;
   try {
-    const res = await fetch(url, {
+    const res = await fetch(endpoint.url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(direct ? { Authorization: `Bearer ${settings.zhipuApiKey}` } : {}),
+        ...(endpoint.apiKey ? { Authorization: `Bearer ${endpoint.apiKey}` } : {}),
       },
       body: JSON.stringify({
-        model: POLISH_MODEL,
+        model: endpoint.model,
         temperature: 0.3,
         messages: [{ role: "user", content: buildPrompt(settings, cleaned, selectionText) }],
       }),
