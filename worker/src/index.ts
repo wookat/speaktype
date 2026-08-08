@@ -106,6 +106,8 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors(request.headers.get("Origin")) });
     }
+    // 健康检查不带 Origin，放在来源校验之前，否则配了 ALLOWED_ORIGINS 就探不活
+    if (url.pathname === "/health") return new Response("ok");
     if (!originAllowed(request, env)) return new Response("forbidden", { status: 403 });
 
     if (url.pathname === "/asr/volc") {
@@ -116,7 +118,6 @@ export default {
     }
     if (url.pathname === "/asr/zhipu") return proxyZhipu(request, env, "/audio/transcriptions");
     if (url.pathname === "/polish") return proxyZhipu(request, env, "/chat/completions");
-    if (url.pathname === "/health") return new Response("ok");
 
     return new Response("not found", { status: 404 });
   },
