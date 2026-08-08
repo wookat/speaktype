@@ -1,0 +1,54 @@
+export type AsrProviderId = "webspeech" | "volc" | "zhipu";
+
+export interface Persona {
+  id: string;
+  name: string;
+  icon: string;
+  prompt: string;
+}
+
+export interface Settings {
+  provider: AsrProviderId;
+  /** 服务端代理地址（Cloudflare Worker），用于隐藏 provider 凭证并补齐浏览器无法设置的请求头 */
+  proxyUrl: string;
+  /** 用户自带凭证：留空则走 proxyUrl 上配置的服务端凭证 */
+  volcAppKey: string;
+  volcAccessKey: string;
+  zhipuApiKey: string;
+  language: string;
+  personaId: string;
+  personas: Persona[];
+  /** AI 润色开关，关闭时只做本地口语清理 */
+  polish: boolean;
+  /** 识别到最终结果后自动插入光标处 */
+  autoInsert: boolean;
+}
+
+export type RecorderState = "idle" | "connecting" | "recording" | "processing" | "error";
+
+/** content script → background */
+export type UiToBg =
+  | { type: "start-record"; selectionText: string }
+  | { type: "stop-record" }
+  | { type: "cancel-record" }
+  | { type: "get-state" };
+
+/** background → content script */
+export type BgToUi =
+  | { type: "state"; state: RecorderState; message?: string }
+  | { type: "partial"; text: string }
+  | { type: "final"; text: string; transcript: string }
+  | { type: "level"; value: number }
+  | { type: "hotkey-toggle" };
+
+/** background ↔ offscreen */
+export type BgToOffscreen =
+  | { target: "offscreen"; type: "start"; settings: Settings; selectionText: string }
+  | { target: "offscreen"; type: "stop" }
+  | { target: "offscreen"; type: "cancel" };
+
+export type OffscreenToBg =
+  | { target: "background"; type: "state"; state: RecorderState; message?: string }
+  | { target: "background"; type: "partial"; text: string }
+  | { target: "background"; type: "transcript"; text: string }
+  | { target: "background"; type: "level"; value: number };
