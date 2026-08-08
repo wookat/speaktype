@@ -148,6 +148,28 @@ state returns to idle, nothing inserted, page does not crash.
 - Resize the browser window for responsive checks with a small P/Invoke `MoveWindow` call from
   PowerShell; avoid `xdotool key super+Up` (tiles to half screen).
 
+## Focus-loss / PTT cancel testing (window & tab switching)
+- `WScript.Shell.AppActivate('Untitled - Notepad')` can bring the window to the FRONT while Chrome
+  silently KEEPS keyboard focus — the page then gets no blur/visibilitychange and later receives the
+  real keyup, so a "switch failed to cancel" result may be a harness artifact, not a product bug.
+  Always verify with instrumentation (console markers on keyup/abort/visibility in the built
+  content.js) that blur actually fired before declaring failure.
+- Reliable focus steal: click the target app's taskbar icon via computer-use. The synthetic modifier
+  keyup this injects is exactly the sequence PR #7's 150ms `ending` timer is designed for, so it is
+  a realistic test, not interference.
+- Tab switching without keyboard injection: CDP `PUT /json/activate/<targetId>` (see
+  `cdp_activate.js`). This works reliably (blur+visibilitychange both fire).
+- After a cancel, the last partial text may remain visible in the capsule bubble until the next
+  action (cosmetic; do not mistake it for an insertion — check the input element value).
+
+## Watchdog re-fire verification
+- `start()` clears the bubble text before sending start-record, so a watchdog re-fire from an
+  existing error state is visually provable: red text disappears at keydown and reappears ~2.5s
+  later. Capture it with `poll_bubble2.js` via `cdp_attach.js` (100ms polling with timestamps).
+- Orphaned content script (reload extension, don't refresh page): holding the PTT key now shows the
+  red error ~0.3s after keydown; note the fire-and-forget `send()` helper (stop/cancel path) still
+  throws an uncaught `Extension context invalidated` in the console (cosmetic).
+
 ## Devin Secrets Needed
 - none for the doubao provider (uses the existing logged-in doubao.com session in the Chrome
   profile). A branded Chrome install would be needed for `webspeech`; volc/zhipu need a relay URL

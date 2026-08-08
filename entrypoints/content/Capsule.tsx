@@ -28,7 +28,12 @@ const HINTS: Record<RecorderState, string> = {
 const BACKGROUND_DEAD = "扩展后台没响应：请到 chrome://extensions 重载 SpeakType 后重试";
 
 function send(msg: UiToBg) {
-  void browser.runtime.sendMessage(msg).catch(() => {});
+  // 扩展重载后的孤儿 content script 里 sendMessage 会同步 throw
+  try {
+    void browser.runtime.sendMessage(msg).catch(() => {});
+  } catch {
+    // ignore
+  }
 }
 
 export function Capsule() {
@@ -157,7 +162,10 @@ export function Capsule() {
     return () => browser.runtime.onMessage.removeListener(listener);
   }, [settings?.autoInsert, toggle]);
 
-  const cancel = useCallback(() => send({ type: "cancel-record" }), []);
+  const cancel = useCallback(() => {
+    setPartial("");
+    send({ type: "cancel-record" });
+  }, []);
 
   // 按住说话：commands API 收不到松手，只能在页面内自己听 keydown/keyup。
   // 纯修饰键组合（默认 Ctrl）要按住 250ms 才起录，期间按了别的键就当成普通快捷键放过。
