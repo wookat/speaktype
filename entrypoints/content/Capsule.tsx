@@ -43,6 +43,7 @@ export function Capsule() {
   const holdTimer = useRef<number | null>(null);
   const holdFired = useRef(false);
   const watchdog = useRef<number | null>(null);
+  const answered = useRef(false);
   const stateRef = useRef<RecorderState>("idle");
   stateRef.current = state;
 
@@ -101,16 +102,23 @@ export function Capsule() {
       type: "start-record",
       selectionText: readSelection(targetRef.current),
     };
-    // 后台 service worker 偶尔会挂掉且叫不醒（连接不上或没人应答）——不能让用户面对毫无反应的胶囊
-    void browser.runtime.sendMessage(startMsg).catch(() => {
+    const dead = () => {
       setMessage(BACKGROUND_DEAD);
       setState("error");
-    });
+    };
+    // 后台 service worker 偶尔会挂掉且叫不醒，报错方式三种都得接住：
+    // 同步 throw（扩展重载后页面里的孤儿脚本）、reject、以及消息发出去但无人应答
+    answered.current = false;
+    try {
+      void browser.runtime.sendMessage(startMsg).catch(dead);
+    } catch {
+      dead();
+      return;
+    }
     if (watchdog.current) window.clearTimeout(watchdog.current);
     watchdog.current = window.setTimeout(() => {
-      if (stateRef.current !== "idle") return;
-      setMessage(BACKGROUND_DEAD);
-      setState("error");
+      if (answered.current) return;
+      dead();
     }, 2500);
   }, []);
 
@@ -125,6 +133,7 @@ export function Capsule() {
     const listener = (raw: unknown) => {
       const msg = raw as BgToUi;
       if (msg.type === "state") {
+        answered.current = true;
         if (watchdog.current) window.clearTimeout(watchdog.current);
         setState(msg.state);
         if (msg.message) setMessage(msg.message);
@@ -163,13 +172,19 @@ export function Capsule() {
     let armed = false; // 组合已按下，等待成为长按
     let talking = false; // 已经在录音
     let timer: number | null = null;
+    let ending: number | null = null; // 已收到松手，等一小会儿确认不是焦点离开引起的
 
     const clearTimer = () => {
       if (timer != null) window.clearTimeout(timer);
       timer = null;
     };
+    const clearEnding = () => {
+      if (ending != null) window.clearTimeout(ending);
+      ending = null;
+    };
     const reset = () => {
       clearTimer();
+      clearEnding();
       armed = false;
       talking = false;
     };
@@ -198,14 +213,23 @@ export function Capsule() {
       }
     };
 
+    // 焦点离开页面时 Chrome 会先补发一个被按住修饰键的合成 keyup，看起来跟真松手一模一样，
+    // 所以落字要压后一拍：紧接着来了 blur/hidden 就改判成取消。
     const onKeyUp = (event: KeyboardEvent) => {
-      if (!armed || !releasesHotkey(event, pttKey)) return;
+      if (!armed || ending != null || !releasesHotkey(event, pttKey)) return;
       clearTimer();
-      if (talking) stop();
-      reset();
+      if (!talking) {
+        reset();
+        return;
+      }
+      ending = window.setTimeout(() => {
+        ending = null;
+        stop();
+        reset();
+      }, 150);
     };
 
-    // 离开页面时 keyup 收不到了，必须主动收摊，否则录音一直挂着。
+    // 离开页面时真正的 keyup 收不到了，必须主动收摊，否则录音一直挂着。
     // 切标签页只保证 visibilitychange，切到别的程序只保证 window blur，所以两个都听。
     const abort = () => {
       if (talking) cancel();
@@ -222,6 +246,7 @@ export function Capsule() {
     window.addEventListener("pagehide", abort);
     return () => {
       clearTimer();
+      clearEnding();
       document.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("keyup", onKeyUp, true);
       document.removeEventListener("visibilitychange", onVisibility);
