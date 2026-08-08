@@ -83,6 +83,14 @@ immediately before each click.
   chrome.storage.local.set({ doubaoAppKeyCache: '<key from capture>' })
   ```
   Never commit the key — secret scanning blocks the PR.
+- To force an offscreen-creation failure (testing error surfacing) without touching source, edit
+  the built `.output\chrome-mv3\background.js` and replace the string `offscreen.html` with a
+  nonexistent file (e.g. `offscreen-missing.html`), then reload the extension. Clicking 说话 should
+  show a red `Page failed to load.` bubble (since commit 79afb3a; before it the UI hung silently).
+  Restore with `npm run build` + reload.
+- `get-state` (and any background `onMessage` reply) must also use `sendResponse(...) + return true`;
+  verify from an extension page console with
+  `chrome.runtime.sendMessage({type:'get-state'})` → expect `{state:"idle"}`, not `undefined`.
 - To get the *actual* WS URL/params the real doubao web app uses, there is a helper extension
   "WS Hook (research)" (`C:\Users\Administrator\tts\wshook.log`) that logs `ws-open` / `ws-close` /
   `ws-send-audio` lines with full query strings — far faster than reading DevTools Network.

@@ -138,7 +138,7 @@ export default defineBackground(() => {
       });
   }
 
-  browser.runtime.onMessage.addListener((raw, sender) => {
+  browser.runtime.onMessage.addListener((raw, sender, sendResponse) => {
     const msg = raw as UiToBg | OffscreenToBg | ToBridge;
 
     if ("target" in msg && msg.target === "doubao-bridge") {
@@ -157,13 +157,21 @@ export default defineBackground(() => {
     const ui = msg as UiToBg;
     if (ui.type === "start-record") {
       const tabId = sender.tab?.id;
-      if (tabId != null) void startRecording(tabId, ui.selectionText);
+      // 失败（多半是 offscreen 建不起来）必须冒泡，否则点了「说话」毫无反应
+      if (tabId != null) {
+        void startRecording(tabId, ui.selectionText).catch((error: unknown) => {
+          const reason = error instanceof Error ? error.message : String(error);
+          setState("error", `启动录音失败：${reason}`);
+        });
+      }
     } else if (ui.type === "stop-record") {
       toOffscreen({ target: "offscreen", type: "stop" });
     } else if (ui.type === "cancel-record") {
       toOffscreen({ target: "offscreen", type: "cancel" });
     } else if (ui.type === "get-state") {
-      return Promise.resolve({ state });
+      // 原生 chrome 会丢弃返回的 Promise，必须 sendResponse
+      sendResponse({ state });
+      return true;
     }
     return undefined;
   });

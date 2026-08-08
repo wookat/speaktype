@@ -75,7 +75,7 @@ export function App() {
           </p>
           <Field
             label="语音入口 app key（可选）"
-            hint="留空时自动从豆包页面提取；若提示取不到，在豆包页面 DevTools → Network 里找 voicegenie 连接，复制其 api_app_key 参数填这里"
+            hint="留空时自动提取：在豆包页面用一次它自带的语音输入，扩展会从那次连接里截到 key 并缓存；实在取不到再从 DevTools → Network 的 voicegenie 连接拷 api_app_key 填这里"
           >
             <input
               className={inputClass}

@@ -1,4 +1,10 @@
-import { fromBase64, toBase64, type FromBridge, type ToBridge } from "@/lib/asr/doubao/messages";
+import {
+  HOOK_MESSAGE_SOURCE,
+  fromBase64,
+  toBase64,
+  type FromBridge,
+  type ToBridge,
+} from "@/lib/asr/doubao/messages";
 import { buildWsUrl, type DoubaoIds } from "@/lib/asr/doubao/protocol";
 
 /**
@@ -136,6 +142,14 @@ export default defineContentScript({
   main() {
     let socket: WebSocket | null = null;
 
+    // MAIN world 钩子截到豆包自己 voicegenie 连接的 app key 后从这里进缓存
+    window.addEventListener("message", (ev: MessageEvent) => {
+      if (ev.source !== window || ev.origin !== location.origin) return;
+      const data = ev.data as { source?: string; appKey?: string } | null;
+      if (data?.source !== HOOK_MESSAGE_SOURCE || typeof data.appKey !== "string") return;
+      if (/^[A-Za-z0-9_-]{12,32}$/.test(data.appKey)) void storage.setItem(APP_KEY_CACHE, data.appKey);
+    });
+
     const emit = (msg: FromBridge) => {
       void browser.runtime.sendMessage(msg).catch(() => {});
     };
@@ -159,7 +173,7 @@ export default defineContentScript({
           target: "doubao-client",
           type: "error",
           message:
-            "没能从豆包页面自动取到语音入口 app key：请在设置里手填（豆包页面 DevTools → Network → voicegenie 连接的 api_app_key 参数），或改用官方引擎",
+            "没能从豆包页面自动取到语音入口 app key：在豆包页面用一次它自带的语音输入（麦克风按钮）后重试，或在设置里手填（豆包页面 DevTools → Network → voicegenie 连接的 api_app_key 参数），或改用官方引擎",
         });
         return;
       }
