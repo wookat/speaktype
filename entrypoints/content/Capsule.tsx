@@ -135,10 +135,8 @@ export function Capsule() {
       } else if (msg.type === "final") {
         setPartial(msg.text);
         const target = resolveTarget(targetRef.current);
-        if (msg.text && target && settings?.autoInsert) {
-          insertText(target, msg.text);
-          window.setTimeout(() => setPartial(""), 1200);
-        }
+        if (msg.text && target && settings?.autoInsert) insertText(target, msg.text);
+        window.setTimeout(() => setPartial(""), 1200);
       }
     };
     browser.runtime.onMessage.addListener(listener);
