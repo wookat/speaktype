@@ -1,4 +1,4 @@
-export type AsrProviderId = "webspeech" | "volc" | "zhipu";
+export type AsrProviderId = "webspeech" | "doubao" | "volc" | "zhipu";
 
 export interface Persona {
   id: string;

@@ -3,7 +3,7 @@ import { BUILTIN_PERSONAS } from "./personas";
 import type { Settings } from "./types";
 
 export const DEFAULT_SETTINGS: Settings = {
-  provider: "webspeech",
+  provider: "doubao",
   proxyUrl: "",
   volcAppKey: "",
   volcAccessKey: "",

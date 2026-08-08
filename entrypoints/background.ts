@@ -1,8 +1,10 @@
+import type { ToBridge } from "@/lib/asr/doubao/messages";
 import { polishText } from "@/lib/polish";
 import { getSettings } from "@/lib/settings";
 import type { BgToOffscreen, BgToUi, OffscreenToBg, RecorderState, UiToBg } from "@/lib/types";
 
 const OFFSCREEN_PATH = "offscreen.html";
+const DOUBAO_TAB_URL = "https://www.doubao.com/chat/";
 
 export default defineBackground(() => {
   let activeTabId: number | null = null;
@@ -61,8 +63,56 @@ export default defineBackground(() => {
     setState("idle");
   }
 
+  // 豆包 provider 的 WebSocket 必须开在 doubao.com 页面内（要带其登录态），
+  // 所以这里维持一个后台标签页，并把 offscreen 的帧转发给页面里的桥接脚本。
+  let bridgeTabId: number | null = null;
+  let bridgeQueue: Promise<unknown> = Promise.resolve();
+
+  async function ensureBridgeTab(): Promise<number> {
+    if (bridgeTabId != null) {
+      const existing = await browser.tabs.get(bridgeTabId).catch(() => null);
+      if (existing?.id != null) return existing.id;
+      bridgeTabId = null;
+    }
+    const [open] = await browser.tabs.query({ url: "*://*.doubao.com/*" });
+    if (open?.id != null) {
+      bridgeTabId = open.id;
+      return open.id;
+    }
+    const created = await browser.tabs.create({ url: DOUBAO_TAB_URL, active: false, pinned: true });
+    bridgeTabId = created.id ?? null;
+    await new Promise<void>((resolve) => {
+      const onUpdated = (tabId: number, info: { status?: string }) => {
+        if (tabId === created.id && info.status === "complete") {
+          browser.tabs.onUpdated.removeListener(onUpdated);
+          resolve();
+        }
+      };
+      browser.tabs.onUpdated.addListener(onUpdated);
+      setTimeout(resolve, 15000);
+    });
+    // 等 content script 注入完成
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (created.id == null) throw new Error("无法打开 doubao.com 标签页");
+    return created.id;
+  }
+
+  function forwardToBridge(msg: ToBridge) {
+    bridgeQueue = bridgeQueue
+      .then(async () => {
+        const tabId = await ensureBridgeTab();
+        await browser.tabs.sendMessage(tabId, msg);
+      })
+      .catch(() => {});
+  }
+
   browser.runtime.onMessage.addListener((raw, sender) => {
-    const msg = raw as UiToBg | OffscreenToBg;
+    const msg = raw as UiToBg | OffscreenToBg | ToBridge;
+
+    if ("target" in msg && msg.target === "doubao-bridge") {
+      forwardToBridge(msg);
+      return;
+    }
 
     if ("target" in msg && msg.target === "background") {
       if (msg.type === "state") setState(msg.state, msg.message);

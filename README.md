@@ -9,7 +9,8 @@
 - Chrome MV3 扩展（WXT + React 19 + Tailwind 4），跟随焦点出现的 Shadow DOM 悬浮胶囊，不污染宿主页面样式。
 - 麦克风采集在 offscreen 文档里完成：一次授权，全站可用，`16kHz / mono / PCM16`、200ms 一包。
 - 识别引擎可插拔：
-  - `webspeech`：浏览器内置，零配置，用于没有 key 时先跑起来。
+  - `doubao`（默认）：复用豆包网页版同款流式识别（SAMI VoiceGenie），走用户自己已登录的 doubao.com 会话，不需要任何 API key。非官方接口，豆包改版可能失效，可一键切换到下面的官方引擎。
+  - `webspeech`：浏览器内置，零配置兜底。
   - `volc`：火山引擎「豆包语音识别大模型」双向流式（与 doubao.com 网页版同一 bigasr 引擎），开启二遍识别，边说边上屏、结束再修正。
   - `zhipu`：智谱 `glm-asr-2512` 一次性转写（≤30s 短句）。
 - 改写风格（persona）：默认 / 汇报老板 / 同事沟通 / 亲密对话 / 中英互译 / 写代码 / 写提示词，可在悬浮条一键切换。
@@ -18,7 +19,7 @@
 ## 目录
 
 ```
-entrypoints/        扩展入口：background / content（悬浮 UI）/ offscreen（录音）/ popup（设置）
+entrypoints/        扩展入口：background / content（悬浮 UI）/ offscreen（录音）/ popup（设置）/ doubao-bridge（豆包页内 WS 桥接）
 lib/                provider 层、录音与 PCM/WAV、润色、插入、设置
 public/             AudioWorklet
 worker/             Cloudflare Worker 中转（隐藏凭证 + 补火山鉴权头）
@@ -35,6 +36,17 @@ npm run compile    # 类型检查
 ```
 
 手动加载：`chrome://extensions` → 打开开发者模式 → 「加载已解压的扩展程序」→ 选 `.output/chrome-mv3`。
+
+## 豆包引擎怎么工作
+
+VoiceGenie 的入口靠 doubao.com 的登录态 Cookie，跳站握手带不上，所以 WebSocket 必须开在 doubao.com 页面内：
+
+```
+offscreen(麦克风+帧组装) ──> background(维护后台 doubao 标签页) ──> doubao-bridge(页内 WebSocket)
+                       <── ASRResponse 逐字回传 ──
+```
+
+桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
 
 ## 中转（可选，但火山引擎必须）
 
@@ -63,4 +75,4 @@ chrome --use-fake-ui-for-media-stream \
 
 ## 说明
 
-`docs/` 下的反推记录用于确认「同款体验」的工程参数（分包大小、VAD 判停、二遍识别、人格改写）。产品本身只调用官方公开接口，不复用任何私有网关或其网页端凭证。
+`doubao` 引擎用的是未公开接口，依赖使用者自己的登录会话，不携带也不分发任何第三方凭证；它随豆包发版可能失效，对稳定性有要求的场景请用 `volc`（同一 bigasr 引擎的官方接口）。

@@ -4,7 +4,7 @@ import { webSpeechAvailable } from "@/lib/asr/webspeech";
 import { getSettings, setSettings } from "@/lib/settings";
 import type { AsrProviderId, Settings } from "@/lib/types";
 
-const PROVIDER_IDS: AsrProviderId[] = ["webspeech", "volc", "zhipu"];
+const PROVIDER_IDS: AsrProviderId[] = ["doubao", "webspeech", "volc", "zhipu"];
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -63,6 +63,14 @@ export function App() {
       {settings.provider === "webspeech" && !webSpeechAvailable() && (
         <p className="rounded-lg bg-amber-50 px-2.5 py-2 text-[12px] text-amber-700">
           当前浏览器不支持内置识别，请改用火山或智谱引擎。
+        </p>
+      )}
+
+      {settings.provider === "doubao" && (
+        <p className="rounded-lg bg-slate-50 px-2.5 py-2 text-[12px] leading-snug text-slate-600">
+          用你自己已登录的 doubao.com 会话做识别，识别效果与豆包网页版一致，无需 API key。
+          <br />
+          识别时会自动在后台打开一个 doubao.com 标签页；这是非官方接口，豆包改版后可能失效，届时切回其它引擎即可。
         </p>
       )}
 
