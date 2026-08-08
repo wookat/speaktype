@@ -10,6 +10,9 @@ import { buildWsUrl, type DoubaoIds } from "@/lib/asr/doubao/protocol";
  */
 
 const ID_PATTERN = /^\d{15,22}$/;
+/** 页面 JS 里 语音入口的 api_app_key，形如 api_app_key:"xxxxxxxxxxxxxxxx" */
+const APP_KEY_PATTERN = /api_?app_?key["'\s:=]+([A-Za-z0-9_-]{12,32})/i;
+const APP_KEY_CACHE = "local:doubaoAppKey";
 
 function readCookies(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -62,7 +65,38 @@ function discoverIds(): DoubaoIds {
     deviceId: pick("device_id", "did"),
     webId: pick("web_id", "tea_uuid", "uuid"),
     uid: pick("user_id", "uid", "user_unique_id"),
+    appKey: "",
   };
+}
+
+/**
+ * appkey 是 doubao.com 前端自己下发的参数（会随其改版变），不内置在扩展里；
+ * 运行时从页面已加载的 JS 里拿，拿到后缓存。
+ */
+async function resolveAppKey(): Promise<string> {
+  const cached = await storage.getItem<string>(APP_KEY_CACHE);
+  if (cached) return cached;
+
+  const remember = async (key: string) => {
+    await storage.setItem(APP_KEY_CACHE, key);
+    return key;
+  };
+
+  for (const script of document.querySelectorAll("script")) {
+    const hit = script.textContent ? APP_KEY_PATTERN.exec(script.textContent) : null;
+    if (hit?.[1]) return remember(hit[1]);
+  }
+
+  const urls = [...document.querySelectorAll<HTMLScriptElement>("script[src]")].map((s) => s.src);
+  for (const url of urls) {
+    const text = await fetch(url).then(
+      (r) => (r.ok ? r.text() : ""),
+      () => "",
+    );
+    const hit = APP_KEY_PATTERN.exec(text);
+    if (hit?.[1]) return remember(hit[1]);
+  }
+  return "";
 }
 
 export default defineContentScript({
@@ -86,9 +120,18 @@ export default defineContentScript({
       }
     };
 
-    const open = (language: string) => {
+    const open = async (language: string) => {
       close();
       const ids = discoverIds();
+      ids.appKey = await resolveAppKey();
+      if (!ids.appKey) {
+        emit({
+          target: "doubao-client",
+          type: "error",
+          message: "在 doubao.com 页面里没找到语音入口参数，请刷新豆包页面重试或改用官方引擎",
+        });
+        return;
+      }
       const ws = new WebSocket(buildWsUrl(ids, language));
       ws.binaryType = "arraybuffer";
       socket = ws;
@@ -107,7 +150,7 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((raw: unknown) => {
       const msg = raw as ToBridge;
       if (!msg || msg.target !== "doubao-bridge") return;
-      if (msg.type === "open") open(msg.language);
+      if (msg.type === "open") void open(msg.language);
       else if (msg.type === "frame") {
         if (socket?.readyState === WebSocket.OPEN) socket.send(fromBase64(msg.data));
       } else if (msg.type === "close") close();

@@ -83,8 +83,12 @@ export const doubaoProvider: AsrProvider = {
         waiters.set("__closed", done);
       });
 
-    const send = (frame: Parameters<typeof encodeFrame>[0]) =>
-      toBridge({ target: "doubao-bridge", type: "frame", data: toBase64(encodeFrame(frame)) });
+    const send = (frame: Omit<Parameters<typeof encodeFrame>[0], "appKey">) =>
+      toBridge({
+        target: "doubao-bridge",
+        type: "frame",
+        data: toBase64(encodeFrame({ ...frame, appKey: ids?.appKey ?? "" })),
+      });
 
     await toBridge({ target: "doubao-bridge", type: "open", language: settings.language });
     const opened = await waitFor("__open", 10000);

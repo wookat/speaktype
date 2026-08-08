@@ -6,8 +6,6 @@
 
 export const DOUBAO_WS_HOST = "wss://frontier-audio-web-ws.doubao.com/api/v2/sami/voicegenie";
 export const NAMESPACE = "VoiceGenie";
-/** 豆包 web 端公开 appkey（随其前端一起下发，非用户凭证） */
-export const WEB_APP_KEY = "GOqQpfo1fO7slHv8";
 export const WEB_AID = "497858";
 export const DOUBAO_BOT_ID = "7234781073513644036";
 
@@ -69,6 +67,7 @@ function concat(parts: Uint8Array[]): Uint8Array {
 
 export interface ClientFrame {
   event: ClientEvent;
+  appKey: string;
   payload?: unknown;
   sessionId?: string;
   audio?: Uint8Array;
@@ -76,7 +75,7 @@ export interface ClientFrame {
 
 export function encodeFrame(frame: ClientFrame): Uint8Array {
   const parts: Uint8Array[] = [
-    lengthDelimited(F_CLIENT_APP_KEY, encoder.encode(WEB_APP_KEY)),
+    lengthDelimited(F_CLIENT_APP_KEY, encoder.encode(frame.appKey)),
     lengthDelimited(F_CLIENT_NAMESPACE, encoder.encode(NAMESPACE)),
     lengthDelimited(F_CLIENT_EVENT, encoder.encode(frame.event)),
     lengthDelimited(F_CLIENT_PAYLOAD, encoder.encode(JSON.stringify(frame.payload ?? {}))),
@@ -153,12 +152,14 @@ export interface DoubaoIds {
   deviceId: string;
   webId: string;
   uid: string;
+  /** doubao.com 前端自己下发的 web appkey，运行时从页面取，不内置在扩展里 */
+  appKey: string;
 }
 
 export function buildWsUrl(ids: DoubaoIds, language: string): string {
   const url = new URL(DOUBAO_WS_HOST);
   const params: Record<string, string> = {
-    api_app_key: WEB_APP_KEY,
+    api_app_key: ids.appKey,
     namespace: NAMESPACE,
     version_code: "20800",
     language: language.startsWith("zh") ? "zh" : language.slice(0, 2),
