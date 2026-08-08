@@ -90,11 +90,17 @@ export const doubaoProvider: AsrProvider = {
         data: toBase64(encodeFrame({ ...frame, appKey: ids?.appKey ?? "" })),
       });
 
-    await toBridge({ target: "doubao-bridge", type: "open", language: settings.language });
-    const opened = await waitFor("__open", 10000);
+    await toBridge({
+      target: "doubao-bridge",
+      type: "open",
+      language: settings.language,
+      appKey: settings.doubaoAppKey,
+    });
+    // 自动提取 app key 时桥接要扫页面脚本，给到与其预算匹配的等待
+    const opened = await waitFor("__open", 20000);
     if (!opened || failure) {
       browser.runtime.onMessage.removeListener(listener);
-      throw failure ?? new Error("连不上豆包语音服务：请先在浏览器里登录 doubao.com");
+      throw failure ?? new Error("连不上豆包语音服务：请确认浏览器里已登录 doubao.com 且网络可达");
     }
 
     await send({ event: "StartTask" });

@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volcAppKey: "",
   volcAccessKey: "",
   zhipuApiKey: "",
+  doubaoAppKey: "",
   language: "zh-CN",
   personaId: "default",
   personas: BUILTIN_PERSONAS,

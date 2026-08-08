@@ -15,6 +15,8 @@ export interface Settings {
   volcAppKey: string;
   volcAccessKey: string;
   zhipuApiKey: string;
+  /** 豆包网页版语音入口的 api_app_key；置空时桥接尝试从页面自动取 */
+  doubaoAppKey: string;
   language: string;
   personaId: string;
   personas: Persona[];

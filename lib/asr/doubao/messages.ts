@@ -2,9 +2,11 @@ import type { DoubaoIds } from "./protocol";
 
 /** offscreen/背景 → doubao.com 页面里的桥接 content script */
 export type ToBridge =
-  | { target: "doubao-bridge"; type: "open"; language: string }
+  | { target: "doubao-bridge"; type: "open"; language: string; appKey: string }
   | { target: "doubao-bridge"; type: "frame"; data: string }
-  | { target: "doubao-bridge"; type: "close" };
+  | { target: "doubao-bridge"; type: "close" }
+  /** 探活：扩展重载后老标签页里的 content script 会失效，必须先探再用 */
+  | { target: "doubao-bridge"; type: "ping" };
 
 /** 桥接 → offscreen */
 export type FromBridge =

@@ -10,9 +10,17 @@ import { buildWsUrl, type DoubaoIds } from "@/lib/asr/doubao/protocol";
  */
 
 const ID_PATTERN = /^\d{15,22}$/;
-/** 页面 JS 里 语音入口的 api_app_key，形如 api_app_key:"xxxxxxxxxxxxxxxx" */
-const APP_KEY_PATTERN = /api_?app_?key["'\s:=]+([A-Za-z0-9_-]{12,32})/i;
-const APP_KEY_CACHE = "local:doubaoAppKey";
+/**
+ * 语音入口的 app key。豆包前端不一定写成 `api_app_key`（也可能只是 `appKey`/`app_key`），
+ * 所以不强制 api 前缀；但页面里可能存在多个不相关的 app_key，因此只在 voicegenie 附近取。
+ */
+const APP_KEY_PATTERN = /(?:api_?)?app_?key["'\s:=]+([A-Za-z0-9_-]{12,32})/i;
+const VOICE_HINT = /voicegenie/i;
+/** 扩展缓存位，与设置里的手填值分开 */
+const APP_KEY_CACHE = "local:doubaoAppKeyCache";
+/** 扫描预算：豆包的 chunk 动辗十几 MB，不能阻塞到超时 */
+const SCAN_BUDGET_MS = 6000;
+const SCAN_CONCURRENCY = 8;
 
 function readCookies(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -73,30 +81,52 @@ function discoverIds(): DoubaoIds {
  * appkey 是 doubao.com 前端自己下发的参数（会随其改版变），不内置在扩展里；
  * 运行时从页面已加载的 JS 里拿，拿到后缓存。
  */
-async function resolveAppKey(): Promise<string> {
+async function resolveAppKey(configured: string): Promise<string> {
+  if (configured) return configured;
   const cached = await storage.getItem<string>(APP_KEY_CACHE);
   if (cached) return cached;
 
-  const remember = async (key: string) => {
-    await storage.setItem(APP_KEY_CACHE, key);
-    return key;
+  /** 只接受 voicegenie 附近的 key，避开页面里其它业务的 app_key */
+  const findNearVoiceGenie = (source: string): string => {
+    const hint = new RegExp(VOICE_HINT.source, "gi");
+    for (let match = hint.exec(source); match; match = hint.exec(source)) {
+      const around = source.slice(Math.max(0, match.index - 2000), match.index + 2000);
+      const hit = APP_KEY_PATTERN.exec(around);
+      if (hit?.[1]) return hit[1];
+    }
+    return "";
   };
 
-  for (const script of document.querySelectorAll("script")) {
-    const hit = script.textContent ? APP_KEY_PATTERN.exec(script.textContent) : null;
-    if (hit?.[1]) return remember(hit[1]);
+  const inline = [...document.querySelectorAll("script")].map((s) => s.textContent ?? "");
+  for (const source of inline) {
+    const key = findNearVoiceGenie(source);
+    if (key) {
+      await storage.setItem(APP_KEY_CACHE, key);
+      return key;
+    }
   }
 
   const urls = [...document.querySelectorAll<HTMLScriptElement>("script[src]")].map((s) => s.src);
-  for (const url of urls) {
-    const text = await fetch(url).then(
-      (r) => (r.ok ? r.text() : ""),
-      () => "",
-    );
-    const hit = APP_KEY_PATTERN.exec(text);
-    if (hit?.[1]) return remember(hit[1]);
-  }
-  return "";
+  const deadline = Date.now() + SCAN_BUDGET_MS;
+  let cursor = 0;
+  let found = "";
+
+  const worker = async () => {
+    while (!found && Date.now() < deadline) {
+      const url = urls[cursor++];
+      if (!url) return;
+      const text = await fetch(url).then(
+        (r) => (r.ok ? r.text() : ""),
+        () => "",
+      );
+      const key = findNearVoiceGenie(text);
+      if (key) found = key;
+    }
+  };
+  await Promise.all(Array.from({ length: SCAN_CONCURRENCY }, worker));
+
+  if (found) await storage.setItem(APP_KEY_CACHE, found);
+  return found;
 }
 
 export default defineContentScript({
@@ -120,15 +150,16 @@ export default defineContentScript({
       }
     };
 
-    const open = async (language: string) => {
+    const open = async (language: string, configuredAppKey: string) => {
       close();
       const ids = discoverIds();
-      ids.appKey = await resolveAppKey();
+      ids.appKey = await resolveAppKey(configuredAppKey);
       if (!ids.appKey) {
         emit({
           target: "doubao-client",
           type: "error",
-          message: "在 doubao.com 页面里没找到语音入口参数，请刷新豆包页面重试或改用官方引擎",
+          message:
+            "没能从豆包页面自动取到语音入口 app key：请在设置里手填（豆包页面 DevTools → Network → voicegenie 连接的 api_app_key 参数），或改用官方引擎",
         });
         return;
       }
@@ -150,7 +181,8 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((raw: unknown) => {
       const msg = raw as ToBridge;
       if (!msg || msg.target !== "doubao-bridge") return;
-      if (msg.type === "open") void open(msg.language);
+      if (msg.type === "ping") return Promise.resolve({ alive: true });
+      if (msg.type === "open") void open(msg.language, msg.appKey);
       else if (msg.type === "frame") {
         if (socket?.readyState === WebSocket.OPEN) socket.send(fromBase64(msg.data));
       } else if (msg.type === "close") close();

@@ -9,8 +9,9 @@ export default defineConfig({
     permissions: ["storage", "offscreen", "activeTab", "scripting"],
     host_permissions: ["<all_urls>"],
     commands: {
+      // Alt+Space 在 Windows 上会被系统窗口菜单吃掉，默认换成 Alt+Q
       "toggle-record": {
-        suggested_key: { default: "Alt+Space" },
+        suggested_key: { default: "Alt+Q" },
         description: "开始/停止语音输入",
       },
     },
