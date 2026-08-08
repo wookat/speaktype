@@ -1,0 +1,11 @@
+name = "speaktype-relay"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+# 凭证用 secret 存放，不要写进本文件：
+#   wrangler secret put VOLC_APP_KEY
+#   wrangler secret put VOLC_ACCESS_KEY
+#   wrangler secret put ZHIPU_API_KEY
+[vars]
+VOLC_RESOURCE_ID = "volc.bigasr.sauc.duration"
+ALLOWED_ORIGINS = ""

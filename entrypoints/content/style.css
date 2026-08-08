@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Shadow DOM 内重置，避免继承宿主页面样式 */
+:host {
+  all: initial;
+}

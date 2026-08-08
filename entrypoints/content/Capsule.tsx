@@ -1,0 +1,228 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { findPersona } from "@/lib/personas";
+import { getSettings, setSettings, watchSettings } from "@/lib/settings";
+import { insertText, isEditable, readSelection, resolveTarget, type TextTarget } from "@/lib/insert";
+import type { BgToUi, RecorderState, Settings, UiToBg } from "@/lib/types";
+
+interface Anchor {
+  top: number;
+  left: number;
+}
+
+const HINTS: Record<RecorderState, string> = {
+  idle: "点一下或长按说话",
+  connecting: "准备中…",
+  recording: "正在听，说完再点一下",
+  processing: "整理中…",
+  error: "出错了",
+};
+
+function send(msg: UiToBg) {
+  void browser.runtime.sendMessage(msg).catch(() => {});
+}
+
+export function Capsule() {
+  const [settings, setLocalSettings] = useState<Settings | null>(null);
+  const [state, setState] = useState<RecorderState>("idle");
+  const [message, setMessage] = useState("");
+  const [partial, setPartial] = useState("");
+  const [level, setLevel] = useState(0);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const [showPersonas, setShowPersonas] = useState(false);
+  const targetRef = useRef<TextTarget | null>(null);
+  const holdTimer = useRef<number | null>(null);
+  const holdFired = useRef(false);
+
+  useEffect(() => {
+    void getSettings().then(setLocalSettings);
+    return watchSettings(setLocalSettings);
+  }, []);
+
+  const reposition = useCallback(() => {
+    const target = targetRef.current;
+    if (!target || !target.isConnected) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    setAnchor({
+      top: Math.min(window.innerHeight - 56, rect.bottom + 8),
+      left: Math.min(window.innerWidth - 360, Math.max(8, rect.left)),
+    });
+  }, []);
+
+  // 跟随焦点：只在可编辑元素上出现，避免全页面常驻打扰
+  useEffect(() => {
+    const onFocusIn = (ev: Event) => {
+      const el = ev.target as Element | null;
+      if (isEditable(el)) {
+        targetRef.current = el;
+        reposition();
+      }
+    };
+    const onFocusOut = () => {
+      window.setTimeout(() => {
+        if (!isEditable(document.activeElement) && state === "idle") setAnchor(null);
+      }, 150);
+    };
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("focusout", onFocusOut, true);
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    if (isEditable(document.activeElement)) {
+      targetRef.current = document.activeElement;
+      reposition();
+    }
+    return () => {
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("focusout", onFocusOut, true);
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [reposition, state]);
+
+  const start = useCallback(() => {
+    const target = resolveTarget(targetRef.current);
+    if (target) targetRef.current = target;
+    setPartial("");
+    setMessage("");
+    send({ type: "start-record", selectionText: readSelection(targetRef.current) });
+  }, []);
+
+  const stop = useCallback(() => send({ type: "stop-record" }), []);
+
+  const toggle = useCallback(() => {
+    if (state === "recording" || state === "connecting") stop();
+    else if (state !== "processing") start();
+  }, [state, start, stop]);
+
+  useEffect(() => {
+    const listener = (raw: unknown) => {
+      const msg = raw as BgToUi;
+      if (msg.type === "state") {
+        setState(msg.state);
+        if (msg.message) setMessage(msg.message);
+        if (msg.state === "recording") setMessage("");
+      } else if (msg.type === "partial") {
+        setPartial(msg.text);
+      } else if (msg.type === "level") {
+        setLevel(msg.value);
+      } else if (msg.type === "hotkey-toggle") {
+        toggle();
+      } else if (msg.type === "final") {
+        setPartial(msg.text);
+        const target = resolveTarget(targetRef.current);
+        if (msg.text && target && settings?.autoInsert) {
+          insertText(target, msg.text);
+          window.setTimeout(() => setPartial(""), 1200);
+        }
+      }
+    };
+    browser.runtime.onMessage.addListener(listener);
+    return () => browser.runtime.onMessage.removeListener(listener);
+  }, [settings?.autoInsert, toggle]);
+
+  const persona = useMemo(
+    () => (settings ? findPersona(settings.personas, settings.personaId) : null),
+    [settings],
+  );
+
+  if (!anchor || !settings) return null;
+
+  const recording = state === "recording" || state === "connecting";
+  const bars = [0, 1, 2, 3, 4];
+
+  return (
+    <div
+      className="fixed z-[2147483647] font-sans"
+      style={{ top: anchor.top, left: anchor.left }}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <div className="flex w-max max-w-[360px] flex-col gap-1.5">
+        {(partial || message) && (
+          <div
+            className={`rounded-2xl px-3 py-2 text-[13px] leading-snug shadow-lg backdrop-blur ${
+              message ? "bg-red-50/95 text-red-700" : "bg-white/95 text-slate-700"
+            }`}
+          >
+            {message || partial}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/5 backdrop-blur">
+          <button
+            type="button"
+            title={`${HINTS[state]}（Alt+Space）`}
+            onPointerDown={() => {
+              holdFired.current = false;
+              holdTimer.current = window.setTimeout(() => {
+                holdFired.current = true;
+                if (!recording) start();
+              }, 180);
+            }}
+            onPointerUp={() => {
+              if (holdTimer.current) window.clearTimeout(holdTimer.current);
+              if (holdFired.current) stop();
+              else toggle();
+            }}
+            onPointerLeave={() => {
+              if (holdTimer.current) window.clearTimeout(holdTimer.current);
+            }}
+            className={`flex h-8 items-center gap-2 rounded-full px-3 text-[13px] font-medium transition-colors ${
+              recording
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : state === "processing"
+                  ? "bg-slate-200 text-slate-500"
+                  : "bg-slate-900 text-white hover:bg-slate-700"
+            }`}
+          >
+            {recording ? (
+              <span className="flex h-4 items-end gap-[2px]">
+                {bars.map((i) => (
+                  <span
+                    key={i}
+                    className="w-[3px] rounded-full bg-white/90"
+                    style={{ height: `${4 + Math.min(12, level * 14 * (1 + (i % 3) * 0.35))}px` }}
+                  />
+                ))}
+              </span>
+            ) : (
+              <span aria-hidden>🎙️</span>
+            )}
+            <span>{recording ? "停止" : state === "processing" ? "整理中" : "说话"}</span>
+          </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              title="选择改写风格"
+              onClick={() => setShowPersonas((v) => !v)}
+              className="flex h-8 items-center gap-1 rounded-full px-2.5 text-[13px] text-slate-600 hover:bg-slate-100"
+            >
+              <span aria-hidden>{persona?.icon}</span>
+              <span>{persona?.name}</span>
+            </button>
+            {showPersonas && (
+              <div className="absolute bottom-10 left-0 w-44 overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/5">
+                {settings.personas.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      void setSettings({ personaId: p.id });
+                      setShowPersonas(false);
+                    }}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-slate-50 ${
+                      p.id === settings.personaId ? "text-slate-900" : "text-slate-600"
+                    }`}
+                  >
+                    <span aria-hidden>{p.icon}</span>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

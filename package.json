@@ -1,0 +1,28 @@
+{
+  "name": "speaktype",
+  "description": "SpeakType — 网页内 AI 语音输入助手：说话即成稿，一键落到任意输入框",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/chrome": "^0.0.313",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@wxt-dev/module-react": "^1.1.3",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.8.3",
+    "wxt": "^0.21.3"
+  }
+}
