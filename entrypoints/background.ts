@@ -160,7 +160,8 @@ export default defineBackground(() => {
       // 失败（多半是 offscreen 建不起来）必须冒泡，否则点了「说话」毫无反应
       if (tabId != null) {
         void startRecording(tabId, ui.selectionText).catch((error: unknown) => {
-          setState("error", error instanceof Error ? error.message : "无法启动录音");
+          const reason = error instanceof Error ? error.message : String(error);
+          setState("error", `启动录音失败：${reason}`);
         });
       }
     } else if (ui.type === "stop-record") {
