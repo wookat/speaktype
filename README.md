@@ -1,6 +1,6 @@
 # SpeakType — 网页内 AI 语音输入助手
 
-你说，我写。在任意网页的输入框里按 `Alt+Space`（或长按悬浮条按钮）说话，自动转写 + 按场景改写，直接落到光标处。
+你说，我写。在任意网页的输入框里按 `Alt+Q`（或长按悬浮条按钮）说话，自动转写 + 按场景改写，直接落到光标处。
 
 灵感来自智谱 AutoGLM 输入法的桌面端体验，但做成浏览器扩展，不需要装客户端、不用模拟 `Ctrl+V`。
 
@@ -46,7 +46,7 @@ offscreen(麦克风+帧组装) ──> background(维护后台 doubao 标签页)
                        <── ASRResponse 逐字回传 ──
 ```
 
-桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
+桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。入口需要的 `api_app_key` 不内置在仓库里：桥接会先扫页面脚本尝试自动取，取不到就提示用户从豆包页面 DevTools 的 `voicegenie` 请求里拷一次（设置里填，之后缓存）。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
 
 ## 中转（可选，但火山引擎必须）
 

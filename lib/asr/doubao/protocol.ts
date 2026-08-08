@@ -164,6 +164,8 @@ export function buildWsUrl(ids: DoubaoIds, language: string): string {
     version_code: "20800",
     language: language.startsWith("zh") ? "zh" : language.slice(0, 2),
     device_platform: "web",
+    pc_version: "3.31.0",
+    doubao_pc_version: "3.31.0",
     pkg_type: "release_version",
     region: "CN",
     sys_region: "CN",

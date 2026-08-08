@@ -68,22 +68,10 @@ export default defineBackground(() => {
   let bridgeTabId: number | null = null;
   let bridgeQueue: Promise<unknown> = Promise.resolve();
 
-  async function ensureBridgeTab(): Promise<number> {
-    if (bridgeTabId != null) {
-      const existing = await browser.tabs.get(bridgeTabId).catch(() => null);
-      if (existing?.id != null) return existing.id;
-      bridgeTabId = null;
-    }
-    const [open] = await browser.tabs.query({ url: "*://*.doubao.com/*" });
-    if (open?.id != null) {
-      bridgeTabId = open.id;
-      return open.id;
-    }
-    const created = await browser.tabs.create({ url: DOUBAO_TAB_URL, active: false, pinned: true });
-    bridgeTabId = created.id ?? null;
+  async function waitForLoad(tabId: number) {
     await new Promise<void>((resolve) => {
-      const onUpdated = (tabId: number, info: { status?: string }) => {
-        if (tabId === created.id && info.status === "complete") {
+      const onUpdated = (updatedId: number, info: { status?: string }) => {
+        if (updatedId === tabId && info.status === "complete") {
           browser.tabs.onUpdated.removeListener(onUpdated);
           resolve();
         }
@@ -93,7 +81,41 @@ export default defineBackground(() => {
     });
     // 等 content script 注入完成
     await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  async function bridgeAlive(tabId: number): Promise<boolean> {
+    const reply = await browser.tabs
+      .sendMessage(tabId, { target: "doubao-bridge", type: "ping" } satisfies ToBridge)
+      .catch(() => null);
+    return Boolean(reply);
+  }
+
+  async function ensureBridgeTab(): Promise<number> {
+    const candidate =
+      bridgeTabId != null ? ((await browser.tabs.get(bridgeTabId).catch(() => null))?.id ?? null) : null;
+    const existing = candidate ?? (await browser.tabs.query({ url: "*://*.doubao.com/*" }))[0]?.id ?? null;
+
+    if (existing != null) {
+      // 扩展重载后旧标签页里的 content script 已失效，重载一次把它拉回来
+      if (await bridgeAlive(existing)) {
+        bridgeTabId = existing;
+        return existing;
+      }
+      await browser.tabs.reload(existing);
+      await waitForLoad(existing);
+      if (await bridgeAlive(existing)) {
+        bridgeTabId = existing;
+        return existing;
+      }
+    }
+
+    const created = await browser.tabs.create({ url: DOUBAO_TAB_URL, active: false, pinned: true });
     if (created.id == null) throw new Error("无法打开 doubao.com 标签页");
+    await waitForLoad(created.id);
+    if (!(await bridgeAlive(created.id))) {
+      throw new Error("doubao.com 标签页里的桥接未就绪，请确认能正常打开 doubao.com 并已登录");
+    }
+    bridgeTabId = created.id;
     return created.id;
   }
 
@@ -103,7 +125,17 @@ export default defineBackground(() => {
         const tabId = await ensureBridgeTab();
         await browser.tabs.sendMessage(tabId, msg);
       })
-      .catch(() => {});
+      .catch((error: unknown) => {
+        bridgeTabId = null;
+        // 失败必须冒泡到 offscreen，否则 UI 会死在「准备中」
+        void browser.runtime
+          .sendMessage({
+            target: "doubao-client",
+            type: "error",
+            message: error instanceof Error ? error.message : "豆包桥接不可用",
+          })
+          .catch(() => {});
+      });
   }
 
   browser.runtime.onMessage.addListener((raw, sender) => {

@@ -67,11 +67,24 @@ export function App() {
       )}
 
       {settings.provider === "doubao" && (
-        <p className="rounded-lg bg-slate-50 px-2.5 py-2 text-[12px] leading-snug text-slate-600">
-          用你自己已登录的 doubao.com 会话做识别，识别效果与豆包网页版一致，无需 API key。
-          <br />
-          识别时会自动在后台打开一个 doubao.com 标签页；这是非官方接口，豆包改版后可能失效，届时切回其它引擎即可。
-        </p>
+        <div className="space-y-3 rounded-xl bg-slate-50 p-3">
+          <p className="text-[12px] leading-snug text-slate-600">
+            用你自己已登录的 doubao.com 会话做识别，效果与豆包网页版一致，无需 API key。
+            <br />
+            识别时会自动在后台打开一个 doubao.com 标签页；这是非官方接口，豆包改版后可能失效，届时切回其它引擎即可。
+          </p>
+          <Field
+            label="语音入口 app key（可选）"
+            hint="留空时自动从豆包页面提取；若提示取不到，在豆包页面 DevTools → Network 里找 voicegenie 连接，复制其 api_app_key 参数填这里"
+          >
+            <input
+              className={inputClass}
+              placeholder="留空＝自动提取"
+              value={settings.doubaoAppKey}
+              onChange={(e) => void update({ doubaoAppKey: e.target.value.trim() })}
+            />
+          </Field>
+        </div>
       )}
 
       {settings.provider === "volc" && (

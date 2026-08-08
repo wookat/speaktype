@@ -139,18 +139,19 @@ export function Capsule() {
       <div className="flex w-max max-w-[360px] flex-col gap-1.5">
         {(partial || message) && (
           <div
-            className={`rounded-2xl px-3 py-2 text-[13px] leading-snug shadow-lg backdrop-blur ${
+            className={`max-h-[76px] overflow-hidden rounded-2xl px-3 py-2 text-[13px] leading-snug shadow-lg backdrop-blur ${
               message ? "bg-red-50/95 text-red-700" : "bg-white/95 text-slate-700"
             }`}
           >
-            {message || partial}
+            {/* 只显示尾部：说得久了也不会把胶囊一直往下顶 */}
+            {message || partial.slice(-140)}
           </div>
         )}
 
         <div className="flex items-center gap-1 rounded-full bg-white/95 p-1 shadow-lg ring-1 ring-black/5 backdrop-blur">
           <button
             type="button"
-            title={`${HINTS[state]}（Alt+Space）`}
+            title={`${HINTS[state]}（Alt+Q）`}
             onPointerDown={() => {
               holdFired.current = false;
               holdTimer.current = window.setTimeout(() => {
