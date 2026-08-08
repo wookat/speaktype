@@ -1,5 +1,7 @@
 appId: com.speaktype.desktop
 productName: SpeakType
+# uiohook-napi / koffi 均自带 N-API 预编译产物，无需 node-gyp 重编
+npmRebuild: false
 directories:
   buildResources: build
   output: release
