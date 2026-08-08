@@ -99,6 +99,23 @@ immediately before each click.
   serviceworker-internals starts the SW but messaging may still fail). Before declaring any
   keyboard/UI feature broken, first confirm the SW is alive (e.g. the 说话 button reacts);
   otherwise you will misattribute the failure.
+- **Chrome dispatches a keyup for held modifiers when the tab/window loses focus** (observed on this
+  box for both tab switches and app-window switches, regardless of how the switch is triggered —
+  mouse click, CDP `/json/activate`, or `WScript.Shell.AppActivate`). So any push-to-talk "cancel on
+  blur/visibilitychange" logic races against a synthetic hotkey keyup that arrives FIRST and runs the
+  normal stop path. When testing leave-page behavior, instrument keyup + blur + visibilitychange
+  together (patch the built `content.js` with console.log markers) to see the ordering before
+  concluding events "didn't fire".
+- The computer-use screenshot/click tooling injects bursts of synthetic Shift/Control/Alt/Meta keyups
+  before pointer actions. Never take a screenshot or click while a keyseq.ps1 hold is in flight if
+  the test depends on the key staying down — switch tabs/windows via CDP activate or AppActivate.
+- To simulate an unresponsive background deterministically (watchdog testing), patch the built
+  `background.js`: change `if(a.type===\`start-record\`){` to `if(a.type===\`start-record\`){return;`,
+  reload the extension. Note the content-side 2.5s watchdog only fires when capsule state is `idle`;
+  a leftover `error` state from a previous attempt suppresses it, so F5 the page between attempts.
+- After reloading the extension WITHOUT refreshing the page, the orphaned content script's
+  `chrome.runtime.sendMessage` throws **synchronously** (`Extension context invalidated`), which a
+  `.catch()` on the returned promise never sees — pressing the hotkey then does nothing visible.
 - To get the *actual* WS URL/params the real doubao web app uses, there is a helper extension
   "WS Hook (research)" (`C:\Users\Administrator\tts\wshook.log`) that logs `ws-open` / `ws-close` /
   `ws-send-audio` lines with full query strings — far faster than reading DevTools Network.
@@ -130,6 +147,28 @@ state returns to idle, nothing inserted, page does not crash.
   its DevTools open keeps it alive, which changes timing — note that when debugging races.
 - Resize the browser window for responsive checks with a small P/Invoke `MoveWindow` call from
   PowerShell; avoid `xdotool key super+Up` (tiles to half screen).
+
+## Focus-loss / PTT cancel testing (window & tab switching)
+- `WScript.Shell.AppActivate('Untitled - Notepad')` can bring the window to the FRONT while Chrome
+  silently KEEPS keyboard focus — the page then gets no blur/visibilitychange and later receives the
+  real keyup, so a "switch failed to cancel" result may be a harness artifact, not a product bug.
+  Always verify with instrumentation (console markers on keyup/abort/visibility in the built
+  content.js) that blur actually fired before declaring failure.
+- Reliable focus steal: click the target app's taskbar icon via computer-use. The synthetic modifier
+  keyup this injects is exactly the sequence PR #7's 150ms `ending` timer is designed for, so it is
+  a realistic test, not interference.
+- Tab switching without keyboard injection: CDP `PUT /json/activate/<targetId>` (see
+  `cdp_activate.js`). This works reliably (blur+visibilitychange both fire).
+- After a cancel, the last partial text may remain visible in the capsule bubble until the next
+  action (cosmetic; do not mistake it for an insertion — check the input element value).
+
+## Watchdog re-fire verification
+- `start()` clears the bubble text before sending start-record, so a watchdog re-fire from an
+  existing error state is visually provable: red text disappears at keydown and reappears ~2.5s
+  later. Capture it with `poll_bubble2.js` via `cdp_attach.js` (100ms polling with timestamps).
+- Orphaned content script (reload extension, don't refresh page): holding the PTT key now shows the
+  red error ~0.3s after keydown; note the fire-and-forget `send()` helper (stop/cancel path) still
+  throws an uncaught `Extension context invalidated` in the console (cosmetic).
 
 ## Devin Secrets Needed
 - none for the doubao provider (uses the existing logged-in doubao.com session in the Chrome
