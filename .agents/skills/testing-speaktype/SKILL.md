@@ -162,6 +162,33 @@ state returns to idle, nothing inserted, page does not crash.
 - Since 5b42bdb, `cancel()` clears the partial bubble; if you see stale partial text after a
   cancel, that is a regression. (Before 5b42bdb it was expected cosmetic residue.)
 
+## Mic-permission scenarios (permission.html / humanized errors, since PR #9)
+- Fresh install auto-opens `permission.html` (onInstalled). With `--use-fake-ui-for-media-stream`
+  the grant button succeeds instantly (no prompt bubble). Removing the unpacked extension wipes
+  `chrome.storage.local` (settings + `doubaoAppKeyCache`) — re-seed the cache afterwards.
+- **You cannot construct a "mic blocked for the extension origin" state on this box.** The per-site
+  Microphone select on `chrome://settings/content/siteDetails?site=chrome-extension://<id>` refuses
+  to commit `Block` (reverts to Allow no matter how it is set: mouse, keyboard, or JS
+  `select.value='block'` + change event; extension-origin default is Allow). The global
+  "Don't allow sites to use your microphone" toggle does NOT apply to extension origins either —
+  offscreen `getUserMedia` still succeeds. The only reachable deny path here is Web Speech's
+  `not-allowed` (which fires anyway on Chrome for Testing) — use that to validate humanized errors.
+- Web Speech deny now surfaces during start (~1.5s after keydown, before key release): red
+  「麦克风没授权，识别没法开始」 + clickable 「去授权麦克风」 that opens permission.html. Raw
+  `not-allowed` text appearing in the capsule is a regression.
+- Popup readiness rows: 豆包语音已就绪 reads `doubaoAppKeyCache`; clear it (from the POPUP page
+  console/CDP — evaluating `chrome.storage.local.get` in the offscreen.html target has returned `{}`
+  while the popup target sees the real data, so never trust the offscreen target for storage checks)
+  to get the orange 去激活 row.
+
+## CDP tab-activation pitfall while a key is held
+- If Chrome was launched without the full automation flag set (e.g. after a manual relaunch),
+  `PUT /json/activate` can be DEFERRED until the held key is released — blur/visibilitychange then
+  arrive seconds AFTER the physical keyup and the recording legitimately stops with insertion.
+  Always log keyup/blur/vis timestamps in-page before declaring a cancel-on-switch regression.
+  A real mouse click on another tab works: synthetic modifier keyups land ~10ms before BLUR, well
+  inside the 150ms `ending` window, and cancel wins.
+
 ## Watchdog re-fire verification
 - `start()` clears the bubble text before sending start-record, so a watchdog re-fire from an
   existing error state is visually provable: red text disappears at keydown and reappears ~2.5s
