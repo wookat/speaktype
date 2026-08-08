@@ -1,5 +1,8 @@
 import type { DoubaoIds } from "./protocol";
 
+/** MAIN world 钩子 → 桥接 content script 的 window.postMessage 标记 */
+export const HOOK_MESSAGE_SOURCE = "speaktype-doubao-hook";
+
 /** offscreen/背景 → doubao.com 页面里的桥接 content script */
 export type ToBridge =
   | { target: "doubao-bridge"; type: "open"; language: string; appKey: string }

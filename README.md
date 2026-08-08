@@ -46,7 +46,7 @@ offscreen(麦克风+帧组装) ──> background(维护后台 doubao 标签页)
                        <── ASRResponse 逐字回传 ──
 ```
 
-桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。入口需要的 `api_app_key` 不内置在仓库里：桥接会先扫页面脚本尝试自动取，取不到就提示用户从豆包页面 DevTools 的 `voicegenie` 请求里拷一次（设置里填，之后缓存）。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
+桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。入口需要的 `api_app_key` 不内置在仓库里，按三级顺序解析：① 设置里的手填值；② 扩展缓存 —— MAIN world 钩子（`entrypoints/doubao-hook.content.ts`）代理页面的 `WebSocket` 构造，豆包自己发起 `voicegenie` 连接时从 URL 参数截下 key 并缓存（所以在豆包页面用一次它自带的语音输入即可，脚本是懒加载的，静态扫描扫不到）；③ 兜底扫页面脚本。三级都空时提示用户手填。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
 
 ## 中转（可选，但火山引擎必须）
 
