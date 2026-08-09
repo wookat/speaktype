@@ -1,4 +1,5 @@
 import type { Persona, Settings } from "../shared/types";
+import { correctHotwords } from "./hotwords";
 
 const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然后/g];
 
@@ -55,7 +56,7 @@ export async function polishText(
   persona: Persona,
   transcript: string,
 ): Promise<string> {
-  const cleaned = localCleanup(transcript);
+  const cleaned = correctHotwords(localCleanup(transcript), settings.hotwords);
   if (!settings.polishEnabled || !cleaned || !settings.polishBaseUrl || !settings.polishApiKey) {
     return cleaned;
   }

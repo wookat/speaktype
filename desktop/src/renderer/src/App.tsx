@@ -1,4 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BookOpen,
+  Briefcase,
+  Check,
+  Clock,
+  Code,
+  Crown,
+  Drama,
+  ExternalLink,
+  Heart,
+  Home as HomeIcon,
+  Languages,
+  Leaf,
+  Mic,
+  Minus,
+  PenLine,
+  Settings as SettingsIcon,
+  Sparkles,
+  SquareTerminal,
+  Users,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
@@ -9,21 +33,21 @@ type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
 export const REPO_URL = "https://github.com/wookat/speaktype";
 
-/** 人设图标：存名字不存 emoji，便于以后换图标库 */
-const PERSONA_ICONS: Record<string, string> = {
-  sparkles: "✨",
-  languages: "🌐",
-  briefcase: "💼",
-  users: "👥",
-  heart: "❤️",
-  terminal: "🖥️",
-  code: "📟",
-  book: "📖",
-  mic: "🎙️",
-  zap: "⚡",
-  crown: "👑",
-  pen: "🖊️",
-  leaf: "🍃",
+/** 人设图标：存名字不存图形，渲染时映射到 lucide 图标组件 */
+const PERSONA_ICONS: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  languages: Languages,
+  briefcase: Briefcase,
+  users: Users,
+  heart: Heart,
+  terminal: SquareTerminal,
+  code: Code,
+  book: BookOpen,
+  mic: Mic,
+  zap: Zap,
+  crown: Crown,
+  pen: PenLine,
+  leaf: Leaf,
 };
 
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
@@ -38,8 +62,9 @@ const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: 
 const MAX_HOTWORDS = 300;
 const MAX_HOTWORD_LEN = 20;
 
-function personaIcon(name: string): string {
-  return PERSONA_ICONS[name] ?? "✨";
+function PersonaIcon(props: { name: string; className?: string }) {
+  const Icon = PERSONA_ICONS[props.name] ?? Sparkles;
+  return <Icon className={props.className ?? "h-5 w-5 text-indigo-500"} />;
 }
 
 function fmtDuration(ms: number, t: Translator): string {
@@ -114,12 +139,12 @@ export default function App() {
     void api.updateSettings(patch);
   };
 
-  const NAV: Array<{ id: Page; label: string; icon: string }> = [
-    { id: "home", label: t("nav.home"), icon: "🏠" },
-    { id: "history", label: t("nav.history"), icon: "🕘" },
-    { id: "personas", label: t("nav.personas"), icon: "🎭" },
-    { id: "dictionary", label: t("nav.dictionary"), icon: "📖" },
-    { id: "settings", label: t("nav.settings"), icon: "⚙️" },
+  const NAV: Array<{ id: Page; label: string; icon: LucideIcon }> = [
+    { id: "home", label: t("nav.home"), icon: HomeIcon },
+    { id: "history", label: t("nav.history"), icon: Clock },
+    { id: "personas", label: t("nav.personas"), icon: Drama },
+    { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen },
+    { id: "settings", label: t("nav.settings"), icon: SettingsIcon },
   ];
 
   return (
@@ -130,13 +155,13 @@ export default function App() {
           className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
           onClick={() => void api.minimize()}
         >
-          –
+          <Minus className="h-4 w-4" />
         </button>
         <button
           className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-red-100 hover:text-red-500"
           onClick={() => void api.close()}
         >
-          ✕
+          <X className="h-4 w-4" />
         </button>
       </div>
 
@@ -162,7 +187,7 @@ export default function App() {
                 page === item.id ? "bg-indigo-50 font-medium text-indigo-600" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <span>{item.icon}</span>
+              <item.icon className="h-4 w-4" strokeWidth={page === item.id ? 2.2 : 1.8} />
               {item.label}
             </button>
           ))}
@@ -280,7 +305,7 @@ function Home(props: {
         <div>
           <div className="text-xs text-slate-400">{t("home.persona.current")}</div>
           <div className="mt-1 flex items-center gap-2 font-medium">
-            <span>{personaIcon(persona?.icon ?? "")}</span>
+            <PersonaIcon name={persona?.icon ?? ""} className="h-4 w-4 text-indigo-500" />
             {persona?.name}
           </div>
           <div className="mt-1 max-w-md text-xs text-slate-500">{persona?.prompt}</div>
@@ -424,8 +449,8 @@ function Personas(props: {
       {/* 当前人设卡 */}
       <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-100 to-violet-50 p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-            {personaIcon(currentPersona?.icon ?? "")}
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm">
+            <PersonaIcon name={currentPersona?.icon ?? ""} className="h-5 w-5 text-indigo-500" />
           </div>
           <div>
             <div className="text-xs text-indigo-700/70">{t("home.persona.current")}</div>
@@ -455,8 +480,8 @@ function Personas(props: {
             onClick={() => props.update({ personaId: persona.id })}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-lg">
-                {personaIcon(persona.icon)}
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50/60">
+                <PersonaIcon name={persona.icon} className="h-4.5 w-4.5 text-indigo-500" />
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -524,15 +549,15 @@ function Personas(props: {
             />
             <label className="mt-3 block text-xs text-slate-500">{t("personas.icon")}</label>
             <div className="mt-1 flex flex-wrap gap-2">
-              {Object.entries(PERSONA_ICONS).map(([name, emoji]) => (
+              {Object.keys(PERSONA_ICONS).map((name) => (
                 <button
                   key={name}
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
                     editing.icon === name ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
                   }`}
                   onClick={() => setEditing({ ...editing, icon: name })}
                 >
-                  {emoji}
+                  <PersonaIcon name={name} className={`h-4 w-4 ${editing.icon === name ? "text-indigo-500" : "text-slate-500"}`} />
                 </button>
               ))}
             </div>
@@ -637,7 +662,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
             >
               {word}
               <button className="text-slate-300 hover:text-red-500" onClick={() => remove(word)}>
-                ✕
+                <X className="h-3.5 w-3.5" />
               </button>
             </span>
           ))}
@@ -887,7 +912,8 @@ function VoiceTab(props: {
             props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
           }`}
         >
-          {props.doubaoReady ? `✓ ${t("settings.asrReady")}` : t("settings.asrNotReady")}
+          {props.doubaoReady && <Check className="mr-1 inline h-3.5 w-3.5" />}
+          {props.doubaoReady ? t("settings.asrReady") : t("settings.asrNotReady")}
         </span>
       </Row>
       <Row label={t("settings.asrOpenLogin")}>
@@ -1014,7 +1040,7 @@ function AboutTab(props: { t: Translator; version: string }) {
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
             onClick={() => void api.openExternal(`${REPO_URL}/releases`)}
           >
-            Releases ↗
+            Releases <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
       </section>
@@ -1024,7 +1050,7 @@ function AboutTab(props: { t: Translator; version: string }) {
         <div className="mt-1 text-xs text-slate-400">{t("settings.about.openSourceDesc")}</div>
         <Row label={t("settings.about.repo")}>
           <button className="text-sm text-indigo-500 hover:underline" onClick={() => void api.openExternal(REPO_URL)}>
-            github.com/wookat/speaktype ↗
+            github.com/wookat/speaktype <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.issues")}>
@@ -1032,7 +1058,7 @@ function AboutTab(props: { t: Translator; version: string }) {
             className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/issues`)}
           >
-            GitHub Issues ↗
+            GitHub Issues <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.license")}>
@@ -1040,7 +1066,7 @@ function AboutTab(props: { t: Translator; version: string }) {
             className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/blob/main/LICENSE`)}
           >
-            MIT License ↗
+            MIT License <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.author")}>

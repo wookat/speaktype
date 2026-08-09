@@ -19,6 +19,8 @@
     "electron-log": "5.4.3",
     "electron-store": "11.0.2",
     "koffi": "3.1.4",
+    "lucide-react": "^0.560.0",
+    "pinyin-pro": "^3.28.2",
     "uiohook-napi": "1.5.5"
   },
   "devDependencies": {
