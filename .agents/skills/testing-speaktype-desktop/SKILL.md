@@ -25,8 +25,19 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 ## Store / userData locations
 
 - Dev: `%APPDATA%\Electron\speaktype.json`.
-- Installed: `%APPDATA%\SpeakType 语音输入法\speaktype.json` (unicode dir name — `findstr` chokes on it; use PowerShell/.NET IO).
+- Installed/packaged since 0.8.x: `%APPDATA%\SpeakType\speaktype.json` (older builds used `%APPDATA%\SpeakType 语音输入法\` — the app auto-migrates from it on first launch, so when testing a "fresh config" you must rename **both** dirs away, otherwise the legacy config is migrated back in and the test is invalid: look for `migrated legacy userData from …` in main.log).
+- Offline model lives in `%APPDATA%\SpeakType\models\sensevoice-small\{model.int8.onnx (239MB), tokens.txt}`; keep a copy outside the config dir so a fresh-config run can restore it instead of re-downloading. `downloadLocalModel` skips files that already exist, so copying them in before clicking 下载 makes the card finish instantly (still logs `local model … downloaded`).
 - To simulate "not activated": quit app, set `doubaoAppKeyCache` to `""`, relaunch → hold RightCtrl shows Chinese toast 「还没拿到豆包语音入口…」. Back up the file first.
+
+## Offline (SenseVoice) live captions
+
+- Offline live captions are approximated by re-decoding the buffered audio every ~1s (`asr.ts` PARTIAL_* consts): preview starts after 1s of audio and **stops once the buffer exceeds 20s**; the final result is still decoded on release. To prove it, zoom on the floating panel at ~8s and ~16s (text must grow) and again at ~25s (frozen/shorter than the final pasted text) during a >27s hold.
+- Decoding is synchronous in the main process; during long re-decodes the whole UI (and CDP) can stall briefly. If the window stays white and all CDP targets time out, the main process is wedged — kill and relaunch (seen once on 0.8.3).
+
+## App-based persona rules
+
+- Personas page → 「按应用自动切人设」→ 添加规则 → match text (matches process name OR window title, case-insensitive) + persona dropdown. The rule is evaluated **at record start** from the foreground window, and with no LLM configured it only shows up as the `personaName` on the history item (History list shows `HH:MM · <persona> · <secs> · Local offline`).
+- Always run the counter-test (foreground = a non-matching window, e.g. the SpeakType window itself) — it must record the global persona instead, otherwise a hardcoded persona would look like a pass.
 
 ## Synthetic hotkeys (uiohook sees SendInput)
 

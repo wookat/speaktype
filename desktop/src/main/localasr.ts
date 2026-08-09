@@ -4,6 +4,7 @@ import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from "no
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import type { LocalModelStatus } from "../shared/types";
 import { t } from "./i18n";
@@ -146,46 +147,86 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   return { ...status };
 }
 
-interface SherpaStream {
-  acceptWaveform(input: { sampleRate: number; samples: Float32Array }): void;
+/**
+ * SenseVoice 推理跑在 worker 线程里：sherpa-onnx 的解码是同步的，长句要几百毫秒到
+ * 一秒多，留在主进程会卡住整个 UI（实时字幕反复重解时尤其明显）。worker 里模型实例
+ * 常驻，语言变化时重建。
+ */
+const workerSource = `
+const { parentPort, workerData } = require("worker_threads");
+const mod = require(workerData.modulePath);
+let rec = null;
+let lang = null;
+parentPort.on("message", (msg) => {
+  try {
+    if (!rec || lang !== msg.language) {
+      rec = new mod.OfflineRecognizer({
+        modelConfig: {
+          senseVoice: { model: workerData.model, language: msg.language, useInverseTextNormalization: 1 },
+          tokens: workerData.tokens,
+          numThreads: 2,
+          provider: "cpu",
+          debug: 0,
+        },
+      });
+      lang = msg.language;
+    }
+    const stream = rec.createStream();
+    stream.acceptWaveform({ sampleRate: msg.sampleRate, samples: msg.samples });
+    rec.decode(stream);
+    parentPort.postMessage({ id: msg.id, text: rec.getResult(stream).text.trim() });
+  } catch (error) {
+    parentPort.postMessage({ id: msg.id, error: error instanceof Error ? error.message : String(error) });
+  }
+});
+`;
+
+let worker: Worker | null = null;
+let nextJobId = 1;
+const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
+
+function ensureWorker(model: string, tokens: string): Worker {
+  if (worker) return worker;
+  const require = createRequire(import.meta.url);
+  worker = new Worker(workerSource, {
+    eval: true,
+    workerData: { modulePath: require.resolve("sherpa-onnx-node"), model, tokens },
+  });
+  worker.on("message", (msg: { id: number; text?: string; error?: string }) => {
+    const job = pending.get(msg.id);
+    if (!job) return;
+    pending.delete(msg.id);
+    if (msg.error) job.reject(new Error(msg.error));
+    else job.resolve(msg.text ?? "");
+  });
+  worker.on("error", (error) => {
+    log.warn("sensevoice worker error", error);
+    for (const job of pending.values()) job.reject(error);
+    pending.clear();
+    worker = null;
+  });
+  worker.on("exit", () => {
+    worker = null;
+  });
+  log.info("sensevoice worker started");
+  return worker;
 }
 
-interface SherpaRecognizer {
-  createStream(): SherpaStream;
-  decode(stream: SherpaStream): void;
-  getResult(stream: SherpaStream): { text: string };
-}
-
-interface SherpaModule {
-  OfflineRecognizer: new (config: unknown) => SherpaRecognizer;
-}
-
-let sherpa: SherpaRecognizer | null = null;
-
-/** SenseVoice 推理：进程内同步调用，模型实例建一次常驻（首次 ~1.5s，之后每句 ~0.3s） */
-export function transcribeSenseVoice(samples: Float32Array, sampleRate: number, language: string): string {
+export async function transcribeSenseVoice(
+  samples: Float32Array,
+  sampleRate: number,
+  language: string,
+): Promise<string> {
   const files = modelFiles(SENSEVOICE);
   const model = files[0]?.[1] ?? "";
   const tokens = files[1]?.[1] ?? "";
   if (!existsSync(model) || !existsSync(tokens)) throw new Error(t("error.localModelMissing"));
-  if (!sherpa) {
-    const require = createRequire(import.meta.url);
-    const mod = require("sherpa-onnx-node") as SherpaModule;
-    sherpa = new mod.OfflineRecognizer({
-      modelConfig: {
-        senseVoice: { model, language, useInverseTextNormalization: 1 },
-        tokens,
-        numThreads: 2,
-        provider: "cpu",
-        debug: 0,
-      },
-    });
-    log.info("sensevoice recognizer created");
-  }
-  const stream = sherpa.createStream();
-  stream.acceptWaveform({ sampleRate, samples });
-  sherpa.decode(stream);
-  return sherpa.getResult(stream).text.trim();
+  const w = ensureWorker(model, tokens);
+  const id = nextJobId++;
+  return new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    w.postMessage({ id, samples, sampleRate, language });
+  });
 }
 
 export function stopLocalServer(): void {

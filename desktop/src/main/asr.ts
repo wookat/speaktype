@@ -176,26 +176,31 @@ export function startLocalAsrSession(
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
   if (model !== SENSEVOICE) ensureLocalServer(model).catch(() => undefined);
 
-  // SenseVoice 是整句模型，流式字幕靠定时重解已录部分近似；解码同步阻塞，
-  // 所以只在音频够长且不过长时做，超过上限就停掉预览留给最终识别
+  // SenseVoice 是整句模型，流式字幕靠定时重解已录部分近似；只在音频够长且
+  // 不过长时做，超过上限停掉预览留给最终识别
   let timer: NodeJS.Timeout | null = null;
   if (onPartial && model === SENSEVOICE) {
+    let inFlight = false;
     let nextAt = 0;
     timer = setInterval(() => {
       const samples = frames.reduce((sum, f) => sum + f.length, 0);
-      if (samples < PARTIAL_MIN_SAMPLES || samples > PARTIAL_MAX_SAMPLES) return;
+      if (inFlight || samples < PARTIAL_MIN_SAMPLES || samples > PARTIAL_MAX_SAMPLES) return;
       if (Date.now() < nextAt) return;
-      try {
-        const started = Date.now();
-        const text = transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
-        const cost = Date.now() - started;
-        // 重解是同步阻塞的，句子越长越慢；按上次耗时拉开间隔，别把主进程占满
-        nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, cost * 3);
-        if (text) onPartial(text);
-      } catch {
-        /* 预览失败无所谓，最终识别会给出真正的报错 */
-        nextAt = Date.now() + PARTIAL_INTERVAL_MS * 5;
-      }
+      inFlight = true;
+      const started = Date.now();
+      void transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto")
+        .then((text) => {
+          // 解码在 worker 里，但仍串行；按上次耗时拉开间隔，别让预览霸占识别线程
+          nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, (Date.now() - started) * 2);
+          if (text && !cancelled) onPartial(text);
+        })
+        .catch(() => {
+          /* 预览失败无所谓，最终识别会给出真正的报错 */
+          nextAt = Date.now() + PARTIAL_INTERVAL_MS * 5;
+        })
+        .finally(() => {
+          inFlight = false;
+        });
     }, PARTIAL_TICK_MS);
   }
   const stopTimer = (): void => {
