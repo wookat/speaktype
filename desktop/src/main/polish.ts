@@ -3,10 +3,15 @@ import { correctHotwords } from "./hotwords";
 
 const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然后/g];
 
-/** 没有 LLM 时的本地口语清理：删语气词、压重复、去尾句号 */
+// 自我纠正：“A，不对／说错了／口误，(是/应该是/改成)B”只保留 B；只处理逗号分隔的保守模式
+const SELF_CORRECTION =
+  /([^，。！？,.!?]{1,15})[，,]\s*(?:不对|说错了|口误|我是说)[，,]?\s*(?:是|应该是|改成)?/g;
+
+/** 没有 LLM 时的本地口语清理：删语气词、自我纠正、压重复、去尾句号 */
 export function localCleanup(text: string): string {
   let out = text.trim();
   for (const re of FILLERS) out = out.replace(re, "");
+  out = out.replace(SELF_CORRECTION, "");
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
   return out.replace(/[。．.]+$/, "");
@@ -70,7 +75,8 @@ export async function polishText(
     "要求：",
     "1. 只输出整理后的正文，不要解释、不要引号、不要 Markdown 代码块。",
     "2. 去掉语气词与口头重复，补齐标点，不要增删事实。",
-    `3. 风格要求：${persona.prompt}`,
+    "3. 口述中出现自我更正（如“不对”“说错了”“我是说”“改成”、英文 no wait / actually 后接修正）时，只保留修正后的内容。",
+    `4. 风格要求：${persona.prompt}`,
     hotwords,
     `\n语音转写原文：\n"""${cleaned}"""`,
   ].join("\n");
