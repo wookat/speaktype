@@ -35,6 +35,10 @@ export interface Settings {
   muteWhileRecording: boolean;
   /** Alt+1..9 快速切人设 */
   personaHotkeysEnabled: boolean;
+  /** 免按（点按开关）模式下检测到静音自动结束 */
+  vadAutoStop: boolean;
+  /** 静音多久后自动结束，毫秒 */
+  vadSilenceMs: number;
   /** 麦克风设备 deviceId，空串表示系统默认 */
   micDeviceId: string;
   polishEnabled: boolean;

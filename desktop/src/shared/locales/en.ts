@@ -88,6 +88,10 @@ export const en: LocaleDict = {
   "settings.holdDelayHint": "Presses shorter than this are ignored as accidental.",
   "settings.personaHotkeys": "Persona hotkeys",
   "settings.personaHotkeysHint": "Switch personas quickly with Alt + digit.",
+  "settings.vadAutoStop": "Auto-stop on silence (hands-free)",
+  "settings.vadAutoStopHint": "In toggle mode, recording ends automatically after you stop talking; push-to-talk is unaffected.",
+  "settings.vadSilence": "Silence duration",
+  "settings.vadSilenceHint": "Considered done after staying quiet this long.",
 
   "settings.appBehavior": "App behavior",
   "settings.launchAtLogin": "Launch at login",

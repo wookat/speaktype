@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS: Settings = {
   startMinimized: false,
   muteWhileRecording: false,
   personaHotkeysEnabled: true,
+  vadAutoStop: true,
+  vadSilenceMs: 2000,
   micDeviceId: "",
   polishEnabled: false,
   polishBaseUrl: "",

@@ -792,6 +792,29 @@ function GeneralTab(props: {
           value={s.personaHotkeysEnabled}
           onChange={(v) => update({ personaHotkeysEnabled: v })}
         />
+        <Toggle
+          label={t("settings.vadAutoStop")}
+          hint={t("settings.vadAutoStopHint")}
+          value={s.vadAutoStop}
+          onChange={(v) => update({ vadAutoStop: v })}
+        />
+        {s.vadAutoStop && (
+          <div className="ml-4 border-l-2 border-slate-100 pl-4">
+            <Row label={t("settings.vadSilence")} hint={t("settings.vadSilenceHint")}>
+              <select
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                value={s.vadSilenceMs}
+                onChange={(e) => update({ vadSilenceMs: Number(e.target.value) })}
+              >
+                {[1000, 1500, 2000, 3000, 5000].map((ms) => (
+                  <option key={ms} value={ms}>
+                    {ms / 1000} s
+                  </option>
+                ))}
+              </select>
+            </Row>
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">

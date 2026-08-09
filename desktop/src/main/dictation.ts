@@ -12,6 +12,9 @@ import { addHistory, addStats, findPersona, getSettings } from "./store";
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
 const WARM_UP_COOLDOWN_MS = 5000;
+// 免按模式 VAD：峰值低于该阈值算静音（约 2.7% 满幅），开始后至少录这么久才允许自动结束
+const VAD_SILENCE_PEAK = 900;
+const VAD_MIN_RECORD_MS = 1500;
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -30,6 +33,8 @@ export class Dictation {
   private startedAt = 0;
   private lastWarmUp = 0;
   private muted = false;
+  private mode: "hold" | "toggle" = "hold";
+  private lastVoiceAt = 0;
 
   constructor(private deps: DictationDeps) {}
 
@@ -78,15 +83,37 @@ export class Dictation {
   pushPcm(frame: Int16Array): void {
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
+    this.checkAutoStop(frame);
   }
 
-  async start(): Promise<void> {
+  /** 免按模式：说完后持续静音自动结束，不用再按一次 */
+  private checkAutoStop(frame: Int16Array): void {
+    if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
+    let peak = 0;
+    for (const v of frame) {
+      const a = v < 0 ? -v : v;
+      if (a > peak) peak = a;
+    }
+    const now = Date.now();
+    if (peak >= VAD_SILENCE_PEAK) {
+      this.lastVoiceAt = now;
+      return;
+    }
+    const settings = getSettings();
+    if (!settings.vadAutoStop) return;
+    if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
+    if (this.lastVoiceAt && now - this.lastVoiceAt >= settings.vadSilenceMs) void this.stop();
+  }
+
+  async start(mode: "hold" | "toggle" = "hold"): Promise<void> {
     if (this.busy) return;
     this.busy = true;
+    this.mode = mode;
     this.pendingEnd = null;
     this.partial = "";
     this.buffered = [];
     this.startedAt = Date.now();
+    this.lastVoiceAt = Date.now();
     const settings = getSettings();
 
     try {

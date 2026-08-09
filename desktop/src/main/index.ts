@@ -102,11 +102,11 @@ const dictation = new Dictation({
 
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
-  onHoldStart: () => void dictation.start(),
+  onHoldStart: () => void dictation.start("hold"),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => {
     if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start();
+    else void dictation.start("toggle");
   },
   onPersona: (index) => {
     const personas = getPersonas();
@@ -224,7 +224,7 @@ function registerIpc(): void {
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => {
     if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start();
+    else void dictation.start("toggle");
   });
   ipcMain.handle("record:cancel", () => dictation.cancel());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));

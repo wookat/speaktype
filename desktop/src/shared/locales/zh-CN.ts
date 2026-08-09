@@ -84,6 +84,10 @@ export const zhCN = {
   "settings.holdDelayHint": "短于此时长视为误触，不会起录。",
   "settings.personaHotkeys": "快捷键切换人设",
   "settings.personaHotkeysHint": "可通过 Alt + 数字快速切换人设。",
+  "settings.vadAutoStop": "免按模式静音自动结束",
+  "settings.vadAutoStopHint": "点按开关模式下，说完后保持安静即自动结束识别；长按说话不受影响。",
+  "settings.vadSilence": "静音判定时长",
+  "settings.vadSilenceHint": "持续安静超过该时长即视为说完。",
 
   "settings.appBehavior": "App 行为",
   "settings.launchAtLogin": "开机时启动应用",
