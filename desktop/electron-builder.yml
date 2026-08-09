@@ -9,9 +9,21 @@ files:
   - out/**
   - build/icon.png
   - "!node_modules/**/{test,tests,docs,example,examples}/**"
-  # koffi 自带全平台预编译产物 + 源码/文档，只保留目标平台（见 win/mac 块）
+  # koffi 自带全平台预编译产物 + 源码/文档，先排除再回加 win/mac 目标平台
+  # （必须在顶层回加：平台块里的 files 不会与顶层合并，0.2.0 因此漏掉 koffi 导致启动崩溃）
   - "!node_modules/koffi/{doc,src,vendor}/**"
   - "!node_modules/koffi/build/koffi/*/**"
+  - node_modules/koffi/build/koffi/win32_x64/koffi.node
+  # mac 打包时用 pack:mac 脚本叠加 electron-builder-mac.yml 回加 darwin 产物，
+  # 避免 Windows 安装包多背 ~8MB 而超 GitHub 100MB 单文件限制
+compression: maximum
+# 只保留 UI 支持的 5 种语言的 Chromium 语言包，其余 ~50 个 .pak 不入包
+electronLanguages:
+  - en-US
+  - zh-CN
+  - zh-TW
+  - ja
+  - ko
 # 内置离线识别：whisper.cpp server 及其 CPU 后端 DLL（模型由应用内下载，不入包）
 extraResources:
   - from: resources/whisper
@@ -25,8 +37,6 @@ win:
       arch:
         - x64
   icon: build/icon.png
-  files:
-    - node_modules/koffi/build/koffi/win32_x64/**
 mac:
   target:
     - target: dmg
@@ -35,9 +45,6 @@ mac:
         - x64
   icon: build/icon.png
   category: public.app-category.productivity
-  files:
-    - node_modules/koffi/build/koffi/darwin_arm64/**
-    - node_modules/koffi/build/koffi/darwin_x64/**
   extendInfo:
     NSMicrophoneUsageDescription: SpeakType uses the microphone for voice typing.
 dmg:

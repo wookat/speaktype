@@ -1,0 +1,5 @@
+# mac 打包配置：在主配置基础上回加 koffi darwin 预编译产物（见 electron-builder.yml 注释）
+extends: ./electron-builder.yml
+files:
+  - node_modules/koffi/build/koffi/darwin_arm64/**
+  - node_modules/koffi/build/koffi/darwin_x64/**
