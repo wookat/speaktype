@@ -365,6 +365,35 @@ function suggestHotword(before: string, after: string): string | null {
   return /^[\u4e00-\u9fff]{2,6}$/.test(mid) ? mid : null;
 }
 
+/** 审阅式对照：去掉共同前后缀，把中间变化段高亮出来 */
+function diffSegments(before: string, after: string): { prefix: string; delA: string; delB: string; suffix: string } {
+  const a = Array.from(before);
+  const b = Array.from(after);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let end = 0;
+  while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  return {
+    prefix: a.slice(0, start).join(""),
+    delA: a.slice(start, a.length - end).join(""),
+    delB: b.slice(start, b.length - end).join(""),
+    suffix: a.slice(a.length - end).join(""),
+  };
+}
+
+/** 文档审阅风格：原文变化段划线，紧跟红色修改段 */
+function ReviewDiff(props: { before: string; after: string }) {
+  const d = diffSegments(props.before, props.after);
+  return (
+    <span>
+      {d.prefix}
+      {d.delA && <span className="text-slate-400 line-through decoration-red-300">{d.delA}</span>}
+      {d.delB && <span className="font-medium text-red-500">{d.delB}</span>}
+      {d.suffix}
+    </span>
+  );
+}
+
 function History(props: {
   t: Translator;
   history: HistoryItem[];
@@ -534,8 +563,8 @@ function History(props: {
                     </div>
                   )}
                   {item.status !== "failed" && item.raw !== item.text && (
-                    <div className="mt-1 text-xs text-slate-400">
-                      {t("history.raw")}: {item.raw}
+                    <div className="mt-1 text-xs leading-relaxed text-slate-400">
+                      <ReviewDiff before={item.raw} after={item.text} />
                     </div>
                   )}
                   {item.failed && (
@@ -978,6 +1007,19 @@ function GeneralTab(props: {
           value={s.keepFailedAudio}
           onChange={(v) => update({ keepFailedAudio: v })}
         />
+        <Row label={t("settings.captionLines")} hint={t("settings.captionLinesHint")}>
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.captionLines}
+            onChange={(e) => update({ captionLines: Number(e.target.value) })}
+          >
+            {[1, 3, 6].map((n) => (
+              <option key={n} value={n}>
+                {t("settings.captionLinesOption", { n: String(n) })}
+              </option>
+            ))}
+          </select>
+        </Row>
         <Row label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"

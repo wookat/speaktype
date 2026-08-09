@@ -59,6 +59,8 @@ export interface Settings {
   enhancedVad: boolean;
   /** 识别失败时把录音保存在本机供重试（最多 20 段 / 7 天 / 50MB） */
   keepFailedAudio: boolean;
+  /** 悬浮条实时字幕最大行数（1/3/6），超出滚动到最新 */
+  captionLines: number;
 }
 
 /** VAD 增强包下载/就绪状态，主进程推给设置页 */

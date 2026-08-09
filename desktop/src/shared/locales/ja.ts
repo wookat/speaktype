@@ -137,6 +137,9 @@ export const ja: LocaleDict = {
   "settings.localModelDownload": "モデルをダウンロード",
   "settings.localModelDownloading": "ダウンロード中 {{progress}}%",
   "settings.localModelReady": "モデル準備完了",
+  "settings.captionLines": "字幕の高さ",
+  "settings.captionLinesHint": "フローティングバーのリアルタイム字幕の最大行数。超えると最新にスクロールします。",
+  "settings.captionLinesOption": "{{n}} 行",
   "settings.keepFailedAudio": "失敗した録音を保持",
   "settings.keepFailedAudioHint":
     "認識に失敗した録音をこの PC に保存し、履歴から再試行できます（最大 20 件 / 7 日 / 50MB、アップロードされません）。",

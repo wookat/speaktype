@@ -1,24 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 import { api } from "./api";
 import { getT } from "./i18n";
 import type { StatusPayload, UiLanguage } from "../../shared/types";
 import "./global.css";
 
 const BAR_COUNT = 24;
+// 字幕行高约 19px（13px 字号 × leading-snug），按设置的行数换算最大高度
+const CAPTION_LINE_PX = 19;
 
-/** 贴屏幕底部居中的悬浮波形条：录音时波形 + 实时字幕，结束显示整理进度 */
+/** 贴屏幕底部居中的悬浮条：实时字幕 + 波形 + 取消，转写/润色期只显示旋转指示 */
 function Panel() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(0.08));
   const [lang, setLang] = useState<{ ui: UiLanguage; system: string }>({ ui: "system", system: "zh-CN" });
+  const [captionLines, setCaptionLines] = useState(3);
   const levelRef = useRef(0);
+  const captionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    void api.init().then((data) => setLang({ ui: data.settings.uiLanguage, system: data.systemLocale }));
-    const offSettings = api.onSettings(({ settings }) =>
-      setLang((prev) => ({ ...prev, ui: settings.uiLanguage })),
-    );
+    void api.init().then((data) => {
+      setLang({ ui: data.settings.uiLanguage, system: data.systemLocale });
+      setCaptionLines(data.settings.captionLines || 3);
+    });
+    const offSettings = api.onSettings(({ settings }) => {
+      setLang((prev) => ({ ...prev, ui: settings.uiLanguage }));
+      setCaptionLines(settings.captionLines || 3);
+    });
     const offStatus = api.onStatus(setStatus);
     const offLevel = api.onLevel((level) => {
       levelRef.current = level;
@@ -34,37 +43,35 @@ function Panel() {
     };
   }, []);
 
+  // 实时字幕总是滚到最新一个字
+  useEffect(() => {
+    const el = captionRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [status?.partial]);
+
   const t = getT(lang.ui, lang.system);
 
   if (!status || status.state === "idle") {
     if (!status?.partial) return null;
   }
 
-  const label =
-    status?.state === "connecting"
-      ? t("panel.connecting")
-      : status?.state === "recording"
-        ? t("panel.recording")
-        : status?.state === "transcribing"
-          ? t("panel.transcribing")
-          : status?.state === "polishing"
-            ? t("panel.polishing")
-            : status?.state === "error"
-              ? (status.message ?? t("panel.error"))
-              : "";
+  const recording = status?.state === "recording" || status?.state === "connecting";
+  const working = status?.state === "transcribing" || status?.state === "polishing";
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-end pb-2 font-sans">
       {status?.partial && (
-        <div className="mb-2 max-h-[64px] max-w-[420px] overflow-hidden rounded-2xl border border-white/10 bg-[#292929]/95 px-4 py-2 text-[13px] leading-snug text-slate-100 shadow-lg">
+        <div
+          ref={captionRef}
+          className="mb-2 max-w-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#292929]/95 px-4 py-2 text-[13px] leading-snug text-slate-100 shadow-lg [scrollbar-width:none]"
+          style={{ maxHeight: captionLines * CAPTION_LINE_PX + 16 }}
+        >
           {status.partial}
         </div>
       )}
+      {(recording || working || status?.state === "error") && (
       <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#292929]/95 px-4 py-2 shadow-xl">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm">
-          {status?.state === "recording" ? "🎙️" : status?.state === "error" ? "⚠️" : "⏳"}
-        </div>
-        {status?.state === "recording" || status?.state === "connecting" ? (
+        {recording && (
           <div className="flex h-8 items-end gap-[3px]">
             {levels.map((v, i) => (
               <span
@@ -74,26 +81,33 @@ function Panel() {
               />
             ))}
           </div>
-        ) : null}
-        <span
-          className={`text-[13px] ${
-            status?.state === "error"
-              ? "line-clamp-3 max-w-[420px] leading-snug text-red-300"
-              : "max-w-[240px] truncate text-slate-200"
-          }`}
-        >
-          {label}
-        </span>
-        {(status?.state === "recording" || status?.state === "connecting") && (
+        )}
+        {working && (
+          <span className="flex items-center gap-2 text-[13px] text-slate-300">
+            <Loader2 size={16} className="animate-spin text-violet-400" />
+            {status?.state === "transcribing" ? t("panel.transcribing") : t("panel.polishing")}
+          </span>
+        )}
+        {status?.state === "error" && (
+          <span className="flex items-start gap-2 text-[13px] text-red-300">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span className="line-clamp-3 max-w-[420px] leading-snug">
+              {status.message ?? t("panel.error")}
+            </span>
+          </span>
+        )}
+        {recording && (
           <button
-            className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-white/20"
+            aria-label={t("panel.cancel")}
+            title={t("panel.cancel")}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white"
             onClick={() => void api.cancelRecord()}
           >
-            {t("panel.cancel")}
+            <X size={15} />
           </button>
         )}
       </div>
-      <div className="mt-1 text-[10px] text-slate-500/70">{status?.personaName}</div>
+      )}
     </div>
   );
 }
