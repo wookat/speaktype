@@ -18,7 +18,7 @@
     "auto-launch": "5.0.6",
     "electron-log": "5.4.3",
     "electron-store": "11.0.2",
-    "koffi": "3.1.4",
+    "koffi": "2.14.1",
     "lucide-react": "^0.560.0",
     "pinyin-pro": "^3.28.2",
     "uiohook-napi": "1.5.5"

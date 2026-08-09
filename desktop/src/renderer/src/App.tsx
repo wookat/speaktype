@@ -27,7 +27,7 @@ import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
 import { UI_LANGUAGES } from "../../shared/i18n";
-import type { HistoryItem, Persona, Settings, StatusPayload } from "../../shared/types";
+import type { HistoryItem, Persona, Settings, Stats, StatusPayload } from "../../shared/types";
 
 type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
@@ -109,6 +109,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [doubaoReady, setDoubaoReady] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     void api.init().then((data) => {
@@ -118,12 +119,14 @@ export default function App() {
       setHistory(data.history);
       setStatus(data.status);
       setDoubaoReady(data.doubaoReady);
+      setStats(data.stats);
     });
     const offStatus = api.onStatus((payload) => {
       setStatus(payload);
       if (payload.state === "idle") {
         void api.history().then(setHistory);
         void api.doubaoReady().then(setDoubaoReady);
+        void api.stats().then(setStats);
       }
     });
     const offSettings = api.onSettings(({ settings: s, personas: p }) => {
@@ -219,9 +222,9 @@ export default function App() {
             settings={settings}
             personas={localized}
             doubaoReady={doubaoReady}
-            statsWords={init.stats.words}
-            statsDuration={init.stats.durationMs}
-            statsSessions={init.stats.sessions}
+            statsWords={(stats ?? init.stats).words}
+            statsDuration={(stats ?? init.stats).durationMs}
+            statsSessions={(stats ?? init.stats).sessions}
             goSettings={() => setPage("settings")}
           />
         )}
