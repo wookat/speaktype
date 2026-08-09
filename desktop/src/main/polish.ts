@@ -1,5 +1,6 @@
 import type { Persona, Settings } from "../shared/types";
 import { correctHotwords } from "./hotwords";
+import { t } from "./i18n";
 
 const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然后/g];
 
@@ -32,6 +33,7 @@ function chatUrl(baseUrl: string): string {
 /** 设置页“测试连接”：发一条最小请求验证端点/密钥/模型名 */
 export async function testPolish(settings: Settings): Promise<{ ok: boolean; detail: string }> {
   if (!settings.polishBaseUrl || !settings.polishApiKey) return { ok: false, detail: "Base URL / API Key" };
+  if (!/^https?:\/\//.test(settings.polishBaseUrl)) return { ok: false, detail: t("error.badUrl") };
   try {
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",

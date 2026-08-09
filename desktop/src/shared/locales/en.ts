@@ -198,6 +198,7 @@ export const en: LocaleDict = {
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
   "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.localModelMissing": "Local model not downloaded yet: open Settings → Speech recognition and click \"Download model\"",
+  "error.badUrl": "URL must start with http:// or https://",
   "history.failedEntry": "Recognition failed",
   "history.retry": "Retry",
   "history.retrying": "Retrying…",

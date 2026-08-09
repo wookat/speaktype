@@ -1,6 +1,7 @@
 import { Converter } from "opencc-js/t2cn";
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
+import { t } from "./i18n";
 import { ensureLocalServer } from "./localasr";
 
 // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
@@ -46,6 +47,7 @@ interface TranscriptionResponse {
 /** 设置页“测试连接”：上传一段极短静音验证端点/密钥/模型名 */
 export async function testAsr(settings: Settings): Promise<{ ok: boolean; detail: string }> {
   if (!settings.asrBaseUrl || !settings.asrApiKey) return { ok: false, detail: "Base URL / API Key" };
+  if (!/^https?:\/\//.test(settings.asrBaseUrl)) return { ok: false, detail: t("error.badUrl") };
   try {
     const silence = new Int16Array(SAMPLE_RATE / 4);
     const form = new FormData();

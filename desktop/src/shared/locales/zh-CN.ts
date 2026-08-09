@@ -193,6 +193,7 @@ export const zhCN = {
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
+  "error.badUrl": "URL 需以 http:// 或 https:// 开头",
   "history.failedEntry": "识别失败",
   "history.retry": "重试",
   "history.retrying": "重试中…",
