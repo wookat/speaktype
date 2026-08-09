@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { BrowserWindow } from "electron";
+import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
 import { startLocalAsrSession, startOpenAiAsrSession } from "./asr";
@@ -16,6 +17,8 @@ const WARM_UP_COOLDOWN_MS = 5000;
 // 免按模式 VAD：峰值低于该阈值算静音（约 2.7% 满幅），开始后至少录这么久才允许自动结束
 const VAD_SILENCE_PEAK = 900;
 const VAD_MIN_RECORD_MS = 1500;
+// 整段录音峰值低于此值（约 0.8% 满幅）才判定为纯静音丢弃，比 VAD 门限宽松以免误丢真实人声
+const NO_SPEECH_PEAK = 250;
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -36,7 +39,7 @@ export class Dictation {
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
   private lastVoiceAt = 0;
-  private everVoiced = false;
+  private maxPeak = 0;
 
   constructor(private deps: DictationDeps) {}
 
@@ -95,11 +98,9 @@ export class Dictation {
       const a = v < 0 ? -v : v;
       if (a > peak) peak = a;
     }
+    if (peak > this.maxPeak) this.maxPeak = peak;
     const now = Date.now();
-    if (peak >= VAD_SILENCE_PEAK) {
-      this.lastVoiceAt = now;
-      this.everVoiced = true;
-    }
+    if (peak >= VAD_SILENCE_PEAK) this.lastVoiceAt = now;
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     if (peak >= VAD_SILENCE_PEAK) return;
     const settings = getSettings();
@@ -117,7 +118,7 @@ export class Dictation {
     this.buffered = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
-    this.everVoiced = false;
+    this.maxPeak = 0;
     const settings = getSettings();
 
     try {
@@ -216,8 +217,9 @@ export class Dictation {
     this.deps.recorder()?.webContents.send("recorder:stop");
     this.unmute();
 
-    // 全程没有一帧超过语音门限：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
-    if (!this.everVoiced) {
+    // 整段录音接近数字静音：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
+    log.info(`dictation finalize: durationMs=${durationMs} maxPeak=${this.maxPeak}`);
+    if (this.maxPeak < NO_SPEECH_PEAK) {
       session.cancel();
       this.busy = false;
       this.partial = "";
