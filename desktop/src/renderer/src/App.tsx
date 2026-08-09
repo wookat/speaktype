@@ -143,8 +143,10 @@ export default function App() {
       {/* 侧边栏 */}
       <aside className="flex w-52 shrink-0 flex-col border-r border-slate-200 bg-white/70 pt-10">
         <div className="flex items-center gap-2 px-5 pb-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-lg font-bold text-white">
-            α
+          <div className="flex h-9 w-9 items-end justify-center gap-[3px] rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 pb-2">
+            {[10, 16, 22, 16, 10].map((h, i) => (
+              <span key={i} className="w-[3px] rounded-full bg-white" style={{ height: `${h}px` }} />
+            ))}
           </div>
           <div>
             <div className="text-sm font-semibold leading-tight">{t("app.name")}</div>
@@ -157,7 +159,7 @@ export default function App() {
               key={item.id}
               onClick={() => setPage(item.id)}
               className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition-colors ${
-                page === item.id ? "bg-orange-50 font-medium text-orange-600" : "text-slate-600 hover:bg-slate-100"
+                page === item.id ? "bg-indigo-50 font-medium text-indigo-600" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               <span>{item.icon}</span>
@@ -166,7 +168,7 @@ export default function App() {
           ))}
         </nav>
         <div className="mt-auto px-5 pb-4 text-xs text-slate-400">
-          <button className="hover:text-orange-500" onClick={() => void api.openExternal(REPO_URL)}>
+          <button className="hover:text-indigo-500" onClick={() => void api.openExternal(REPO_URL)}>
             GitHub · MIT
           </button>
           <div className="mt-1">v{init.version}</div>
@@ -234,13 +236,13 @@ function Home(props: {
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
       {!props.doubaoReady && (
-        <div className="mt-6 flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4">
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
           <div>
-            <div className="font-medium text-orange-700">{t("home.activate.title")}</div>
-            <div className="mt-1 text-sm text-orange-600">{t("home.activate.desc")}</div>
+            <div className="font-medium text-indigo-700">{t("home.activate.title")}</div>
+            <div className="mt-1 text-sm text-indigo-600">{t("home.activate.desc")}</div>
           </div>
           <button
-            className="shrink-0 rounded-xl bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600"
             onClick={() => void api.activateDoubao()}
           >
             {t("home.activate.button")}
@@ -420,19 +422,19 @@ function Personas(props: {
   return (
     <div className="mx-auto max-w-3xl">
       {/* 当前人设卡 */}
-      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-100 to-amber-50 p-5">
+      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-100 to-violet-50 p-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
             {personaIcon(currentPersona?.icon ?? "")}
           </div>
           <div>
-            <div className="text-xs text-orange-700/70">{t("home.persona.current")}</div>
+            <div className="text-xs text-indigo-700/70">{t("home.persona.current")}</div>
             <div className="text-lg font-semibold">{currentPersona?.name}</div>
             <div className="mt-0.5 max-w-lg text-xs text-slate-500">{currentPersona?.prompt}</div>
           </div>
         </div>
         <button
-          className="shrink-0 rounded-xl bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-orange-50"
+          className="shrink-0 rounded-xl bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-indigo-50"
           onClick={() => setEditing({ id: `custom-${Date.now()}`, name: "", prompt: "", builtin: false, icon: "sparkles" })}
         >
           {t("personas.new")}
@@ -448,7 +450,7 @@ function Personas(props: {
           <li
             key={persona.id}
             className={`flex cursor-pointer items-center justify-between rounded-2xl border bg-white p-4 ${
-              current === persona.id ? "border-orange-400 ring-1 ring-orange-200" : "border-slate-200"
+              current === persona.id ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"
             }`}
             onClick={() => props.update({ personaId: persona.id })}
           >
@@ -463,7 +465,7 @@ function Personas(props: {
                     {persona.builtin ? t("personas.builtin") : t("personas.custom")}
                   </span>
                   {index < 9 && props.settings.personaHotkeysEnabled && (
-                    <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-400">Alt+{index + 1}</span>
+                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-400">Alt+{index + 1}</span>
                   )}
                 </div>
                 <div className="mt-1 max-w-lg text-xs text-slate-500">{persona.prompt}</div>
@@ -472,7 +474,7 @@ function Personas(props: {
             <div className="flex gap-2 text-xs text-slate-400">
               {persona.builtin ? (
                 <button
-                  className="hover:text-orange-500"
+                  className="hover:text-indigo-500"
                   onClick={(e) => {
                     e.stopPropagation();
                     duplicate(persona);
@@ -526,7 +528,7 @@ function Personas(props: {
                 <button
                   key={name}
                   className={`flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${
-                    editing.icon === name ? "border-orange-400 bg-orange-50" : "border-slate-200 hover:bg-slate-50"
+                    editing.icon === name ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
                   }`}
                   onClick={() => setEditing({ ...editing, icon: name })}
                 >
@@ -858,7 +860,7 @@ function MicSection(props: { t: Translator; s: Settings; update: (patch: Partial
           <div className="text-xs text-slate-400">{t("settings.micTestHint")}</div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-emerald-400 transition-[width] duration-100"
+              className="h-full rounded-full bg-indigo-400 transition-[width] duration-100"
               style={{ width: `${Math.min(100, level * 160)}%` }}
             />
           </div>
@@ -882,7 +884,7 @@ function VoiceTab(props: {
       <Row label={t("settings.asrStatus")}>
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${
-            props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-orange-50 text-orange-500"
+            props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
           }`}
         >
           {props.doubaoReady ? `✓ ${t("settings.asrReady")}` : t("settings.asrNotReady")}
@@ -1021,13 +1023,13 @@ function AboutTab(props: { t: Translator; version: string }) {
         <div className="font-medium">{t("settings.about.openSource")}</div>
         <div className="mt-1 text-xs text-slate-400">{t("settings.about.openSourceDesc")}</div>
         <Row label={t("settings.about.repo")}>
-          <button className="text-sm text-orange-500 hover:underline" onClick={() => void api.openExternal(REPO_URL)}>
+          <button className="text-sm text-indigo-500 hover:underline" onClick={() => void api.openExternal(REPO_URL)}>
             github.com/wookat/speaktype ↗
           </button>
         </Row>
         <Row label={t("settings.about.issues")}>
           <button
-            className="text-sm text-orange-500 hover:underline"
+            className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/issues`)}
           >
             GitHub Issues ↗
@@ -1035,7 +1037,7 @@ function AboutTab(props: { t: Translator; version: string }) {
         </Row>
         <Row label={t("settings.about.license")}>
           <button
-            className="text-sm text-orange-500 hover:underline"
+            className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/blob/main/LICENSE`)}
           >
             MIT License ↗
@@ -1079,7 +1081,7 @@ function Toggle(props: { label: string; hint?: string; value: boolean; onChange:
         {props.hint && <div className="text-xs text-slate-400">{props.hint}</div>}
       </div>
       <button
-        className={`h-6 w-11 rounded-full p-0.5 transition-colors ${props.value ? "bg-orange-500" : "bg-slate-200"}`}
+        className={`h-6 w-11 rounded-full p-0.5 transition-colors ${props.value ? "bg-indigo-500" : "bg-slate-200"}`}
         onClick={() => props.onChange(!props.value)}
       >
         <span
