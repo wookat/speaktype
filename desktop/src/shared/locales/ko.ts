@@ -16,6 +16,9 @@ export const ko: LocaleDict = {
   "home.activate.desc":
     "Doubao 에 로그인하고 내장 음성 입력을 한 번 사용하면 SpeakType 이 App Key 를 자동으로 가져옵니다. 설정에서 직접 입력할 수도 있습니다.",
   "home.activate.button": "설정하기",
+  "home.model.title": "오프라인 음성 모델 다운로드",
+  "home.model.desc": "처음 한 번만 다운로드하면(약 234MB) 이후에는 인터넷과 API 키 없이 로컬에서 동작합니다.",
+  "home.model.button": "다운로드",
   "home.ready": "음성 인식 준비 완료",
   "home.stat.sessions": "세션",
   "home.stat.words": "생성된 글자 수",

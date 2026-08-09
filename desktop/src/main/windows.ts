@@ -25,8 +25,8 @@ export function createMainWindow(visible = true): BrowserWindow {
   const win = new BrowserWindow({
     width: 1100,
     height: 740,
-    minWidth: 940,
-    minHeight: 600,
+    minWidth: 820,
+    minHeight: 560,
     frame: false,
     show: false,
     center: true,

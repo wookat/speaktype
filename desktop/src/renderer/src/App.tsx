@@ -291,6 +291,16 @@ function Home(props: {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
   const saved = Math.max(0, Math.round(props.statsWords / 40) * 60000 - props.statsDuration);
+
+  // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const localModel = props.settings.localModel || "sensevoice-small";
+  useEffect(() => {
+    if (props.settings.asrProvider !== "local") return;
+    void api.localModelStatus(localModel).then(setLocal);
+    return api.onLocalModel(setLocal);
+  }, [props.settings.asrProvider, localModel]);
+  const needsModel = props.settings.asrProvider === "local" && local !== null && !local.downloaded;
   // 标题里的热键要渲染成键帽样式，按占位符拆开
   const [titleBefore, titleAfter = ""] = t("home.title").split("{{key}}");
   return (
@@ -303,6 +313,24 @@ function Home(props: {
         {titleAfter}
       </h1>
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
+
+      {needsModel && (
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+          <div>
+            <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
+            <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc")}</div>
+          </div>
+          <button
+            className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
+            disabled={local?.downloading}
+            onClick={() => void api.localModelDownload(localModel)}
+          >
+            {local?.downloading
+              ? `${Math.round(local.progress)}%`
+              : t("home.model.button")}
+          </button>
+        </div>
+      )}
 
       {props.settings.asrProvider !== "local" &&
         props.settings.asrProvider !== "chatgpt" &&
