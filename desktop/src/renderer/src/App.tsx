@@ -357,13 +357,13 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
   const { t } = props;
   const [query, setQuery] = useState("");
   const [retrying, setRetrying] = useState("");
-  const [retryError, setRetryError] = useState("");
+  const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const retry = (id: string): void => {
     setRetrying(id);
-    setRetryError("");
+    setRetryError(null);
     void api.retryHistory(id).then(async (r) => {
       setRetrying("");
-      if (!r.ok) setRetryError(r.detail);
+      if (!r.ok) setRetryError({ id, msg: r.detail });
       props.setHistory(await api.history());
     });
   };
@@ -417,6 +417,7 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
+                      {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
                     <span className="hidden gap-3 group-hover:flex">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
@@ -444,7 +445,7 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                           {retrying === item.id ? t("history.retrying") : t("history.retry")}
                         </button>
                       )}
-                      {retryError && retrying === "" && <span className="text-xs text-red-400">{retryError}</span>}
+                      {retryError?.id === item.id && <span className="text-xs text-red-400">{retryError.msg}</span>}
                     </div>
                   ) : (
                     <div className="mt-2 text-sm">{item.text}</div>

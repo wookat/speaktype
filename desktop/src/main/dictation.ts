@@ -293,7 +293,15 @@ export class Dictation {
   private resolveFailedEntry(id: string, text: string, raw: string): void {
     const entry = getHistory().find((h) => h.id === id);
     if (entry?.audioFile && existsSync(entry.audioFile)) rmSync(entry.audioFile, { force: true });
-    updateHistoryItem(id, { text, raw, at: Date.now(), status: undefined, error: undefined, audioFile: undefined });
+    updateHistoryItem(id, {
+      text,
+      raw,
+      at: Date.now(),
+      status: undefined,
+      error: undefined,
+      audioFile: undefined,
+      provider: getSettings().asrProvider,
+    });
   }
 
   /** 历史页的失败条目重试：读回落盘音频重跑识别+润色，成功后原地更新并复制到剪贴板 */
@@ -367,6 +375,7 @@ export class Dictation {
         status: "failed",
         error: message,
         audioFile,
+        provider: settings.asrProvider,
       });
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
       this.busy = false;
@@ -408,6 +417,7 @@ export class Dictation {
         personaName: persona.name,
         durationMs,
         failed,
+        provider: settings.asrProvider,
       });
     addStats(text.length, durationMs);
 

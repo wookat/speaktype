@@ -79,6 +79,8 @@ export interface HistoryItem {
   status?: "failed";
   error?: string;
   audioFile?: string;
+  /** 产生该条目的 ASR 通道 */
+  provider?: AsrProvider;
 }
 
 export interface Stats {
