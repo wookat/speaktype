@@ -1136,6 +1136,28 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
         value={s.remoteMicEnabled}
         onChange={(v) => update({ remoteMicEnabled: v })}
       />
+      {s.remoteMicEnabled && (
+        <Row label={t("settings.remoteMicMode")} hint={t("settings.remoteMicModeHint")}>
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.remoteMicMode}
+            onChange={(e) => update({ remoteMicMode: e.target.value as Settings["remoteMicMode"] })}
+          >
+            <option value="lan">{t("settings.remoteMicModeLan")}</option>
+            <option value="relay">{t("settings.remoteMicModeRelay")}</option>
+          </select>
+        </Row>
+      )}
+      {s.remoteMicEnabled && s.remoteMicMode === "relay" && (
+        <Row label={t("settings.remoteRelayUrl")} hint={t("settings.remoteRelayUrlHint")}>
+          <input
+            className="w-[300px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            placeholder="https://speaktype-relay.xxx.workers.dev"
+            defaultValue={s.remoteRelayUrl}
+            onBlur={(e) => e.target.value !== s.remoteRelayUrl && update({ remoteRelayUrl: e.target.value.trim() })}
+          />
+        </Row>
+      )}
       {s.remoteMicEnabled && remote?.error && (
         <div className="ml-4 mt-1 border-l-2 border-red-100 pl-4 text-xs text-red-500">{remote.error}</div>
       )}
@@ -1144,7 +1166,9 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
           <img src={remote.qrDataUrl} alt="" className="h-[130px] w-[130px] rounded-lg border border-slate-200" />
           <div className="text-xs leading-relaxed text-slate-400">
             <div className="font-medium text-slate-600">{t("settings.remoteMicScan")}</div>
-            <div className="mt-1">{t("settings.remoteMicSteps")}</div>
+            <div className="mt-1">
+              {s.remoteMicMode === "relay" ? t("settings.remoteMicStepsRelay") : t("settings.remoteMicSteps")}
+            </div>
             <div className="selectable mt-2 break-all text-slate-500">{remote.url}</div>
             <div className="mt-1">
               {remote.clients > 0

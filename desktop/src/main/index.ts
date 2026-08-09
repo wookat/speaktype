@@ -128,8 +128,9 @@ configureRemoteMic({
 /** 启停手机麦克风服务，失败时把错误推给设置页 */
 async function syncRemoteMic(enabled: boolean): Promise<void> {
   try {
-    if (enabled) await startRemoteMic();
-    else await stopRemoteMic();
+    await stopRemoteMic();
+    const s = getSettings();
+    if (enabled) await startRemoteMic(s.remoteMicMode, s.remoteRelayUrl);
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", remoteMicInfo());
   } catch (error) {
     log.warn("remote mic failed", error);
@@ -244,7 +245,9 @@ function registerIpc(): void {
     applyHotkeys(next);
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
     if ("uiLanguage" in patch) refreshTrayMenu();
-    if ("remoteMicEnabled" in patch) await syncRemoteMic(next.remoteMicEnabled);
+    if ("remoteMicEnabled" in patch || "remoteMicMode" in patch || "remoteRelayUrl" in patch) {
+      await syncRemoteMic(next.remoteMicEnabled);
+    }
     pushSettings();
     return next;
   });

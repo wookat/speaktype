@@ -120,6 +120,13 @@ export const en: LocaleDict = {
   "settings.remoteMicSteps": "Phone and PC must be on the same Wi-Fi. On first open the browser warns about an untrusted certificate (LAN self-signed) — choose “Proceed”; then hold the round button to talk, release to type.",
   "settings.remoteMicWaiting": "Waiting for a phone to connect…",
   "settings.remoteMicConnected": "{{n}} device(s) connected",
+  "settings.remoteMicMode": "Connection",
+  "settings.remoteMicModeHint": "Same Wi-Fi: LAN direct. Different networks: internet relay (self-deploy, see relay/ in the repo for one-click deploy).",
+  "settings.remoteMicModeLan": "LAN direct",
+  "settings.remoteMicModeRelay": "Internet relay",
+  "settings.remoteRelayUrl": "Relay URL",
+  "settings.remoteRelayUrlHint": "Your self-deployed Cloudflare Worker; audio is piped through, never stored.",
+  "settings.remoteMicStepsRelay": "Scan the QR on your phone (works on any network); hold the round button to talk, release to type. The link carries a random room id valid for this session only.",
 
   "settings.asr": "Speech recognition service",
   "settings.asrHint":

@@ -63,6 +63,10 @@ export interface Settings {
   captionLines: number;
   /** 手机当麦克风：局域网 HTTPS+WS 服务，手机扫码按住说话、文字落到电脑光标处 */
   remoteMicEnabled: boolean;
+  /** 手机麦克风连接方式：局域网直连（默认）或公网中转（Cloudflare Worker 自部署） */
+  remoteMicMode: "lan" | "relay";
+  /** 公网中转服务地址，如 https://speaktype-relay.xxx.workers.dev */
+  remoteRelayUrl: string;
 }
 
 /** 手机麦克风服务状态，主进程推给设置页 */

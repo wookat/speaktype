@@ -26,6 +26,12 @@ let server: Server | null = null;
 let wss: WebSocketServer | null = null;
 let deps: RemoteMicDeps | null = null;
 let token = "";
+// 公网中转模式：桌面端作为客户端连入 Cloudflare Worker 房间，手机页由 Worker 托管
+let relayWs: WebSocket | null = null;
+let relayRoom = "";
+let relayHost = "";
+let relayStopped = true;
+let relayPhoneConnected = false;
 let info: RemoteMicInfo = { running: false, url: "", qrDataUrl: "", clients: 0 };
 /** 当前持有录音会话的手机连接：只有它能推流/结束，避免多台手机互相打架 */
 let activeWs: WebSocket | null = null;
@@ -178,20 +184,69 @@ export function remoteMicInfo(): RemoteMicInfo {
 
 /** 把录音状态转发给手机端（显示实时字幕/转写进度） */
 export function broadcastToPhones(payload: StatusPayload): void {
-  if (!wss) return;
+  if (!wss && !relayWs) return;
   const msg = JSON.stringify({
     type: "status",
     state: payload.state,
     partial: payload.partial ?? "",
     message: payload.message ?? "",
   });
-  for (const client of wss.clients) {
-    if (client.readyState === WebSocket.OPEN) client.send(msg);
+  if (wss) {
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(msg);
+    }
+  }
+  if (relayWs?.readyState === WebSocket.OPEN && relayPhoneConnected) relayWs.send(msg);
+}
+
+/** 手机端消息处理：局域网直连与公网中转共用同一协议 */
+function handlePhoneMessage(d: RemoteMicDeps, ws: WebSocket, data: unknown, isBinary: boolean): void {
+  if (isBinary) {
+    if (activeWs !== ws) return;
+    const buf = data as Buffer;
+    const copy = new Uint8Array(buf.length - (buf.length % 2));
+    copy.set(buf.subarray(0, copy.length));
+    d.pushPcm(new Int16Array(copy.buffer, 0, copy.length / 2));
+    return;
+  }
+  try {
+    const msg = JSON.parse(String(data)) as { type: string; connected?: boolean };
+    if (msg.type === "peer" && ws === relayWs) {
+      // 中转房间的手机上线/离线通知
+      relayPhoneConnected = Boolean(msg.connected);
+      if (!relayPhoneConnected && activeWs === ws) {
+        activeWs = null;
+        d.cancel();
+      }
+      info.clients = relayPhoneConnected ? 1 : 0;
+      d.onClients(info.clients);
+    } else if (msg.type === "start") {
+      if (d.isRecording()) {
+        ws.send(JSON.stringify({ type: "busy" }));
+        return;
+      }
+      activeWs = ws;
+      void d.start();
+    } else if (msg.type === "stop" && activeWs === ws) {
+      activeWs = null;
+      void d.stop();
+    } else if (msg.type === "cancel" && activeWs === ws) {
+      activeWs = null;
+      d.cancel();
+    }
+  } catch {
+    // 忽略无法解析的消息
   }
 }
 
 export async function stopRemoteMic(): Promise<void> {
   activeWs = null;
+  relayStopped = true;
+  relayPhoneConnected = false;
+  if (relayWs) {
+    relayWs.terminate();
+    relayWs = null;
+  }
   if (wss) {
     for (const client of wss.clients) client.terminate();
     wss.close();
@@ -204,8 +259,46 @@ export async function stopRemoteMic(): Promise<void> {
   info = { running: false, url: "", qrDataUrl: "", clients: 0 };
 }
 
-export async function startRemoteMic(): Promise<RemoteMicInfo> {
-  if (server) return remoteMicInfo();
+function connectRelay(d: RemoteMicDeps): void {
+  const ws = new WebSocket(`wss://${relayHost}/ws/${relayRoom}?role=desktop`);
+  relayWs = ws;
+  ws.on("message", (data, isBinary) => handlePhoneMessage(d, ws, data, isBinary));
+  ws.on("error", (error) => log.warn("relay ws error", error));
+  ws.on("close", () => {
+    if (activeWs === ws) {
+      activeWs = null;
+      d.cancel();
+    }
+    if (relayWs === ws) relayWs = null;
+    relayPhoneConnected = false;
+    info.clients = 0;
+    d.onClients(0);
+    // 开关仍开着时掉线自动重连
+    if (!relayStopped) setTimeout(() => !relayStopped && !relayWs && connectRelay(d), 2000);
+  });
+}
+
+/** 公网中转模式：连入用户自部署（或公共）的 Cloudflare Worker 中转 */
+async function startRelayMic(relayUrl: string): Promise<RemoteMicInfo> {
+  const d = deps;
+  if (!d) throw new Error("remote mic not configured");
+  relayHost = new URL(relayUrl.startsWith("http") ? relayUrl : `https://${relayUrl}`).host;
+  relayRoom = randomBytes(6).toString("hex");
+  relayStopped = false;
+  connectRelay(d);
+  const url = `https://${relayHost}/m/${relayRoom}`;
+  const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
+  info = { running: true, url, qrDataUrl, clients: 0 };
+  log.info(`remote mic relaying via ${url}`);
+  return remoteMicInfo();
+}
+
+export async function startRemoteMic(mode: "lan" | "relay" = "lan", relayUrl = ""): Promise<RemoteMicInfo> {
+  if (server || relayWs) return remoteMicInfo();
+  if (mode === "relay") {
+    if (!relayUrl.trim()) throw new Error("relay URL required");
+    return startRelayMic(relayUrl.trim());
+  }
   const d = deps;
   if (!d) throw new Error("remote mic not configured");
   token = randomBytes(6).toString("hex");
@@ -243,35 +336,7 @@ export async function startRemoteMic(): Promise<RemoteMicInfo> {
       info.clients = sockets.clients.size;
       d.onClients(sockets.clients.size);
     });
-    ws.on("message", (data, isBinary) => {
-      if (isBinary) {
-        if (activeWs !== ws) return;
-        const buf = data as Buffer;
-        const copy = new Uint8Array(buf.length - (buf.length % 2));
-        copy.set(buf.subarray(0, copy.length));
-        d.pushPcm(new Int16Array(copy.buffer, 0, copy.length / 2));
-        return;
-      }
-      try {
-        const msg = JSON.parse(String(data)) as { type: string };
-        if (msg.type === "start") {
-          if (d.isRecording()) {
-            ws.send(JSON.stringify({ type: "busy" }));
-            return;
-          }
-          activeWs = ws;
-          void d.start();
-        } else if (msg.type === "stop" && activeWs === ws) {
-          activeWs = null;
-          void d.stop();
-        } else if (msg.type === "cancel" && activeWs === ws) {
-          activeWs = null;
-          d.cancel();
-        }
-      } catch {
-        // 忽略无法解析的消息
-      }
-    });
+    ws.on("message", (data, isBinary) => handlePhoneMessage(d, ws, data, isBinary));
   });
 
   let port = PORT_BASE;
