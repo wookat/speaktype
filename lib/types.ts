@@ -45,7 +45,8 @@ export type UiToBg =
   | { type: "stop-record" }
   | { type: "cancel-record" }
   | { type: "get-state" }
-  | { type: "run-fix"; action: FixAction };
+  | { type: "run-fix"; action: FixAction }
+  | { type: "warm-up" };
 
 /** background → content script */
 export type BgToUi =
