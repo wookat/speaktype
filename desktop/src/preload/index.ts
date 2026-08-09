@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { HistoryItem, Persona, Settings, Stats, StatusPayload } from "../shared/types";
+import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload } from "../shared/types";
 
 export interface InitPayload {
   settings: Settings;
@@ -43,6 +43,16 @@ const api = {
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
   openLogs: (): Promise<void> => ipcRenderer.invoke("log:open"),
+  localModels: (): Promise<Array<{ id: string; size: string }>> => ipcRenderer.invoke("local:models"),
+  localModelStatus: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:status", model),
+  localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),
+  onLocalModel: (fn: (s: LocalModelStatus) => void) => {
+    const listener = (_e: unknown, s: LocalModelStatus) => fn(s);
+    ipcRenderer.on("local:model", listener);
+    return () => {
+      ipcRenderer.removeListener("local:model", listener);
+    };
+  },
 
   onStatus: (fn: (payload: StatusPayload) => void) => {
     const listener = (_e: unknown, payload: StatusPayload) => fn(payload);

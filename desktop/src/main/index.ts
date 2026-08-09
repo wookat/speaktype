@@ -16,6 +16,7 @@ import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao"
 import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
+import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
 import { testPolish } from "./polish";
 import {
   clearHistory,
@@ -231,6 +232,9 @@ function registerIpc(): void {
     else void dictation.start("toggle");
   });
   ipcMain.handle("record:cancel", () => dictation.cancel());
+  ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
+  ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
+  ipcMain.handle("local:download", (_e, model: string) => downloadLocalModel(model));
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
   ipcMain.handle("asr:test", () => testAsr(getSettings()));
   ipcMain.handle("mic:list", async () => {
@@ -288,6 +292,9 @@ void app.whenReady().then(() => {
   setupTray();
 
   onAppKeyCaptured(() => pushSettings());
+  onLocalModelStatus((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("local:model", s);
+  });
 
   const settings = getSettings();
   applyHotkeys(settings);
@@ -308,6 +315,7 @@ void app.whenReady().then(() => {
 app.on("before-quit", () => {
   quitting = true;
   hotkeys.stop();
+  stopLocalServer();
 });
 
 app.on("window-all-closed", () => {

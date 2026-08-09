@@ -125,6 +125,14 @@ export const zhCN = {
   "settings.asrProvider": "识别服务商",
   "settings.asrProviderDoubao": "豆包（流式，需登录）",
   "settings.asrProviderOpenai": "OpenAI 兼容转写接口（Whisper 类）",
+  "settings.asrProviderLocal": "内置离线识别（whisper.cpp）",
+  "settings.asrLocalHint":
+    "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件；整句识别，录音中不显示实时文字。",
+  "settings.localModel": "本地模型",
+  "settings.localModelHint": "模型越大越准、速度越慢。中文推荐 base-q5_1。",
+  "settings.localModelDownload": "下载模型",
+  "settings.localModelDownloading": "下载中 {{progress}}%",
+  "settings.localModelReady": "模型已就绪",
   "settings.asrOpenaiHint":
     "任意兼容 /audio/transcriptions 的服务都能接（OpenAI / SiliconFlow / Groq / 本地 Whisper 等），密钥只存本机。整句识别，录音中不显示实时文字。",
   "settings.asrBaseUrl": "Base URL",
@@ -182,6 +190,7 @@ export const zhCN = {
 
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
+  "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
   "error.micDenied": "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风",
   "error.micNotFound": "没有找到麦克风设备",
 

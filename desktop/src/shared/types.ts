@@ -11,8 +11,8 @@ export interface Persona {
 /** 界面语言："system" 表示跟随系统 */
 export type UiLanguage = "system" | "zh-CN" | "en";
 
-/** 语音识别服务商：豆包（流式，需登录）或任意 OpenAI 兼容转写接口（整句） */
-export type AsrProvider = "doubao" | "openai";
+/** 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、或内置离线 whisper.cpp */
+export type AsrProvider = "doubao" | "openai" | "local";
 
 export interface Settings {
   /** 点按开关热键，uiohook 键名组合，例如 "Alt+Space" */
@@ -51,6 +51,18 @@ export interface Settings {
   asrBaseUrl: string;
   asrApiKey: string;
   asrModel: string;
+  /** 离线通道的 whisper.cpp 模型名，如 "base-q5_1" */
+  localModel: string;
+}
+
+/** 离线模型下载/就绪状态，主进程推给设置页 */
+export interface LocalModelStatus {
+  model: string;
+  downloaded: boolean;
+  downloading: boolean;
+  /** 0-100 */
+  progress: number;
+  error?: string;
 }
 
 export interface HistoryItem {

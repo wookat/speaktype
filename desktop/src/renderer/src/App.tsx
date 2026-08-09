@@ -27,7 +27,7 @@ import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
 import { UI_LANGUAGES } from "../../shared/i18n";
-import type { HistoryItem, Persona, Settings, Stats, StatusPayload } from "../../shared/types";
+import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload } from "../../shared/types";
 
 type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
@@ -276,9 +276,10 @@ function Home(props: {
       </h1>
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
-      {!(props.settings.asrProvider === "openai"
-        ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
-        : props.doubaoReady) && (
+      {props.settings.asrProvider !== "local" &&
+        !(props.settings.asrProvider === "openai"
+          ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
+          : props.doubaoReady) && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
           <div>
             <div className="font-medium text-indigo-700">{t("home.activate.title")}</div>
@@ -945,7 +946,24 @@ function VoiceTab(props: {
 }) {
   const { t, s, update } = props;
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
-  const configured = s.asrProvider === "openai" ? Boolean(s.asrBaseUrl && s.asrApiKey) : props.doubaoReady;
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
+  const localModel = s.localModel || "base-q5_1";
+
+  useEffect(() => {
+    void api.localModels().then(setLocalModels);
+    return api.onLocalModel(setLocal);
+  }, []);
+  useEffect(() => {
+    void api.localModelStatus(localModel).then(setLocal);
+  }, [localModel]);
+
+  const configured =
+    s.asrProvider === "openai"
+      ? Boolean(s.asrBaseUrl && s.asrApiKey)
+      : s.asrProvider === "local"
+        ? Boolean(local?.downloaded)
+        : props.doubaoReady;
   // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
   const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
   const [testDetail, setTestDetail] = useState("");
@@ -965,7 +983,11 @@ function VoiceTab(props: {
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="font-medium">{t("settings.asr")}</div>
       <div className="mt-1 text-xs text-slate-400">
-        {s.asrProvider === "openai" ? t("settings.asrOpenaiHint") : t("settings.asrHint")}
+        {s.asrProvider === "openai"
+          ? t("settings.asrOpenaiHint")
+          : s.asrProvider === "local"
+            ? t("settings.asrLocalHint")
+            : t("settings.asrHint")}
       </div>
       <Row label={t("settings.asrProvider")}>
         <select
@@ -975,6 +997,7 @@ function VoiceTab(props: {
         >
           <option value="doubao">{t("settings.asrProviderDoubao")}</option>
           <option value="openai">{t("settings.asrProviderOpenai")}</option>
+          <option value="local">{t("settings.asrProviderLocal")}</option>
         </select>
       </Row>
       <Row label={t("settings.asrStatus")}>
@@ -987,7 +1010,42 @@ function VoiceTab(props: {
           {ready ? t("settings.asrReady") : configured ? t("settings.asrConfigured") : t("settings.asrNotReady")}
         </span>
       </Row>
-      {s.asrProvider === "doubao" ? (
+      {s.asrProvider === "local" ? (
+        <div className="mt-4 space-y-3">
+          <Row label={t("settings.localModel")} hint={t("settings.localModelHint")}>
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={localModel}
+              onChange={(e) => update({ localModel: e.target.value })}
+            >
+              {localModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id} ({m.size})
+                </option>
+              ))}
+            </select>
+          </Row>
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={Boolean(local?.downloading) || Boolean(local?.downloaded)}
+              onClick={() => void api.localModelDownload(localModel).then(setLocal)}
+            >
+              {local?.downloaded
+                ? t("settings.localModelReady")
+                : local?.downloading
+                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  : t("settings.localModelDownload")}
+            </button>
+            {local?.downloading && (
+              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
+              </div>
+            )}
+            {local?.error && <span className="text-sm text-red-500">{local.error}</span>}
+          </div>
+        </div>
+      ) : s.asrProvider === "doubao" ? (
         <>
           <Row label={t("settings.asrOpenLogin")}>
             <button

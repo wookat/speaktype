@@ -13,6 +13,10 @@ files:
   - "!node_modules/koffi/{doc,src,vendor}/**"
   - "!node_modules/koffi/build/koffi/*/**"
   - node_modules/koffi/build/koffi/win32_x64/**
+# 内置离线识别：whisper.cpp server 及其 CPU 后端 DLL（模型由应用内下载，不入包）
+extraResources:
+  - from: resources/whisper
+    to: whisper
 asarUnpack:
   - "**/*.node"
   - node_modules/koffi/**

@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { BrowserWindow } from "electron";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { startOpenAiAsrSession } from "./asr";
+import { startLocalAsrSession, startOpenAiAsrSession } from "./asr";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
+import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
@@ -124,6 +125,9 @@ export class Dictation {
       if (settings.asrProvider === "openai" && (!settings.asrBaseUrl || !settings.asrApiKey)) {
         throw new Error(t("error.noAsrConfig"));
       }
+      if (settings.asrProvider === "local" && !localModelStatus(settings.localModel || "base-q5_1").downloaded) {
+        throw new Error(t("error.localModelMissing"));
+      }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;
         toggleSystemMute();
@@ -131,7 +135,9 @@ export class Dictation {
       const opening: Promise<DoubaoSession> =
         settings.asrProvider === "openai"
           ? Promise.resolve(startOpenAiAsrSession(settings))
-          : startDoubaoSession(settings.language, (text) => this.setPartial(text));
+          : settings.asrProvider === "local"
+            ? Promise.resolve(startLocalAsrSession(settings))
+            : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发

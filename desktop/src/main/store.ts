@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   asrBaseUrl: "",
   asrApiKey: "",
   asrModel: "",
+  localModel: "base-q5_1",
 };
 
 interface Schema {

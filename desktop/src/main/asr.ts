@@ -1,5 +1,6 @@
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
+import { ensureLocalServer } from "./localasr";
 
 const SAMPLE_RATE = 16000;
 
@@ -87,6 +88,45 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
       if (!res.ok) {
         const body = (await res.text()).slice(0, 160);
         throw new Error(`ASR HTTP ${res.status} ${body}`);
+      }
+      const data = (await res.json()) as TranscriptionResponse;
+      return (data.text ?? "").trim();
+    },
+  };
+}
+
+/**
+ * 内置离线 whisper.cpp：同样是整句识别，松手后懒启动本地 whisper-server
+ * 并 POST /inference（无需密钥）。
+ */
+export function startLocalAsrSession(settings: Settings): DoubaoSession {
+  const frames: Int16Array[] = [];
+  let cancelled = false;
+
+  // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
+  const warming = ensureLocalServer(settings.localModel || "base-q5_1");
+  warming.catch(() => undefined);
+
+  return {
+    pushPcm(frame: Int16Array): void {
+      if (!cancelled) frames.push(frame);
+    },
+    cancel(): void {
+      cancelled = true;
+      frames.length = 0;
+    },
+    async finish(): Promise<string> {
+      if (cancelled || frames.length === 0) return "";
+      const url = await ensureLocalServer(settings.localModel || "base-q5_1");
+      const wav = pcmToWav(frames);
+      const form = new FormData();
+      form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
+      form.append("response_format", "json");
+      if (settings.language) form.append("language", settings.language);
+      const res = await fetch(url, { method: "POST", body: form });
+      if (!res.ok) {
+        const body = (await res.text()).slice(0, 160);
+        throw new Error(`Local ASR HTTP ${res.status} ${body}`);
       }
       const data = (await res.json()) as TranscriptionResponse;
       return (data.text ?? "").trim();
