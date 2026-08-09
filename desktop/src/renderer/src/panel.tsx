@@ -69,7 +69,7 @@ function Panel() {
             {levels.map((v, i) => (
               <span
                 key={i}
-                className="w-[3px] rounded-full bg-emerald-400"
+                className="w-[3px] rounded-full bg-violet-400"
                 style={{ height: `${Math.max(3, v * 30)}px`, transition: "height 60ms linear" }}
               />
             ))}

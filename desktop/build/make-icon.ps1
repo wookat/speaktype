@@ -3,23 +3,30 @@ $bmp = New-Object System.Drawing.Bitmap 256,256
 $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.SmoothingMode = 'AntiAlias'
 $rect = New-Object System.Drawing.Rectangle 0,0,256,256
-$brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, [System.Drawing.Color]::FromArgb(255,249,115,22), [System.Drawing.Color]::FromArgb(255,234,88,12), 45)
+# SpeakType 品牌色：靛紫渐变（#6366F1 → #8B5CF6）
+$brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, [System.Drawing.Color]::FromArgb(255,99,102,241), [System.Drawing.Color]::FromArgb(255,139,92,246), 45)
 $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-$path.AddArc(0,0,64,64,180,90)
-$path.AddArc(192,0,64,64,270,90)
-$path.AddArc(192,192,64,64,0,90)
-$path.AddArc(0,192,64,64,90,90)
+$path.AddArc(0,0,72,72,180,90)
+$path.AddArc(184,0,72,72,270,90)
+$path.AddArc(184,184,72,72,0,90)
+$path.AddArc(0,184,72,72,90,90)
 $path.CloseFigure()
 $g.FillPath($brush, $path)
+# 声波条：5 根圆头白条，中间最高，构成 SpeakType 的「声纹」标识
 $white = [System.Drawing.Brushes]::White
-$g.FillRectangle($white, 76, 60, 24, 100)
-$g.FillRectangle($white, 116, 40, 24, 140)
-$g.FillRectangle($white, 156, 76, 24, 68)
-$pen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, 14)
-$pen.StartCap = 'Round'
-$pen.EndCap = 'Round'
-$g.DrawArc($pen, 66, 90, 124, 100, 20, 140)
-$g.DrawLine($pen, 128, 190, 128, 216)
+function Add-Bar([int]$x, [int]$h) {
+  $y = [int]((256 - $h) / 2)
+  $barPath = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $barPath.AddArc($x, $y, 22, 22, 180, 180)
+  $barPath.AddArc($x, $y + $h - 22, 22, 22, 0, 180)
+  $barPath.CloseFigure()
+  $script:g.FillPath($script:white, $barPath)
+}
+Add-Bar 52 64
+Add-Bar 90 116
+Add-Bar 128 168
+Add-Bar 166 116
+Add-Bar 204 64
 $out = Join-Path $PSScriptRoot 'icon.png'
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
 $g.Dispose()
