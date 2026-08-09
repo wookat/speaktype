@@ -55,3 +55,4 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - `C:\Users\Administrator\tts\relay_pipe_test.mjs` objectively verifies Worker pass-through (binary fidelity, start/stop/status/peer, room-occupied close 1008) against ws://localhost:8787 without the desktop app.
 - CDP `Runtime.evaluate` with top-level `const` fails on re-run — wrap injected snippets in an IIFE.
 - Real phone mousedown on the Chrome phone page steals foreground; use CDP `Input.dispatchMouseEvent` for hold/release so pasted text lands in the target window.
+- A real relay deployment exists at `https://speaktype-relay.wookat520.workers.dev` — use it directly for production-path relay tests (no local wrangler/TLS proxy needed). Do NOT pass `--ignore-certificate-errors` to the fake-phone Chrome when targeting workers.dev, so the real TLS chain is verified too.
