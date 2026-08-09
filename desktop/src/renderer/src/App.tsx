@@ -50,6 +50,18 @@ const PERSONA_ICONS: Record<string, LucideIcon> = {
   leaf: Leaf,
 };
 
+const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
+  { id: "openai", label: "OpenAI Whisper", baseUrl: "https://api.openai.com/v1", model: "whisper-1" },
+  {
+    id: "siliconflow",
+    label: "SiliconFlow 硅基流动",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "FunAudioLLM/SenseVoiceSmall",
+  },
+  { id: "groq", label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+  { id: "local", label: "本地 Whisper (faster-whisper-server)", baseUrl: "http://127.0.0.1:8000/v1", model: "Systran/faster-whisper-small" },
+];
+
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
   { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
@@ -905,6 +917,20 @@ function VoiceTab(props: {
 }) {
   const { t, s, update } = props;
   const ready = s.asrProvider === "openai" ? Boolean(s.asrBaseUrl && s.asrApiKey) : props.doubaoReady;
+  const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+  const [testDetail, setTestDetail] = useState("");
+  const presetId = ASR_PRESETS.find((p) => p.baseUrl === s.asrBaseUrl && p.model === s.asrModel)?.id ?? "custom";
+  const applyPreset = (id: string) => {
+    const preset = ASR_PRESETS.find((p) => p.id === id);
+    if (preset) update({ asrBaseUrl: preset.baseUrl, asrModel: preset.model });
+  };
+  const runTest = () => {
+    setTestState("testing");
+    void api.testAsr().then(({ ok, detail }) => {
+      setTestState(ok ? "ok" : "fail");
+      setTestDetail(detail);
+    });
+  };
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="font-medium">{t("settings.asr")}</div>
@@ -953,6 +979,20 @@ function VoiceTab(props: {
         </>
       ) : (
         <div className="mt-4 space-y-3">
+          <Row label={t("settings.modelPreset")}>
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={presetId}
+              onChange={(e) => applyPreset(e.target.value)}
+            >
+              <option value="custom">{t("settings.modelPresetCustom")}</option>
+              {ASR_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Row>
           <input
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             placeholder={`${t("settings.asrBaseUrl")}: https://api.openai.com/v1`}
@@ -972,6 +1012,21 @@ function VoiceTab(props: {
             value={s.asrModel}
             onChange={(e) => update({ asrModel: e.target.value.trim() })}
           />
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={testState === "testing" || !s.asrBaseUrl || !s.asrApiKey}
+              onClick={runTest}
+            >
+              {testState === "testing" ? t("settings.modelTesting") : t("settings.modelTest")}
+            </button>
+            {testState === "ok" && (
+              <span className="text-sm text-emerald-600">{t("settings.modelTestOk", { model: testDetail })}</span>
+            )}
+            {testState === "fail" && (
+              <span className="text-sm text-red-500">{t("settings.modelTestFail", { error: testDetail })}</span>
+            )}
+          </div>
         </div>
       )}
       <Row label={t("settings.asrLanguage")}>

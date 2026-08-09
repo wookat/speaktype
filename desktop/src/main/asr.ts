@@ -33,6 +33,29 @@ interface TranscriptionResponse {
   text?: string;
 }
 
+/** 设置页“测试连接”：上传一段极短静音验证端点/密钥/模型名 */
+export async function testAsr(settings: Settings): Promise<{ ok: boolean; detail: string }> {
+  if (!settings.asrBaseUrl || !settings.asrApiKey) return { ok: false, detail: "Base URL / API Key" };
+  try {
+    const silence = new Int16Array(SAMPLE_RATE / 4);
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(pcmToWav([silence]))], { type: "audio/wav" }), "ping.wav");
+    form.append("model", settings.asrModel || "whisper-1");
+    const res = await fetch(transcriptionsUrl(settings.asrBaseUrl), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${settings.asrApiKey}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 160);
+      return { ok: false, detail: `HTTP ${res.status} ${body}` };
+    }
+    return { ok: true, detail: settings.asrModel || "whisper-1" };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /**
  * OpenAI 兼容整句转写（POST /audio/transcriptions）：录音期本地缓存 PCM，
  * 松手后一次性上传识别。没有流式 partial，但任何 Whisper 类服务都能直接接。

@@ -9,6 +9,7 @@ import { Dictation } from "./dictation";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
 import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
+import { testAsr } from "./asr";
 import { testPolish } from "./polish";
 import {
   clearHistory,
@@ -199,6 +200,7 @@ function registerIpc(): void {
   });
   ipcMain.handle("record:cancel", () => dictation.cancel());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
+  ipcMain.handle("asr:test", () => testAsr(getSettings()));
   ipcMain.handle("mic:list", async () => {
     const win = recorderWin;
     if (!win || win.isDestroyed()) return [];

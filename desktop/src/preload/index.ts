@@ -37,6 +37,7 @@ const api = {
   micList: (): Promise<MicDevice[]> => ipcRenderer.invoke("mic:list"),
   micTest: (on: boolean): Promise<void> => ipcRenderer.invoke("mic:test", on),
   testPolish: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("polish:test"),
+  testAsr: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("asr:test"),
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
