@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Briefcase,
@@ -33,7 +33,7 @@ type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
 export const REPO_URL = "https://github.com/wookat/speaktype";
 
-/** äººè®¾å›¾æ ‡ï¼šå­˜åå­—ä¸å­˜å›¾å½¢ï¼Œæ¸²æŸ“æ—¶æ˜ å°„åˆ° lucide å›¾æ ‡ç»„ä»¶ */
+/** 人设图标：存名字不存图形，渲染时映射到 lucide 图标组件 */
 const PERSONA_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   languages: Languages,
@@ -54,7 +54,7 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
   { id: "openai", label: "OpenAI Whisper", baseUrl: "https://api.openai.com/v1", model: "whisper-1" },
   {
     id: "siliconflow",
-    label: "SiliconFlow ç¡…åŸºæµåŠ¨",
+    label: "SiliconFlow 硅基流动",
     baseUrl: "https://api.siliconflow.cn/v1",
     model: "FunAudioLLM/SenseVoiceSmall",
   },
@@ -63,20 +63,20 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
   { id: "mistral", label: "Mistral Voxtral", baseUrl: "https://api.mistral.ai/v1", model: "voxtral-mini-latest" },
   {
     id: "bailian",
-    label: "é˜¿é‡Œäº‘ç™¾ç‚¼ (Qwen ASR)",
+    label: "阿里云百炼 (Qwen ASR)",
     baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     model: "qwen3-asr-flash",
   },
-  { id: "local", label: "æœ¬åœ° Whisper (faster-whisper-server)", baseUrl: "http://127.0.0.1:8000/v1", model: "Systran/faster-whisper-small" },
+  { id: "local", label: "本地 Whisper (faster-whisper-server)", baseUrl: "http://127.0.0.1:8000/v1", model: "Systran/faster-whisper-small" },
 ];
 
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
-  { id: "zhipu", label: "æ™ºè°± GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
   { id: "kimi", label: "Kimi (Moonshot)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
-  { id: "qwen", label: "é€šä¹‰åƒé—®", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+  { id: "qwen", label: "通义千问", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
-  { id: "ollama", label: "Ollamaï¼ˆæœ¬åœ°ï¼‰", baseUrl: "http://localhost:11434/v1", model: "llama3.1" },
+  { id: "ollama", label: "Ollama（本地）", baseUrl: "http://localhost:11434/v1", model: "llama3.1" },
 ];
 
 const MAX_HOTWORDS = 300;
@@ -172,7 +172,7 @@ export default function App() {
 
   return (
     <div className="flex h-full text-slate-800">
-      {/* é¡¶éƒ¨æ‹–æ‹½åŒº + çª—å£æŒ‰é’® */}
+      {/* 顶部拖拽区 + 窗口按钮 */}
       <div className="drag fixed inset-x-0 top-0 z-50 flex h-10 items-center justify-end pr-2">
         <button
           className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
@@ -188,7 +188,7 @@ export default function App() {
         </button>
       </div>
 
-      {/* ä¾§è¾¹æ  */}
+      {/* 侧边栏 */}
       <aside className="flex w-52 shrink-0 flex-col border-r border-slate-200 bg-white/70 pt-10">
         <div className="flex items-center gap-2 px-5 pb-6">
           <div className="flex h-9 w-9 items-end justify-center gap-[3px] rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 pb-2">
@@ -217,7 +217,7 @@ export default function App() {
         </nav>
         <div className="mt-auto px-5 pb-4 text-xs text-slate-400">
           <button className="hover:text-indigo-500" onClick={() => void api.openExternal(REPO_URL)}>
-            GitHub Â· MIT
+            GitHub · MIT
           </button>
           <div className="mt-1">v{init.version}</div>
         </div>
@@ -271,7 +271,7 @@ function Home(props: {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
   const saved = Math.max(0, Math.round(props.statsWords / 40) * 60000 - props.statsDuration);
-  // æ ‡é¢˜é‡Œçš„çƒ­é”®è¦æ¸²æŸ“æˆé”®å¸½æ ·å¼ï¼ŒæŒ‰å ä½ç¬¦æ‹†å¼€
+  // 标题里的热键要渲染成键帽样式，按占位符拆开
   const [titleBefore, titleAfter = ""] = t("home.title").split("{{key}}");
   return (
     <div className="mx-auto max-w-3xl">
@@ -416,8 +416,8 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                 <li key={item.id} className="group rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>
-                      {fmtClock(item.at)} Â· {item.personaName} Â· {fmtDuration(item.durationMs, t)}
-                      {item.provider && <> Â· {t(`history.provider.${item.provider}`)}</>}
+                      {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
+                      {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
                     <span className="hidden gap-3 group-hover:flex">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
@@ -503,7 +503,7 @@ function Personas(props: {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* å½“å‰äººè®¾å¡ */}
+      {/* 当前人设卡 */}
       <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-100 to-violet-50 p-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm">
@@ -889,6 +889,12 @@ function GeneralTab(props: {
           value={s.muteWhileRecording}
           onChange={(v) => update({ muteWhileRecording: v })}
         />
+        <Toggle
+          label={t("settings.keepFailedAudio")}
+          hint={t("settings.keepFailedAudioHint")}
+          value={s.keepFailedAudio}
+          onChange={(v) => update({ keepFailedAudio: v })}
+        />
         <Row label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
@@ -1003,7 +1009,7 @@ function VoiceTab(props: {
       : s.asrProvider === "local"
         ? Boolean(local?.downloaded)
         : props.doubaoReady;
-  // OpenAI å…¼å®¹é€šé“è¦æµ‹è¯•è¿žæŽ¥æˆåŠŸæ‰ç®— Readyï¼›ä»…å¡«å®Œå­—æ®µå±ž"å·²é…ç½®æœªéªŒè¯"
+  // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
   const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
   const [testDetail, setTestDetail] = useState("");
   const presetId = ASR_PRESETS.find((p) => p.baseUrl === s.asrBaseUrl && p.model === s.asrModel)?.id ?? "custom";
@@ -1168,7 +1174,7 @@ function VoiceTab(props: {
           value={s.language}
           onChange={(e) => update({ language: e.target.value })}
         >
-          <option value="zh">ä¸­æ–‡</option>
+          <option value="zh">中文</option>
           <option value="en">English</option>
         </select>
       </Row>
@@ -1336,7 +1342,7 @@ function Row(props: { label: string; hint?: string; children: React.ReactNode })
   );
 }
 
-/** å¢žå¼ºäººå£°æ£€æµ‹ï¼šSilero VAD å¢žå¼ºåŒ…æŒ‰éœ€ä¸‹è½½ï¼ˆ~35MBï¼Œä¸å å®‰è£…åŒ…ä½“ç§¯ï¼‰ï¼Œæœªä¸‹è½½æ—¶å¼€å…³å…ˆå¼•å¯¼ä¸‹è½½ */
+/** 增强人声检测：Silero VAD 增强包按需下载（~35MB，不占安装包体积），未下载时开关先引导下载 */
 function EnhancedVad(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
   const { t, s, update } = props;
   const [vad, setVad] = useState<VadStatus | null>(null);

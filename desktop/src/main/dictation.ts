@@ -30,23 +30,41 @@ const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化�
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
-// 失败会话的音频同时落盘（仅本机），从历史页可随时重试；滚动保留最近 20 段
+// 失败会话的音频同时落盘（仅本机），从历史页可随时重试；滚动保留最近 20 段，额外受 7 天 / 50MB 上限约束
 const FAILED_AUDIO_MAX = 20;
+const FAILED_AUDIO_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+const FAILED_AUDIO_MAX_BYTES = 50 * 1024 * 1024;
 
 function failedAudioDir(): string {
   return join(app.getPath("userData"), "failed-audio");
 }
 
+/** 保留策略：最多 20 段、最长 7 天、总大小不超 50MB，超出从最旧开始删 */
+function pruneFailedAudio(): void {
+  const all = readdirSync(failedAudioDir())
+    .filter((f) => f.endsWith(".wav"))
+    .map((f) => {
+      const st = statSync(join(failedAudioDir(), f));
+      return { f, at: st.mtimeMs, size: st.size };
+    })
+    .sort((a, b) => b.at - a.at);
+  const now = Date.now();
+  let bytes = 0;
+  all.forEach((item, i) => {
+    bytes += item.size;
+    if (i >= FAILED_AUDIO_MAX || now - item.at > FAILED_AUDIO_MAX_AGE_MS || bytes > FAILED_AUDIO_MAX_BYTES) {
+      rmSync(join(failedAudioDir(), item.f), { force: true });
+    }
+  });
+}
+
 function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
+  if (!getSettings().keepFailedAudio) return undefined;
   try {
     mkdirSync(failedAudioDir(), { recursive: true });
     const file = join(failedAudioDir(), `${id}.wav`);
     writeFileSync(file, pcmToWav(frames));
-    const all = readdirSync(failedAudioDir())
-      .filter((f) => f.endsWith(".wav"))
-      .map((f) => ({ f, at: statSync(join(failedAudioDir(), f)).mtimeMs }))
-      .sort((a, b) => b.at - a.at);
-    for (const old of all.slice(FAILED_AUDIO_MAX)) rmSync(join(failedAudioDir(), old.f), { force: true });
+    pruneFailedAudio();
     return file;
   } catch (error) {
     log.warn("saveFailedAudio failed", error);

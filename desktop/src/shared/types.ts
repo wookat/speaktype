@@ -57,6 +57,8 @@ export interface Settings {
   localSimplified: boolean;
   /** 增强人声检测（Silero VAD，需先在设置中下载增强包） */
   enhancedVad: boolean;
+  /** 识别失败时把录音保存在本机供重试（最多 20 段 / 7 天 / 50MB） */
+  keepFailedAudio: boolean;
 }
 
 /** VAD 增强包下载/就绪状态，主进程推给设置页 */

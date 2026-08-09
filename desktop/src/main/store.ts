@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   localModel: "base-q5_1",
   localSimplified: true,
   enhancedVad: false,
+  keepFailedAudio: true,
 };
 
 interface Schema {
