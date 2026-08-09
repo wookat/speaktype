@@ -14,7 +14,8 @@ const commit = ((): string => {
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // opencc-js 纯 JS 字典，直接打进 bundle，避免整个包（含双向字典）进安装包
+    plugins: [externalizeDepsPlugin({ exclude: ["opencc-js"] })],
     define: { __COMMIT__: JSON.stringify(commit) },
   },
   preload: {

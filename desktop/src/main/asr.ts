@@ -1,4 +1,4 @@
-import { Converter } from "opencc-js";
+import { Converter } from "opencc-js/t2cn";
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { ensureLocalServer } from "./localasr";
