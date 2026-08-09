@@ -55,6 +55,17 @@ export interface Settings {
   localModel: string;
   /** 离线通道落字前繁→简转换（whisper 中文常出繁体） */
   localSimplified: boolean;
+  /** 增强人声检测（Silero VAD，需先在设置中下载增强包） */
+  enhancedVad: boolean;
+}
+
+/** VAD 增强包下载/就绪状态，主进程推给设置页 */
+export interface VadStatus {
+  downloaded: boolean;
+  downloading: boolean;
+  /** 0-100 */
+  progress: number;
+  error?: string;
 }
 
 /** 离线模型下载/就绪状态，主进程推给设置页 */

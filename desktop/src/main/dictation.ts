@@ -11,6 +11,7 @@ import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
+import { SileroVad } from "./vad";
 import { addHistory, addStats, findPersona, getHistory, getSettings, updateHistoryItem } from "./store";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
@@ -83,6 +84,7 @@ export class Dictation {
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
+  private silero: SileroVad | null = null;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -149,6 +151,7 @@ export class Dictation {
   private checkAutoStop(frame: Int16Array): void {
     let peak = 0;
     // 按 20ms 子窗口统计有声时长：renderer 送来的 chunk 可能长达几百毫秒，整块取峰值会严重低估短句的有声时长
+    let peakVoicedMs = 0;
     for (let off = 0; off < frame.length; off += VOICED_WINDOW_SAMPLES) {
       let winPeak = 0;
       const end = Math.min(off + VOICED_WINDOW_SAMPLES, frame.length);
@@ -157,11 +160,14 @@ export class Dictation {
         if (a > winPeak) winPeak = a;
       }
       if (winPeak > peak) peak = winPeak;
-      if (winPeak >= VAD_SILENCE_PEAK) this.voicedMs += ((end - off) / 16) | 0;
+      if (winPeak >= VAD_SILENCE_PEAK) peakVoicedMs += ((end - off) / 16) | 0;
     }
     if (peak > this.maxPeak) this.maxPeak = peak;
     const now = Date.now();
-    const voiced = peak >= VAD_SILENCE_PEAK;
+    // 增强模式下用 Silero 人声概率判有声，否则用峰值门槛
+    const sileroMs = this.silero ? this.silero.push(frame) : 0;
+    const voiced = this.silero ? sileroMs > 0 : peak >= VAD_SILENCE_PEAK;
+    this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
     if (voiced) this.lastVoiceAt = now;
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     if (voiced) return;
@@ -169,7 +175,8 @@ export class Dictation {
     if (!settings.vadAutoStop) return;
     if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
     // 静音倒计时只在检到过人声后才按 vadSilenceMs 判停；开口前给更长宽限
-    const silenceMs = this.maxPeak >= VAD_SILENCE_PEAK ? settings.vadSilenceMs : VAD_NO_VOICE_TIMEOUT_MS;
+    const hadVoice = this.silero ? this.voicedMs > 0 : this.maxPeak >= VAD_SILENCE_PEAK;
+    const silenceMs = hadVoice ? settings.vadSilenceMs : VAD_NO_VOICE_TIMEOUT_MS;
     if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
   }
 
@@ -189,6 +196,7 @@ export class Dictation {
     this.maxPeak = 0;
     this.voicedMs = 0;
     const settings = getSettings();
+    this.silero = settings.enhancedVad ? SileroVad.create() : null;
 
     try {
       this.report("connecting");

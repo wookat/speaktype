@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload } from "../shared/types";
+import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload, VadStatus } from "../shared/types";
 
 export interface InitPayload {
   settings: Settings;
@@ -52,6 +52,15 @@ const api = {
     ipcRenderer.on("local:model", listener);
     return () => {
       ipcRenderer.removeListener("local:model", listener);
+    };
+  },
+  vadStatus: (): Promise<VadStatus> => ipcRenderer.invoke("vad:status"),
+  vadDownload: (): Promise<VadStatus> => ipcRenderer.invoke("vad:download"),
+  onVadStatus: (fn: (s: VadStatus) => void) => {
+    const listener = (_e: unknown, s: VadStatus) => fn(s);
+    ipcRenderer.on("vad:status", listener);
+    return () => {
+      ipcRenderer.removeListener("vad:status", listener);
     };
   },
 

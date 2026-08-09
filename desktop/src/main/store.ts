@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   asrModel: "",
   localModel: "base-q5_1",
   localSimplified: true,
+  enhancedVad: false,
 };
 
 interface Schema {

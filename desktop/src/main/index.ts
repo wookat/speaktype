@@ -17,6 +17,7 @@ import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
+import { downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
   clearHistory,
@@ -236,6 +237,8 @@ function registerIpc(): void {
   ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
   ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
   ipcMain.handle("local:download", (_e, model: string) => downloadLocalModel(model));
+  ipcMain.handle("vad:status", () => vadStatus());
+  ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
   ipcMain.handle("asr:test", () => testAsr(getSettings()));
   ipcMain.handle("mic:list", async () => {
@@ -295,6 +298,9 @@ void app.whenReady().then(() => {
   onAppKeyCaptured(() => pushSettings());
   onLocalModelStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("local:model", s);
+  });
+  onVadStatus((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
   });
 
   const settings = getSettings();
