@@ -19,6 +19,8 @@ const VAD_SILENCE_PEAK = 900;
 const VAD_MIN_RECORD_MS = 1500;
 // 整段录音峰值低于此值（约 0.8% 满幅）才判定为纯静音丢弃，比 VAD 门限宽松以免误丢真实人声
 const NO_SPEECH_PEAK = 250;
+// 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
+const VAD_NO_VOICE_TIMEOUT_MS = 10000;
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -100,13 +102,16 @@ export class Dictation {
     }
     if (peak > this.maxPeak) this.maxPeak = peak;
     const now = Date.now();
-    if (peak >= VAD_SILENCE_PEAK) this.lastVoiceAt = now;
+    const voiced = peak >= VAD_SILENCE_PEAK;
+    if (voiced) this.lastVoiceAt = now;
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
-    if (peak >= VAD_SILENCE_PEAK) return;
+    if (voiced) return;
     const settings = getSettings();
     if (!settings.vadAutoStop) return;
     if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
-    if (this.lastVoiceAt && now - this.lastVoiceAt >= settings.vadSilenceMs) void this.stop();
+    // 静音倒计时只在检到过人声后才按 vadSilenceMs 判停；开口前给更长宽限
+    const silenceMs = this.maxPeak >= VAD_SILENCE_PEAK ? settings.vadSilenceMs : VAD_NO_VOICE_TIMEOUT_MS;
+    if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
   }
 
   async start(mode: "hold" | "toggle" = "hold"): Promise<void> {

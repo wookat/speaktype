@@ -191,6 +191,7 @@ export const zhCN = {
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
+  "error.localServerFailed": "本地识别引擎启动失败：请从「关于 → 打开日志目录」查看 main.log 并反馈",
   "error.micDenied": "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风",
   "error.micNotFound": "没有找到麦克风设备",
 

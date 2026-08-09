@@ -196,6 +196,7 @@ export const en: LocaleDict = {
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
   "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.localModelMissing": "Local model not downloaded yet: open Settings → Speech recognition and click \"Download model\"",
+  "error.localServerFailed": "Local recognition engine failed to start: check main.log via About → Open log folder and report the issue",
   "error.micDenied": "Microphone access denied: allow desktop apps to use the microphone in Windows Settings → Privacy",
   "error.micNotFound": "No microphone found",
 

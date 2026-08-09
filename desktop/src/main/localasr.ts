@@ -65,8 +65,23 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   const part = `${modelPath(model)}.part`;
   try {
     mkdirSync(modelsDir(), { recursive: true });
-    const res = await fetch(`https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`);
-    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    // 多源顺序重试：直连 HuggingFace 失败时落到镜像源
+    const hosts = ["https://huggingface.co", "https://hf-mirror.com"];
+    let res: Response | null = null;
+    let lastError: unknown = null;
+    for (const host of hosts) {
+      try {
+        const r = await fetch(`${host}/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`);
+        if (r.ok && r.body) {
+          res = r;
+          break;
+        }
+        lastError = new Error(`HTTP ${r.status} (${host})`);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!res || !res.body) throw lastError instanceof Error ? lastError : new Error(String(lastError));
     const total = Number(res.headers.get("content-length")) || 0;
     let got = 0;
     const out = createWriteStream(part);
@@ -110,7 +125,7 @@ export function stopLocalServer(): void {
 
 async function waitHealthy(): Promise<void> {
   for (let i = 0; i < 120; i++) {
-    if (!proc) throw new Error("whisper-server exited during startup");
+    if (!proc) throw new Error(t("error.localServerFailed"));
     try {
       await fetch(`http://127.0.0.1:${PORT}/`, { method: "GET" });
       return;
@@ -126,24 +141,29 @@ export async function ensureLocalServer(model: string): Promise<string> {
   if (!existsSync(modelPath(model))) throw new Error(t("error.localModelMissing"));
   if (proc && procModel !== model) stopLocalServer();
 
-  if (!proc) {
+  if (!proc || !ready) {
     const exe = serverExe();
     if (!existsSync(exe)) throw new Error(`whisper-server.exe not found: ${exe}`);
-    proc = spawn(exe, ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto"], {
-      stdio: "ignore",
-      windowsHide: true,
-    });
+    const child = spawn(
+      exe,
+      ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto", "--prompt", "以下是普通话的句子。"],
+      { stdio: "ignore", windowsHide: true },
+    );
+    proc = child;
     procModel = model;
-    proc.on("exit", (code) => {
-      log.info(`local whisper-server exited (${code})`);
-      proc = null;
-      ready = null;
+    child.on("exit", (code) => {
+      log.warn(`local whisper-server exited (${code})`);
+      if (proc === child) {
+        proc = null;
+        ready = null;
+      }
     });
     log.info(`local whisper-server starting (model=${model}, port=${PORT})`);
     ready = waitHealthy();
   }
 
-  await ready;
+  const readyP = ready;
+  await readyP;
   bumpIdle();
   return `http://127.0.0.1:${PORT}/inference`;
 }
