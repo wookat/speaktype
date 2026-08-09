@@ -1,90 +1,86 @@
-# SpeakType — 开源 AI 语音输入
+﻿<div align="center">
 
-开源（MIT）的 AI 语音输入，两种形态：**Windows 桌面版**（[`desktop/`](desktop/)，全局热键、任意程序落字、NSIS 安装包）与 **Chrome 浏览器扩展**。SpeakType 自身不提供任何云端服务：识别与润色都直连你自己配置的服务，配置与密钥只存本机。
+# SpeakType
 
-以下为浏览器扩展部分。你说，我写。在任意网页的输入框里**按住 `Ctrl` 说话、松手落字**（也可按 `Alt+Q` 或点悬浮条按钮开/关），自动转写 + 按场景改写，直接落到光标处。
+**开源的 Windows AI 语音输入法 —— 你说，它写，落字到任何程序。**
 
-灵感来自智谱 AutoGLM 输入法的桌面端体验，但做成浏览器扩展，不需要装客户端、不用模拟 `Ctrl+V`。
+按住一个键说话，松手，文字就出现在光标处。识别、润色、纠错全部可自定义，密钥只存你自己的电脑。
 
-## 现状
+[![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#安装)
+[![i18n](https://img.shields.io/badge/i18n-5%20languages-16a34a.svg)](#国际化)
 
-- Chrome MV3 扩展（WXT + React 19 + Tailwind 4），跟随焦点出现的 Shadow DOM 悬浮胶囊，不污染宿主页面样式。
-- 麦克风采集在 offscreen 文档里完成：一次授权，全站可用，`16kHz / mono / PCM16`、200ms 一包。offscreen 弹不出权限气泡，所以授权走扩展内的 `permission.html` 页面，设置页与悬浮条上的错误提示都能一键跳过去。
-- 设置页只有三项常用旋钮（按住的键 / 改写风格 / 语言）+ 顶部就绪状态卡（麦克风、豆包语音各带一键修复），引擎与各家凭证收进「高级设置」。
-- 识别引擎可插拔：
-  - `doubao`（默认）：复用豆包网页版同款流式识别（SAMI VoiceGenie），走用户自己已登录的 doubao.com 会话，不需要任何 API key。非官方接口，豆包改版可能失效，可一键切换到下面的官方引擎。
-  - `webspeech`：浏览器内置，零配置兜底。
-  - `volc`：火山引擎「豆包语音识别大模型」双向流式（与 doubao.com 网页版同一 bigasr 引擎），开启二遍识别，边说边上屏、结束再修正。
-  - `zhipu`：智谱 `glm-asr-2512` 一次性转写（≤30s 短句）。
-- 润色模型与识别引擎解耦：设置里填任意 OpenAI 兼容端点（DeepSeek / Kimi / 千问 / OpenAI / 本地 Ollama…）即可，留空则回退智谱 key 或中转，都没有就只做本地口语清理，识别照常可用。
-- 按住说话：键位可在设置里录制，支持纯修饰键长按（`Ctrl`、`Ctrl+Alt`）与组合键（`F2`、`Ctrl+Space`）。纯修饰键要按住 250ms 才起录，按住期间敲了别的键就当普通快捷键放过并丢弃这次录音，因此不会和 `Ctrl+C` 之类抢键。
-- 改写风格（persona）：默认 / 汇报老板 / 同事沟通 / 亲密对话 / 中英互译 / 写代码 / 写提示词，可在悬浮条一键切换。
-- 落字兼容 `input`、`textarea`、`contenteditable`（富文本走 `insertText`，React 受控组件会收到 `input` 事件）。
+[下载安装包](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.1.0.exe) · [English](README.en.md) · [报告问题](https://github.com/wookat/speaktype/issues) · [桌面版开发文档](desktop/README.md)
 
-## 目录
+</div>
 
-```
-entrypoints/        扩展入口：background / content（悬浮 UI）/ offscreen（录音）/ popup（设置）/ permission（麦克风授权）/ doubao-bridge（豆包页内 WS 桥接）
-lib/                provider 层、录音与 PCM/WAV、润色、插入、设置
-public/             AudioWorklet
-worker/             Cloudflare Worker 中转（隐藏凭证 + 补火山鉴权头）
-docs/               AutoGLM 与豆包网页版的接口反推记录
-```
+---
 
-## 开发
+## 为什么是 SpeakType
+
+市面上的 AI 语音输入法要么闭源、要么把你的语音送进厂商自己的服务器。SpeakType 反过来：
+
+- **完全开源（MIT）**：协议、纠错、界面，每一行都能看、能改、能自部署。
+- **没有自己的后端**：SpeakType 不架设任何云端服务，你的语音只发给**你自己选择并配置**的识别服务——或者干脆完全离线。
+- **一切可插拔**：识别引擎、AI 润色模型、热词词典、人设风格、快捷键，全部由你定义。
+
+## 核心体验
+
+| | |
+|---|---|
+| 🎙️ **按住说话** | 按住 `RightCtrl`（可改）说话，实时字幕逐字上屏，松手自动落字到任何 Windows 程序的光标处 |
+| ⚡ **免按模式** | `Alt+Q` 按一下开始、说完自动结束（静音检测），适合长段输入 |
+| 🎭 **人设风格** | `Alt+1..9` 秒切：默认 / 自动翻译 / 汇报老板 / 面对同事 / 命令行 / 自定义 prompt |
+| 📖 **热词纠错** | 词典里加上人名、产品名，识别结果里的同音/近音误字自动替换（本地拼音算法，无需联网） |
+| 🧠 **增强人声检测** | 可选下载 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准 |
+| 🔁 **失败可重试** | 识别失败的录音保留在本机（最多 20 段/7 天/50MB，可关），历史页一键重试，不用重说 |
+
+## 识别引擎（三选一，随时切换）
+
+1. **豆包语音**（默认，免 API Key）：复用你自己登录的 doubao.com 会话做流式识别，App Key 自动获取。非官方接口，可能随豆包改版失效。
+2. **任意 OpenAI 兼容转写接口**：填 Base URL + API Key + 模型名即可，内置 OpenAI Whisper / SiliconFlow / Groq / Fireworks / Mistral / 阿里云百炼 预设，带测试连接。
+3. **内置离线识别（whisper.cpp）**：应用内一键下载模型（tiny/base/small），完全本机识别——不联网、不注册、零密钥。
+
+AI 润色同样接任意 OpenAI 兼容 Chat 端点（DeepSeek / 智谱 / Kimi / 通义 / OpenAI / 本地 Ollama…），不配置则只做本地口语清理（如「5 点，不对，6 点」→「6 点」），不影响识别。
+
+## 安装
+
+1. [下载 SpeakType-Setup-0.1.0.exe](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.1.0.exe) 并安装（SmartScreen 拦截时点「更多信息 → 仍要运行」，安装包未做商业签名）。
+2. 三条路任选其一开始用：
+   - **零密钥**：首页点「去激活」→ 登录豆包并用一次它自带的语音输入；
+   - **自带 key**：设置 → 语音识别 → 选服务商预设，填 key；
+   - **完全离线**：设置 → 语音识别 → 内置离线识别 → 下载模型。
+3. 把光标放进任何输入框，按住 `RightCtrl` 说话，松手落字。
+
+## 隐私边界
+
+- SpeakType **没有服务器**，不收集、不上传任何语音、文本、统计。
+- 语音只发给你配置的识别服务；离线模式下不出本机。
+- API Key、豆包 App Key、历史记录、失败录音全部只存本机（`%APPDATA%\SpeakType`）。
+- 仓库不内置任何第三方凭证。
+
+## 国际化
+
+界面内置简体中文、繁體中文、English、日本語、한국어（跟随系统或手动切换，即时生效）；语言包架构支持社区继续添加更多语言。
+
+## 参与开发
 
 ```bash
+cd desktop
 npm install
-npm run dev        # 起开发版，自动打开带扩展的 Chrome
-npm run build      # 产出 .output/chrome-mv3
-npm run compile    # 类型检查
+npm run dev        # 开发模式
+npm run typecheck
+npm run pack       # NSIS 安装包 → release/
 ```
 
-手动加载：`chrome://extensions` → 打开开发者模式 → 「加载已解压的扩展程序」→ 选 `.output/chrome-mv3`。
+技术栈：Electron + React 19 + Tailwind 4 + lucide-react；全局热键 uiohook-napi；落字 koffi SendInput；离线识别 whisper.cpp；增强 VAD Silero + onnxruntime。详见 [desktop/README.md](desktop/README.md)。
 
-## 豆包引擎怎么工作
+仓库里还有一个更早形态的 [Chrome 浏览器扩展](docs/browser-extension.md)（网页内按住说话落字），与桌面版共享豆包协议层。
 
-VoiceGenie 的入口靠 doubao.com 的登录态 Cookie，跳站握手带不上，所以 WebSocket 必须开在 doubao.com 页面内：
+欢迎 [Issue](https://github.com/wookat/speaktype/issues) 与 Pull Request。贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-```
-offscreen(麦克风+帧组装) ──> background(维护后台 doubao 标签页) ──> doubao-bridge(页内 WebSocket)
-                       <── ASRResponse 逐字回传 ──
-```
+## 许可
 
-桥接只按指令开连接、双向转发字节，不读也不外发 Cookie/token。入口需要的 `api_app_key` 不内置在仓库里，按三级顺序解析：① 设置里的手填值；② 扩展缓存 —— MAIN world 钩子（`entrypoints/doubao-hook.content.ts`）代理页面的 `WebSocket` 构造，豆包自己发起 `voicegenie` 连接时从 URL 参数截下 key 并缓存（所以在豆包页面用一次它自带的语音输入即可，脚本是懒加载的，静态扫描扫不到）；③ 兜底扫页面脚本。三级都空时提示用户手填。帧格式（protobuf 字段编号、事件名、StartSession 配置）见 `lib/asr/doubao/protocol.ts` 与 `docs/reverse-engineering-doubao-voice.md`。
+[MIT](LICENSE) © wookat & SpeakType contributors
 
-## 中转（可选，但火山引擎必须）
-
-浏览器 `WebSocket` 不能自定义请求头，而火山流式识别把鉴权放在 `X-Api-*` 头上，所以火山引擎必须经中转；中转同时避免把服务端 key 下发到浏览器。
-
-```bash
-cd worker
-npm install
-npx wrangler secret put VOLC_APP_KEY
-npx wrangler secret put VOLC_ACCESS_KEY
-npx wrangler secret put ZHIPU_API_KEY   # 转写与润色共用
-npm run deploy
-```
-
-部署后把 Worker 地址填进扩展设置的「中转地址」。用户也可以在设置里填自己的凭证，此时中转只做透传。
-
-## 自动化语音测试
-
-不需要真人说话：用 Chrome 的假麦克风灌入一段 wav 即可跑通整条链路。
-
-```bash
-chrome --use-fake-ui-for-media-stream \
-       --use-fake-device-for-media-stream \
-       --use-file-for-fake-audio-capture=sample.wav   # 16kHz mono wav
-```
-
-## 说明
-
-`doubao` 引擎用的是未公开接口，依赖使用者自己的登录会话，不携带也不分发任何第三方凭证；它随豆包发版可能失效，对稳定性有要求的场景请用 `volc`（同一 bigasr 引擎的官方接口）。
-
-## 开源与贡献
-
-- 许可：[MIT](LICENSE)。
-- 作者与维护：wookat & SpeakType contributors。
-- 欢迎提 [Issue](https://github.com/wookat/speaktype/issues) 与 Pull Request。
-- 隐私：不上传语音/文本到 SpeakType 的服务器（没有这样的服务器）；所有凭证只保存在本机，仓库里不内置任何第三方密钥。
+> SpeakType 是独立的开源项目，与智谱、字节跳动等公司无关；「豆包」为字节跳动商标，本项目仅指用户自有账号会话的接入方式。

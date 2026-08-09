@@ -1,14 +1,23 @@
-import { BrowserWindow, Menu, Tray, app, ipcMain, nativeImage, shell } from "electron";
+// 必须最先 import：在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
+import "./migrate";
+import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
+import pkg from "../../package.json";
+
+// 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
+declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
 import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
+import { testAsr } from "./asr";
+import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
+import { downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
   clearHistory,
@@ -32,6 +41,31 @@ import {
 } from "./windows";
 
 log.initialize();
+log.info(`SpeakType ${app.isPackaged ? app.getVersion() : pkg.version} starting (packaged=${app.isPackaged})`);
+
+// 崩溃兜底：任何未捕获异常都落日志并弹窗告知日志位置，避免静默秒退
+process.on("uncaughtException", (error) => {
+  log.error("uncaughtException", error);
+  try {
+    dialog.showErrorBox(
+      "SpeakType",
+      `${error instanceof Error ? error.message : String(error)}\n\nLog: ${log.transports.file.getFile().path}`,
+    );
+  } catch {
+    // dialog 在 app ready 前也可用；仅在极端情况下忽略
+  }
+  app.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  log.error("unhandledRejection", reason);
+});
+
+// 隐藏自验参数：--test-crash 人为触发未捕获异常，用于验收崩溃兜底链路
+if (process.argv.includes("--test-crash")) {
+  setTimeout(() => {
+    throw new Error("SpeakType --test-crash: intentional crash for verifying the crash guard");
+  }, 3000);
+}
 
 const single = app.requestSingleInstanceLock();
 if (!single) app.quit();
@@ -73,11 +107,11 @@ const dictation = new Dictation({
 
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
-  onHoldStart: () => void dictation.start(),
+  onHoldStart: () => void dictation.start("hold"),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => {
     if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start();
+    else void dictation.start("toggle");
   },
   onPersona: (index) => {
     const personas = getPersonas();
@@ -164,7 +198,8 @@ function registerIpc(): void {
     holdKeyChoices: HOLD_KEY_CHOICES,
     toggleKeyChoices: TOGGLE_KEY_CHOICES,
     status: dictation.status(),
-    version: app.getVersion(),
+    version: app.isPackaged ? app.getVersion() : pkg.version,
+    commit: typeof __COMMIT__ === "string" ? __COMMIT__ : "unknown",
     systemLocale: app.getLocale() || "zh-CN",
   }));
   ipcMain.handle("settings:update", async (_e, patch: Partial<Settings>) => {
@@ -189,16 +224,23 @@ function registerIpc(): void {
     deleteHistory(ids);
     return getHistory();
   });
+  ipcMain.handle("history:retry", (_e, id: string) => dictation.retryHistory(id));
   ipcMain.handle("stats:get", () => getStats());
   ipcMain.handle("doubao:ready", () => hasAppKey());
   ipcMain.handle("doubao:activate", () => showBridge());
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => {
     if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start();
+    else void dictation.start("toggle");
   });
   ipcMain.handle("record:cancel", () => dictation.cancel());
+  ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
+  ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
+  ipcMain.handle("local:download", (_e, model: string) => downloadLocalModel(model));
+  ipcMain.handle("vad:status", () => vadStatus());
+  ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
+  ipcMain.handle("asr:test", () => testAsr(getSettings()));
   ipcMain.handle("mic:list", async () => {
     const win = recorderWin;
     if (!win || win.isDestroyed()) return [];
@@ -222,6 +264,7 @@ function registerIpc(): void {
   ipcMain.handle("window:minimize", () => BrowserWindow.getFocusedWindow()?.minimize());
   ipcMain.handle("window:close", () => BrowserWindow.getFocusedWindow()?.close());
   ipcMain.handle("open:external", (_e, url: string) => shell.openExternal(url));
+  ipcMain.handle("log:open", () => shell.showItemInFolder(log.transports.file.getFile().path));
 
   ipcMain.on("recorder:pcm", (_e, chunk: ArrayBuffer) => {
     dictation.pushPcm(new Int16Array(chunk));
@@ -233,7 +276,13 @@ function registerIpc(): void {
   });
   ipcMain.on("recorder:error", (_e, message: string) => {
     dictation.cancel();
-    showToast(t("toast.micUnavailable"), message);
+    const body =
+      message === "@micDenied"
+        ? t("error.micDenied")
+        : message === "@micNotFound"
+          ? t("error.micNotFound")
+          : message;
+    showToast(t("toast.micUnavailable"), body);
   });
 }
 
@@ -247,6 +296,12 @@ void app.whenReady().then(() => {
   setupTray();
 
   onAppKeyCaptured(() => pushSettings());
+  onLocalModelStatus((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("local:model", s);
+  });
+  onVadStatus((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
+  });
 
   const settings = getSettings();
   applyHotkeys(settings);
@@ -267,6 +322,7 @@ void app.whenReady().then(() => {
 app.on("before-quit", () => {
   quitting = true;
   hotkeys.stop();
+  stopLocalServer();
 });
 
 app.on("window-all-closed", () => {

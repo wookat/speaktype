@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS: Settings = {
   startMinimized: false,
   muteWhileRecording: false,
   personaHotkeysEnabled: true,
+  vadAutoStop: true,
+  vadSilenceMs: 2000,
   micDeviceId: "",
   polishEnabled: false,
   polishBaseUrl: "",
@@ -23,6 +25,14 @@ export const DEFAULT_SETTINGS: Settings = {
   polishModel: "",
   hotwords: [],
   doubaoAppKey: "",
+  asrProvider: "doubao",
+  asrBaseUrl: "",
+  asrApiKey: "",
+  asrModel: "",
+  localModel: "base-q5_1",
+  localSimplified: true,
+  enhancedVad: false,
+  keepFailedAudio: true,
 };
 
 interface Schema {
@@ -82,6 +92,16 @@ export function addHistory(item: HistoryItem): void {
 
 export function clearHistory(): void {
   store.set("history", []);
+}
+
+export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): HistoryItem | null {
+  const list = getHistory();
+  const idx = list.findIndex((h) => h.id === id);
+  if (idx < 0) return null;
+  const next = { ...list[idx]!, ...patch };
+  list[idx] = next;
+  store.set("history", list);
+  return next;
 }
 
 export function deleteHistory(ids: string[]): void {

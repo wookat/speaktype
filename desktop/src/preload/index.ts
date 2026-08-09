@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { HistoryItem, Persona, Settings, Stats, StatusPayload } from "../shared/types";
+import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload, VadStatus } from "../shared/types";
 
 export interface InitPayload {
   settings: Settings;
@@ -12,6 +12,7 @@ export interface InitPayload {
   toggleKeyChoices: string[];
   status: StatusPayload;
   version: string;
+  commit: string;
   systemLocale: string;
 }
 
@@ -28,6 +29,7 @@ const api = {
   history: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:list"),
   clearHistory: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:clear"),
   deleteHistory: (ids: string[]): Promise<HistoryItem[]> => ipcRenderer.invoke("history:delete", ids),
+  retryHistory: (id: string): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("history:retry", id),
   stats: (): Promise<Stats> => ipcRenderer.invoke("stats:get"),
   doubaoReady: (): Promise<boolean> => ipcRenderer.invoke("doubao:ready"),
   activateDoubao: (): Promise<void> => ipcRenderer.invoke("doubao:activate"),
@@ -37,9 +39,30 @@ const api = {
   micList: (): Promise<MicDevice[]> => ipcRenderer.invoke("mic:list"),
   micTest: (on: boolean): Promise<void> => ipcRenderer.invoke("mic:test", on),
   testPolish: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("polish:test"),
+  testAsr: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("asr:test"),
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
+  openLogs: (): Promise<void> => ipcRenderer.invoke("log:open"),
+  localModels: (): Promise<Array<{ id: string; size: string }>> => ipcRenderer.invoke("local:models"),
+  localModelStatus: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:status", model),
+  localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),
+  onLocalModel: (fn: (s: LocalModelStatus) => void) => {
+    const listener = (_e: unknown, s: LocalModelStatus) => fn(s);
+    ipcRenderer.on("local:model", listener);
+    return () => {
+      ipcRenderer.removeListener("local:model", listener);
+    };
+  },
+  vadStatus: (): Promise<VadStatus> => ipcRenderer.invoke("vad:status"),
+  vadDownload: (): Promise<VadStatus> => ipcRenderer.invoke("vad:download"),
+  onVadStatus: (fn: (s: VadStatus) => void) => {
+    const listener = (_e: unknown, s: VadStatus) => fn(s);
+    ipcRenderer.on("vad:status", listener);
+    return () => {
+      ipcRenderer.removeListener("vad:status", listener);
+    };
+  },
 
   onStatus: (fn: (payload: StatusPayload) => void) => {
     const listener = (_e: unknown, payload: StatusPayload) => fn(payload);

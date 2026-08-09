@@ -9,6 +9,14 @@ files:
   - out/**
   - build/icon.png
   - "!node_modules/**/{test,tests,docs,example,examples}/**"
+  # koffi 自带全平台预编译产物 + 源码/文档，只保留 win x64
+  - "!node_modules/koffi/{doc,src,vendor}/**"
+  - "!node_modules/koffi/build/koffi/*/**"
+  - node_modules/koffi/build/koffi/win32_x64/**
+# 内置离线识别：whisper.cpp server 及其 CPU 后端 DLL（模型由应用内下载，不入包）
+extraResources:
+  - from: resources/whisper
+    to: whisper
 asarUnpack:
   - "**/*.node"
   - node_modules/koffi/**
@@ -24,7 +32,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: SpeakType 语音输入法
+  shortcutName: SpeakType
   artifactName: SpeakType-Setup-${version}.exe
 electronDownload:
   cache: .electron-cache

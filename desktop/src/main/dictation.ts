@@ -1,16 +1,85 @@
 import { randomUUID } from "node:crypto";
-import type { BrowserWindow } from "electron";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { app, clipboard, type BrowserWindow } from "electron";
+import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
+import { pcmToWav, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
+import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
-import { addHistory, addStats, findPersona, getSettings } from "./store";
+import { SileroVad } from "./vad";
+import { addHistory, addStats, findPersona, getHistory, getSettings, updateHistoryItem } from "./store";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
 const WARM_UP_COOLDOWN_MS = 5000;
+// 免按模式 VAD：峰值低于该阈值算静音（约 2.7% 满幅），开始后至少录这么久才允许自动结束
+const VAD_SILENCE_PEAK = 900;
+const VAD_MIN_RECORD_MS = 1500;
+// 整段录音峰值低于此值（约 0.8% 满幅）才判定为纯静音丢弃，比 VAD 门限宽松以免误丢真实人声
+const NO_SPEECH_PEAK = 250;
+// 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
+const VAD_NO_VOICE_TIMEOUT_MS = 10000;
+// 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足门槛时视为无有效人声，不送 ASR
+const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
+const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
+// 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
+const RETRY_WINDOW_MS = 60000;
+const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
+// 失败会话的音频同时落盘（仅本机），从历史页可随时重试；滚动保留最近 20 段，额外受 7 天 / 50MB 上限约束
+const FAILED_AUDIO_MAX = 20;
+const FAILED_AUDIO_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+const FAILED_AUDIO_MAX_BYTES = 50 * 1024 * 1024;
+
+function failedAudioDir(): string {
+  return join(app.getPath("userData"), "failed-audio");
+}
+
+/** 保留策略：最多 20 段、最长 7 天、总大小不超 50MB，超出从最旧开始删 */
+function pruneFailedAudio(): void {
+  const all = readdirSync(failedAudioDir())
+    .filter((f) => f.endsWith(".wav"))
+    .map((f) => {
+      const st = statSync(join(failedAudioDir(), f));
+      return { f, at: st.mtimeMs, size: st.size };
+    })
+    .sort((a, b) => b.at - a.at);
+  const now = Date.now();
+  let bytes = 0;
+  all.forEach((item, i) => {
+    bytes += item.size;
+    if (i >= FAILED_AUDIO_MAX || now - item.at > FAILED_AUDIO_MAX_AGE_MS || bytes > FAILED_AUDIO_MAX_BYTES) {
+      rmSync(join(failedAudioDir(), item.f), { force: true });
+    }
+  });
+}
+
+function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
+  if (!getSettings().keepFailedAudio) return undefined;
+  try {
+    mkdirSync(failedAudioDir(), { recursive: true });
+    const file = join(failedAudioDir(), `${id}.wav`);
+    writeFileSync(file, pcmToWav(frames));
+    pruneFailedAudio();
+    return file;
+  } catch (error) {
+    log.warn("saveFailedAudio failed", error);
+    return undefined;
+  }
+}
+
+function wavToFrames(file: string): Int16Array[] {
+  const buf = readFileSync(file);
+  const data = buf.subarray(44);
+  // 拷贝一份保证 2 字节对齐（Buffer 池的 byteOffset 可能是奇数）
+  const copy = new Uint8Array(data.length - (data.length % 2));
+  copy.set(data.subarray(0, copy.length));
+  return [new Int16Array(copy.buffer, 0, copy.length / 2)];
+}
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -29,6 +98,19 @@ export class Dictation {
   private startedAt = 0;
   private lastWarmUp = 0;
   private muted = false;
+  private mode: "hold" | "toggle" = "hold";
+  private lastVoiceAt = 0;
+  private maxPeak = 0;
+  private voicedMs = 0;
+  private silero: SileroVad | null = null;
+  private allFrames: Int16Array[] = [];
+  private lastFailed: {
+    frames: Int16Array[];
+    durationMs: number;
+    maxPeak: number;
+    at: number;
+    historyId?: string;
+  } | null = null;
 
   constructor(private deps: DictationDeps) {}
 
@@ -52,7 +134,7 @@ export class Dictation {
     const now = Date.now();
     if (now - this.lastWarmUp < WARM_UP_COOLDOWN_MS) return;
     this.lastWarmUp = now;
-    if (hasAppKey()) ensureBridge();
+    if (getSettings().asrProvider === "doubao" && hasAppKey()) ensureBridge();
   }
 
   private report(state: RecordState, message = ""): void {
@@ -60,12 +142,14 @@ export class Dictation {
     this.message = message;
     this.deps.broadcast(this.status());
     if (state === "error") {
+      // 可重试的失败多给些时间让用户读完提示并按键重试
+      const linger = this.lastFailed ? 15000 : 5000;
       setTimeout(() => {
         if (this.state === "error") {
           this.partial = "";
           this.report("idle");
         }
-      }, 5000);
+      }, linger);
     }
   }
 
@@ -77,24 +161,79 @@ export class Dictation {
   pushPcm(frame: Int16Array): void {
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
+    if (this.allFrames.length < RETRY_MAX_FRAMES) this.allFrames.push(frame);
+    this.checkAutoStop(frame);
   }
 
-  async start(): Promise<void> {
+  /** 免按模式：说完后持续静音自动结束，不用再按一次 */
+  private checkAutoStop(frame: Int16Array): void {
+    let peak = 0;
+    // 按 20ms 子窗口统计有声时长：renderer 送来的 chunk 可能长达几百毫秒，整块取峰值会严重低估短句的有声时长
+    let peakVoicedMs = 0;
+    for (let off = 0; off < frame.length; off += VOICED_WINDOW_SAMPLES) {
+      let winPeak = 0;
+      const end = Math.min(off + VOICED_WINDOW_SAMPLES, frame.length);
+      for (let i = off; i < end; i++) {
+        const a = frame[i]! < 0 ? -frame[i]! : frame[i]!;
+        if (a > winPeak) winPeak = a;
+      }
+      if (winPeak > peak) peak = winPeak;
+      if (winPeak >= VAD_SILENCE_PEAK) peakVoicedMs += ((end - off) / 16) | 0;
+    }
+    if (peak > this.maxPeak) this.maxPeak = peak;
+    const now = Date.now();
+    // 增强模式下用 Silero 人声概率判有声，否则用峰值门槛
+    const sileroMs = this.silero ? this.silero.push(frame) : 0;
+    const voiced = this.silero ? sileroMs > 0 : peak >= VAD_SILENCE_PEAK;
+    this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
+    if (voiced) this.lastVoiceAt = now;
+    if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
+    if (voiced) return;
+    const settings = getSettings();
+    if (!settings.vadAutoStop) return;
+    if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
+    // 静音倒计时只在检到过人声后才按 vadSilenceMs 判停；开口前给更长宽限
+    const hadVoice = this.silero ? this.voicedMs > 0 : this.maxPeak >= VAD_SILENCE_PEAK;
+    const silenceMs = hadVoice ? settings.vadSilenceMs : VAD_NO_VOICE_TIMEOUT_MS;
+    if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
+  }
+
+  async start(mode: "hold" | "toggle" = "hold"): Promise<void> {
     if (this.busy) return;
+    if (this.state === "error" && (await this.retryLast())) return;
+    // 全新录音：丢弃上一次失败的重试上下文，成功后不得吞掉历史里的失败条目
+    this.lastFailed = null;
     this.busy = true;
+    this.mode = mode;
     this.pendingEnd = null;
     this.partial = "";
     this.buffered = [];
+    this.allFrames = [];
     this.startedAt = Date.now();
+    this.lastVoiceAt = Date.now();
+    this.maxPeak = 0;
+    this.voicedMs = 0;
     const settings = getSettings();
+    this.silero = settings.enhancedVad ? SileroVad.create() : null;
 
     try {
       this.report("connecting");
+      if (settings.asrProvider === "openai" && (!settings.asrBaseUrl || !settings.asrApiKey)) {
+        throw new Error(t("error.noAsrConfig"));
+      }
+      if (settings.asrProvider === "local" && !localModelStatus(settings.localModel || "base-q5_1").downloaded) {
+        throw new Error(t("error.localModelMissing"));
+      }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;
         toggleSystemMute();
       }
-      const opening = startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      const opening: Promise<DoubaoSession> =
+        settings.asrProvider === "openai"
+          ? Promise.resolve(startOpenAiAsrSession(settings))
+          : settings.asrProvider === "local"
+            ? Promise.resolve(startLocalAsrSession(settings))
+            : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
@@ -162,6 +301,80 @@ export class Dictation {
     return false;
   }
 
+  /** 错误态下再按一次热键：用保留的音频重走识别管线，不重新录音 */
+  private async retryLast(): Promise<boolean> {
+    const failed = this.lastFailed;
+    if (!failed || Date.now() - failed.at > RETRY_WINDOW_MS || failed.frames.length === 0) return false;
+    this.busy = true;
+    this.partial = "";
+    const settings = getSettings();
+    try {
+      this.report("connecting");
+      const session =
+        settings.asrProvider === "openai"
+          ? startOpenAiAsrSession(settings)
+          : settings.asrProvider === "local"
+            ? startLocalAsrSession(settings)
+            : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      for (const frame of failed.frames) session.pushPcm(frame);
+      this.session = session;
+      this.startedAt = Date.now() - failed.durationMs;
+      this.maxPeak = failed.maxPeak;
+      this.voicedMs = MIN_VOICED_MS; // 该段音频进入过 ASR，已通过有声门槛
+      this.allFrames = failed.frames;
+      await this.finalize();
+    } catch (error) {
+      this.busy = false;
+      this.session = null;
+      this.report("error", error instanceof Error ? error.message : String(error));
+    }
+    return true;
+  }
+
+  private resolveFailedEntry(id: string, text: string, raw: string): void {
+    const entry = getHistory().find((h) => h.id === id);
+    if (entry?.audioFile && existsSync(entry.audioFile)) rmSync(entry.audioFile, { force: true });
+    updateHistoryItem(id, {
+      text,
+      raw,
+      at: Date.now(),
+      status: undefined,
+      error: undefined,
+      audioFile: undefined,
+      provider: getSettings().asrProvider,
+    });
+  }
+
+  /** 历史页的失败条目重试：读回落盘音频重跑识别+润色，成功后原地更新并复制到剪贴板 */
+  async retryHistory(id: string): Promise<{ ok: boolean; detail: string }> {
+    if (this.busy) return { ok: false, detail: "busy" };
+    const entry = getHistory().find((h) => h.id === id);
+    if (!entry || entry.status !== "failed" || !entry.audioFile || !existsSync(entry.audioFile)) {
+      return { ok: false, detail: t("history.retryGone") };
+    }
+    const settings = getSettings();
+    const persona = localizePersona(findPersona(settings.personaId), translator());
+    try {
+      const session =
+        settings.asrProvider === "openai"
+          ? startOpenAiAsrSession(settings)
+          : settings.asrProvider === "local"
+            ? startLocalAsrSession(settings)
+            : await startDoubaoSession(settings.language, () => undefined);
+      for (const frame of wavToFrames(entry.audioFile)) session.pushPcm(frame);
+      const raw = await session.finish();
+      if (!raw) return { ok: false, detail: t("toast.noSpeech") };
+      const text = await polishText(settings, persona, raw);
+      this.resolveFailedEntry(id, text, raw);
+      addStats(text.length, entry.durationMs);
+      clipboard.writeText(text);
+      this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
+      return { ok: true, detail: text };
+    } catch (error) {
+      return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   private async finalize(): Promise<void> {
     const session = this.session;
     if (!session) return;
@@ -172,16 +385,49 @@ export class Dictation {
 
     this.deps.recorder()?.webContents.send("recorder:stop");
     this.unmute();
+
+    // 整段录音接近数字静音：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
+    log.info(
+      `dictation finalize: durationMs=${durationMs} maxPeak=${this.maxPeak} voicedMs=${this.voicedMs}`,
+    );
+    if (this.maxPeak < NO_SPEECH_PEAK || this.voicedMs < MIN_VOICED_MS) {
+      session.cancel();
+      this.busy = false;
+      this.partial = "";
+      this.report("idle");
+      this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
+      return;
+    }
+
     this.report("transcribing");
 
     let raw = "";
     try {
       raw = await session.finish();
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const id = randomUUID();
+      const audioFile = saveFailedAudio(id, this.allFrames);
+      addHistory({
+        id,
+        at: Date.now(),
+        text: "",
+        raw: "",
+        personaName: persona.name,
+        durationMs,
+        status: "failed",
+        error: message,
+        audioFile,
+        provider: settings.asrProvider,
+      });
+      this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
       this.busy = false;
-      this.report("error", error instanceof Error ? error.message : String(error));
+      this.report("error", `${message} · ${t("error.retryHint")}`);
       return;
     }
+    // 本次是热键重试且成功：把之前的失败条目原地升级，后面 addHistory 前先清掉
+    const retriedId = this.lastFailed?.historyId;
+    this.lastFailed = null;
 
     if (durationMs < settings.minRecordMs || !raw) {
       this.busy = false;
@@ -204,15 +450,18 @@ export class Dictation {
       }
     }
 
-    addHistory({
-      id: randomUUID(),
-      at: Date.now(),
-      text,
-      raw,
-      personaName: persona.name,
-      durationMs,
-      failed,
-    });
+    if (retriedId) this.resolveFailedEntry(retriedId, text, raw);
+    else
+      addHistory({
+        id: randomUUID(),
+        at: Date.now(),
+        text,
+        raw,
+        personaName: persona.name,
+        durationMs,
+        failed,
+        provider: settings.asrProvider,
+      });
     addStats(text.length, durationMs);
 
     this.busy = false;

@@ -1,30 +1,74 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BookOpen,
+  Briefcase,
+  Check,
+  Clock,
+  Code,
+  Crown,
+  Drama,
+  ExternalLink,
+  Heart,
+  Home as HomeIcon,
+  Languages,
+  Leaf,
+  Mic,
+  Minus,
+  PenLine,
+  Settings as SettingsIcon,
+  Sparkles,
+  SquareTerminal,
+  Users,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
 import { UI_LANGUAGES } from "../../shared/i18n";
-import type { HistoryItem, Persona, Settings, StatusPayload } from "../../shared/types";
+import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload, VadStatus } from "../../shared/types";
 
 type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
 export const REPO_URL = "https://github.com/wookat/speaktype";
 
-/** 人设图标：存名字不存 emoji，便于以后换图标库 */
-const PERSONA_ICONS: Record<string, string> = {
-  sparkles: "✨",
-  languages: "🌐",
-  briefcase: "💼",
-  users: "👥",
-  heart: "❤️",
-  terminal: "🖥️",
-  code: "📟",
-  book: "📖",
-  mic: "🎙️",
-  zap: "⚡",
-  crown: "👑",
-  pen: "🖊️",
-  leaf: "🍃",
+/** 人设图标：存名字不存图形，渲染时映射到 lucide 图标组件 */
+const PERSONA_ICONS: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  languages: Languages,
+  briefcase: Briefcase,
+  users: Users,
+  heart: Heart,
+  terminal: SquareTerminal,
+  code: Code,
+  book: BookOpen,
+  mic: Mic,
+  zap: Zap,
+  crown: Crown,
+  pen: PenLine,
+  leaf: Leaf,
 };
+
+const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
+  { id: "openai", label: "OpenAI Whisper", baseUrl: "https://api.openai.com/v1", model: "whisper-1" },
+  {
+    id: "siliconflow",
+    label: "SiliconFlow 硅基流动",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "FunAudioLLM/SenseVoiceSmall",
+  },
+  { id: "groq", label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+  { id: "fireworks", label: "Fireworks", baseUrl: "https://api.fireworks.ai/inference/v1", model: "whisper-v3-turbo" },
+  { id: "mistral", label: "Mistral Voxtral", baseUrl: "https://api.mistral.ai/v1", model: "voxtral-mini-latest" },
+  {
+    id: "bailian",
+    label: "阿里云百炼 (Qwen ASR)",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    model: "qwen3-asr-flash",
+  },
+  { id: "local", label: "本地 Whisper (faster-whisper-server)", baseUrl: "http://127.0.0.1:8000/v1", model: "Systran/faster-whisper-small" },
+];
 
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
@@ -38,8 +82,9 @@ const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: 
 const MAX_HOTWORDS = 300;
 const MAX_HOTWORD_LEN = 20;
 
-function personaIcon(name: string): string {
-  return PERSONA_ICONS[name] ?? "✨";
+function PersonaIcon(props: { name: string; className?: string }) {
+  const Icon = PERSONA_ICONS[props.name] ?? Sparkles;
+  return <Icon className={props.className ?? "h-5 w-5 text-indigo-500"} />;
 }
 
 function fmtDuration(ms: number, t: Translator): string {
@@ -72,6 +117,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [doubaoReady, setDoubaoReady] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     void api.init().then((data) => {
@@ -81,12 +127,14 @@ export default function App() {
       setHistory(data.history);
       setStatus(data.status);
       setDoubaoReady(data.doubaoReady);
+      setStats(data.stats);
     });
     const offStatus = api.onStatus((payload) => {
       setStatus(payload);
       if (payload.state === "idle") {
         void api.history().then(setHistory);
         void api.doubaoReady().then(setDoubaoReady);
+        void api.stats().then(setStats);
       }
     });
     const offSettings = api.onSettings(({ settings: s, personas: p }) => {
@@ -114,12 +162,12 @@ export default function App() {
     void api.updateSettings(patch);
   };
 
-  const NAV: Array<{ id: Page; label: string; icon: string }> = [
-    { id: "home", label: t("nav.home"), icon: "🏠" },
-    { id: "history", label: t("nav.history"), icon: "🕘" },
-    { id: "personas", label: t("nav.personas"), icon: "🎭" },
-    { id: "dictionary", label: t("nav.dictionary"), icon: "📖" },
-    { id: "settings", label: t("nav.settings"), icon: "⚙️" },
+  const NAV: Array<{ id: Page; label: string; icon: LucideIcon }> = [
+    { id: "home", label: t("nav.home"), icon: HomeIcon },
+    { id: "history", label: t("nav.history"), icon: Clock },
+    { id: "personas", label: t("nav.personas"), icon: Drama },
+    { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen },
+    { id: "settings", label: t("nav.settings"), icon: SettingsIcon },
   ];
 
   return (
@@ -130,13 +178,13 @@ export default function App() {
           className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
           onClick={() => void api.minimize()}
         >
-          –
+          <Minus className="h-4 w-4" />
         </button>
         <button
           className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-red-100 hover:text-red-500"
           onClick={() => void api.close()}
         >
-          ✕
+          <X className="h-4 w-4" />
         </button>
       </div>
 
@@ -162,7 +210,7 @@ export default function App() {
                 page === item.id ? "bg-indigo-50 font-medium text-indigo-600" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <span>{item.icon}</span>
+              <item.icon className="h-4 w-4" strokeWidth={page === item.id ? 2.2 : 1.8} />
               {item.label}
             </button>
           ))}
@@ -182,9 +230,9 @@ export default function App() {
             settings={settings}
             personas={localized}
             doubaoReady={doubaoReady}
-            statsWords={init.stats.words}
-            statsDuration={init.stats.durationMs}
-            statsSessions={init.stats.sessions}
+            statsWords={(stats ?? init.stats).words}
+            statsDuration={(stats ?? init.stats).durationMs}
+            statsSessions={(stats ?? init.stats).sessions}
             goSettings={() => setPage("settings")}
           />
         )}
@@ -202,6 +250,7 @@ export default function App() {
             toggleKeyChoices={init.toggleKeyChoices}
             doubaoReady={doubaoReady}
             version={init.version}
+            commit={init.commit}
           />
         )}
       </main>
@@ -235,7 +284,10 @@ function Home(props: {
       </h1>
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
-      {!props.doubaoReady && (
+      {props.settings.asrProvider !== "local" &&
+        !(props.settings.asrProvider === "openai"
+          ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
+          : props.doubaoReady) && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
           <div>
             <div className="font-medium text-indigo-700">{t("home.activate.title")}</div>
@@ -280,7 +332,7 @@ function Home(props: {
         <div>
           <div className="text-xs text-slate-400">{t("home.persona.current")}</div>
           <div className="mt-1 flex items-center gap-2 font-medium">
-            <span>{personaIcon(persona?.icon ?? "")}</span>
+            <PersonaIcon name={persona?.icon ?? ""} className="h-4 w-4 text-indigo-500" />
             {persona?.name}
           </div>
           <div className="mt-1 max-w-md text-xs text-slate-500">{persona?.prompt}</div>
@@ -304,6 +356,17 @@ function StatCard(props: { title: string; value: string; hint?: string }) {
 function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h: HistoryItem[]) => void }) {
   const { t } = props;
   const [query, setQuery] = useState("");
+  const [retrying, setRetrying] = useState("");
+  const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
+  const retry = (id: string): void => {
+    setRetrying(id);
+    setRetryError(null);
+    void api.retryHistory(id).then(async (r) => {
+      setRetrying("");
+      if (!r.ok) setRetryError({ id, msg: r.detail });
+      props.setHistory(await api.history());
+    });
+  };
   const filtered = query
     ? props.history.filter((h) => h.text.includes(query) || h.raw.includes(query))
     : props.history;
@@ -354,6 +417,7 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
+                      {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
                     <span className="hidden gap-3 group-hover:flex">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
@@ -367,8 +431,26 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                       </button>
                     </span>
                   </div>
-                  <div className="mt-2 text-sm">{item.text}</div>
-                  {item.raw !== item.text && (
+                  {item.status === "failed" ? (
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-xs text-red-500">
+                        {t("history.failedEntry")}: {item.error}
+                      </span>
+                      {item.audioFile && (
+                        <button
+                          className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
+                          disabled={retrying === item.id}
+                          onClick={() => retry(item.id)}
+                        >
+                          {retrying === item.id ? t("history.retrying") : t("history.retry")}
+                        </button>
+                      )}
+                      {retryError?.id === item.id && <span className="text-xs text-red-400">{retryError.msg}</span>}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm">{item.text}</div>
+                  )}
+                  {item.status !== "failed" && item.raw !== item.text && (
                     <div className="mt-1 text-xs text-slate-400">
                       {t("history.raw")}: {item.raw}
                     </div>
@@ -424,8 +506,8 @@ function Personas(props: {
       {/* 当前人设卡 */}
       <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-100 to-violet-50 p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-            {personaIcon(currentPersona?.icon ?? "")}
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm">
+            <PersonaIcon name={currentPersona?.icon ?? ""} className="h-5 w-5 text-indigo-500" />
           </div>
           <div>
             <div className="text-xs text-indigo-700/70">{t("home.persona.current")}</div>
@@ -455,8 +537,8 @@ function Personas(props: {
             onClick={() => props.update({ personaId: persona.id })}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-lg">
-                {personaIcon(persona.icon)}
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50/60">
+                <PersonaIcon name={persona.icon} className="h-4.5 w-4.5 text-indigo-500" />
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -524,15 +606,15 @@ function Personas(props: {
             />
             <label className="mt-3 block text-xs text-slate-500">{t("personas.icon")}</label>
             <div className="mt-1 flex flex-wrap gap-2">
-              {Object.entries(PERSONA_ICONS).map(([name, emoji]) => (
+              {Object.keys(PERSONA_ICONS).map((name) => (
                 <button
                   key={name}
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
                     editing.icon === name ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
                   }`}
                   onClick={() => setEditing({ ...editing, icon: name })}
                 >
-                  {emoji}
+                  <PersonaIcon name={name} className={`h-4 w-4 ${editing.icon === name ? "text-indigo-500" : "text-slate-500"}`} />
                 </button>
               ))}
             </div>
@@ -637,7 +719,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
             >
               {word}
               <button className="text-slate-300 hover:text-red-500" onClick={() => remove(word)}>
-                ✕
+                <X className="h-3.5 w-3.5" />
               </button>
             </span>
           ))}
@@ -657,6 +739,7 @@ function SettingsPage(props: {
   toggleKeyChoices: string[];
   doubaoReady: boolean;
   version: string;
+  commit: string;
 }) {
   const { t, settings: s } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
@@ -691,7 +774,7 @@ function SettingsPage(props: {
         )}
         {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
         {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
-        {tab === "about" && <AboutTab t={t} version={props.version} />}
+        {tab === "about" && <AboutTab t={t} version={props.version} commit={props.commit} />}
       </div>
     </div>
   );
@@ -750,6 +833,30 @@ function GeneralTab(props: {
           value={s.personaHotkeysEnabled}
           onChange={(v) => update({ personaHotkeysEnabled: v })}
         />
+        <Toggle
+          label={t("settings.vadAutoStop")}
+          hint={t("settings.vadAutoStopHint")}
+          value={s.vadAutoStop}
+          onChange={(v) => update({ vadAutoStop: v })}
+        />
+        {s.vadAutoStop && (
+          <div className="ml-4 border-l-2 border-slate-100 pl-4">
+            <Row label={t("settings.vadSilence")} hint={t("settings.vadSilenceHint")}>
+              <select
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                value={s.vadSilenceMs}
+                onChange={(e) => update({ vadSilenceMs: Number(e.target.value) })}
+              >
+                {[1000, 1500, 2000, 3000, 5000].map((ms) => (
+                  <option key={ms} value={ms}>
+                    {ms / 1000} s
+                  </option>
+                ))}
+              </select>
+            </Row>
+          </div>
+        )}
+        <EnhancedVad t={t} s={s} update={update} />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -781,6 +888,12 @@ function GeneralTab(props: {
           hint={t("settings.muteHint")}
           value={s.muteWhileRecording}
           onChange={(v) => update({ muteWhileRecording: v })}
+        />
+        <Toggle
+          label={t("settings.keepFailedAudio")}
+          hint={t("settings.keepFailedAudioHint")}
+          value={s.keepFailedAudio}
+          onChange={(v) => update({ keepFailedAudio: v })}
         />
         <Row label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
           <select
@@ -877,36 +990,184 @@ function VoiceTab(props: {
   doubaoReady: boolean;
 }) {
   const { t, s, update } = props;
+  const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
+  const localModel = s.localModel || "base-q5_1";
+
+  useEffect(() => {
+    void api.localModels().then(setLocalModels);
+    return api.onLocalModel(setLocal);
+  }, []);
+  useEffect(() => {
+    void api.localModelStatus(localModel).then(setLocal);
+  }, [localModel]);
+
+  const configured =
+    s.asrProvider === "openai"
+      ? Boolean(s.asrBaseUrl && s.asrApiKey)
+      : s.asrProvider === "local"
+        ? Boolean(local?.downloaded)
+        : props.doubaoReady;
+  // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
+  const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
+  const [testDetail, setTestDetail] = useState("");
+  const presetId = ASR_PRESETS.find((p) => p.baseUrl === s.asrBaseUrl && p.model === s.asrModel)?.id ?? "custom";
+  const applyPreset = (id: string) => {
+    const preset = ASR_PRESETS.find((p) => p.id === id);
+    if (preset) update({ asrBaseUrl: preset.baseUrl, asrModel: preset.model });
+  };
+  const runTest = () => {
+    setTestState("testing");
+    void api.testAsr().then(({ ok, detail }) => {
+      setTestState(ok ? "ok" : "fail");
+      setTestDetail(detail.slice(0, 120));
+    });
+  };
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="font-medium">{t("settings.asr")}</div>
-      <div className="mt-1 text-xs text-slate-400">{t("settings.asrHint")}</div>
+      <div className="mt-1 text-xs text-slate-400">
+        {s.asrProvider === "openai"
+          ? t("settings.asrOpenaiHint")
+          : s.asrProvider === "local"
+            ? t("settings.asrLocalHint")
+            : t("settings.asrHint")}
+      </div>
+      <Row label={t("settings.asrProvider")}>
+        <select
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+          value={s.asrProvider}
+          onChange={(e) => update({ asrProvider: e.target.value as Settings["asrProvider"] })}
+        >
+          <option value="doubao">{t("settings.asrProviderDoubao")}</option>
+          <option value="openai">{t("settings.asrProviderOpenai")}</option>
+          <option value="local">{t("settings.asrProviderLocal")}</option>
+        </select>
+      </Row>
       <Row label={t("settings.asrStatus")}>
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${
-            props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+            ready ? "bg-emerald-50 text-emerald-600" : configured ? "bg-sky-50 text-sky-600" : "bg-amber-50 text-amber-600"
           }`}
         >
-          {props.doubaoReady ? `✓ ${t("settings.asrReady")}` : t("settings.asrNotReady")}
+          {ready && <Check className="mr-1 inline h-3.5 w-3.5" />}
+          {ready ? t("settings.asrReady") : configured ? t("settings.asrConfigured") : t("settings.asrNotReady")}
         </span>
       </Row>
-      <Row label={t("settings.asrOpenLogin")}>
-        <button
-          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
-          onClick={() => void api.activateDoubao()}
-        >
-          {t("settings.asrOpenLogin")}
-        </button>
-      </Row>
-      <Row label={t("settings.asrAppKey")}>
-        <input
-          className="w-64 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-          type="password"
-          placeholder={t("settings.asrAppKeyPlaceholder")}
-          value={s.doubaoAppKey}
-          onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
-        />
-      </Row>
+      {s.asrProvider === "local" ? (
+        <div className="mt-4 space-y-3">
+          <Row label={t("settings.localModel")} hint={t("settings.localModelHint")}>
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={localModel}
+              onChange={(e) => update({ localModel: e.target.value })}
+            >
+              {localModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id} ({m.size})
+                </option>
+              ))}
+            </select>
+          </Row>
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={Boolean(local?.downloading) || Boolean(local?.downloaded)}
+              onClick={() => void api.localModelDownload(localModel).then(setLocal)}
+            >
+              {local?.downloaded
+                ? t("settings.localModelReady")
+                : local?.downloading
+                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  : t("settings.localModelDownload")}
+            </button>
+            {local?.downloading && (
+              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
+              </div>
+            )}
+            {local?.error && <span className="text-sm text-red-500">{local.error}</span>}
+          </div>
+          <Toggle
+            label={t("settings.localSimplified")}
+            hint={t("settings.localSimplifiedHint")}
+            value={s.localSimplified !== false}
+            onChange={(v) => update({ localSimplified: v })}
+          />
+        </div>
+      ) : s.asrProvider === "doubao" ? (
+        <>
+          <Row label={t("settings.asrOpenLogin")}>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => void api.activateDoubao()}
+            >
+              {t("settings.asrOpenLogin")}
+            </button>
+          </Row>
+          <Row label={t("settings.asrAppKey")}>
+            <input
+              className="w-64 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              type="password"
+              placeholder={t("settings.asrAppKeyPlaceholder")}
+              value={s.doubaoAppKey}
+              onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
+            />
+          </Row>
+        </>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <Row label={t("settings.modelPreset")}>
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={presetId}
+              onChange={(e) => applyPreset(e.target.value)}
+            >
+              <option value="custom">{t("settings.modelPresetCustom")}</option>
+              {ASR_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.asrBaseUrl")}: https://api.openai.com/v1`}
+            value={s.asrBaseUrl}
+            onChange={(e) => update({ asrBaseUrl: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            type="password"
+            placeholder={t("settings.asrApiKey")}
+            value={s.asrApiKey}
+            onChange={(e) => update({ asrApiKey: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.asrModel")}: whisper-1`}
+            value={s.asrModel}
+            onChange={(e) => update({ asrModel: e.target.value.trim() })}
+          />
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={testState === "testing" || !s.asrBaseUrl || !s.asrApiKey}
+              onClick={runTest}
+            >
+              {testState === "testing" ? t("settings.modelTesting") : t("settings.modelTest")}
+            </button>
+            {testState === "ok" && (
+              <span className="text-sm text-emerald-600">{t("settings.modelTestOk", { model: testDetail })}</span>
+            )}
+            {testState === "fail" && (
+              <span className="text-sm text-red-500">{t("settings.modelTestFail", { error: testDetail })}</span>
+            )}
+          </div>
+        </div>
+      )}
       <Row label={t("settings.asrLanguage")}>
         <select
           className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
@@ -938,7 +1199,7 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
     setTestState("testing");
     void api.testPolish().then(({ ok, detail }) => {
       setTestState(ok ? "ok" : "fail");
-      setTestDetail(detail);
+      setTestDetail(detail.slice(0, 120));
     });
   };
 
@@ -1003,18 +1264,26 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
   );
 }
 
-function AboutTab(props: { t: Translator; version: string }) {
+function AboutTab(props: { t: Translator; version: string; commit: string }) {
   const { t } = props;
   return (
     <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="font-medium">{t("settings.about.version")}</div>
-        <Row label={`${t("app.name")} ${props.version}`}>
+        <Row label={`${t("app.name")} ${props.version} (${props.commit})`}>
           <button
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
             onClick={() => void api.openExternal(`${REPO_URL}/releases`)}
           >
-            Releases ↗
+            Releases <ExternalLink className="inline h-3.5 w-3.5" />
+          </button>
+        </Row>
+        <Row label={t("settings.about.logs")}>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={() => void api.openLogs()}
+          >
+            {t("settings.about.logsOpen")}
           </button>
         </Row>
       </section>
@@ -1024,7 +1293,7 @@ function AboutTab(props: { t: Translator; version: string }) {
         <div className="mt-1 text-xs text-slate-400">{t("settings.about.openSourceDesc")}</div>
         <Row label={t("settings.about.repo")}>
           <button className="text-sm text-indigo-500 hover:underline" onClick={() => void api.openExternal(REPO_URL)}>
-            github.com/wookat/speaktype ↗
+            github.com/wookat/speaktype <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.issues")}>
@@ -1032,7 +1301,7 @@ function AboutTab(props: { t: Translator; version: string }) {
             className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/issues`)}
           >
-            GitHub Issues ↗
+            GitHub Issues <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.license")}>
@@ -1040,7 +1309,7 @@ function AboutTab(props: { t: Translator; version: string }) {
             className="text-sm text-indigo-500 hover:underline"
             onClick={() => void api.openExternal(`${REPO_URL}/blob/main/LICENSE`)}
           >
-            MIT License ↗
+            MIT License <ExternalLink className="inline h-3.5 w-3.5" />
           </button>
         </Row>
         <Row label={t("settings.about.author")}>
@@ -1070,6 +1339,55 @@ function Row(props: { label: string; hint?: string; children: React.ReactNode })
       </div>
       {props.children}
     </div>
+  );
+}
+
+/** 增强人声检测：Silero VAD 增强包按需下载（~35MB，不占安装包体积），未下载时开关先引导下载 */
+function EnhancedVad(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
+  const { t, s, update } = props;
+  const [vad, setVad] = useState<VadStatus | null>(null);
+
+  useEffect(() => {
+    void api.vadStatus().then(setVad);
+    return api.onVadStatus(setVad);
+  }, []);
+
+  return (
+    <>
+      <Toggle
+        label={t("settings.enhancedVad")}
+        hint={t("settings.enhancedVadHint")}
+        value={s.enhancedVad}
+        onChange={(v) => update({ enhancedVad: v })}
+      />
+      {s.enhancedVad && !vad?.downloaded && (
+        <div className="ml-4 mt-2 flex items-center gap-3 border-l-2 border-slate-100 pl-4">
+          <button
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+            disabled={Boolean(vad?.downloading)}
+            onClick={() => void api.vadDownload().then(setVad)}
+          >
+            {vad?.downloading
+              ? t("settings.enhancedVadDownloading", { progress: String(vad.progress) })
+              : t("settings.enhancedVadDownload")}
+          </button>
+          {vad?.downloading && (
+            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full bg-indigo-500" style={{ width: `${vad.progress}%` }} />
+            </div>
+          )}
+          {vad?.error && <span className="text-xs text-red-400">{vad.error}</span>}
+          {!vad?.downloading && !vad?.error && (
+            <span className="text-xs text-slate-400">{t("settings.enhancedVadFallback")}</span>
+          )}
+        </div>
+      )}
+      {s.enhancedVad && vad?.downloaded && (
+        <div className="ml-4 mt-1 border-l-2 border-slate-100 pl-4 text-xs text-slate-400">
+          {t("settings.enhancedVadReady")}
+        </div>
+      )}
+    </>
   );
 }
 

@@ -76,7 +76,11 @@ function Panel() {
           </div>
         ) : null}
         <span
-          className={`max-w-[240px] truncate text-[13px] ${status?.state === "error" ? "text-red-300" : "text-slate-200"}`}
+          className={`text-[13px] ${
+            status?.state === "error"
+              ? "line-clamp-3 max-w-[420px] leading-snug text-red-300"
+              : "max-w-[240px] truncate text-slate-200"
+          }`}
         >
           {label}
         </span>

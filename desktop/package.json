@@ -1,6 +1,6 @@
 {
   "name": "speaktype-desktop",
-  "productName": "SpeakType 语音输入法",
+  "productName": "SpeakType",
   "version": "0.1.0",
   "private": true,
   "description": "按住快捷键说话，松手把文字落到任意 Windows 程序的光标处",
@@ -18,7 +18,9 @@
     "auto-launch": "5.0.6",
     "electron-log": "5.4.3",
     "electron-store": "11.0.2",
-    "koffi": "3.1.4",
+    "koffi": "2.14.1",
+    "lucide-react": "^0.560.0",
+    "pinyin-pro": "^3.28.2",
     "uiohook-napi": "1.5.5"
   },
   "devDependencies": {
@@ -31,6 +33,7 @@
     "electron": "43.3.0",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
+    "opencc-js": "^1.0.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwindcss": "4.3.3",
