@@ -1352,6 +1352,8 @@ function EnhancedVad(props: { t: Translator; s: Settings; update: (patch: Partia
     return api.onVadStatus(setVad);
   }, []);
 
+  if (vad && !vad.supported) return null;
+
   return (
     <>
       <Toggle

@@ -27,6 +27,8 @@ const SOURCES = [
 ];
 const WINDOW = 512; // silero v5 @16kHz 固定 512 样本（32ms）
 const SPEECH_PROB = 0.5;
+// 增强包目前只打包了 win-x64 的 onnxruntime 运行库；其他平台回退峰值门槛
+const SUPPORTED = process.platform === "win32" && process.arch === "x64";
 
 function vadDir(): string {
   return join(app.getPath("userData"), "vad");
@@ -36,7 +38,7 @@ export function vadDownloaded(): boolean {
   return FILES.every((f) => existsSync(join(vadDir(), f)));
 }
 
-const status: VadStatus = { downloaded: false, downloading: false, progress: 0 };
+const status: VadStatus = { supported: SUPPORTED, downloaded: false, downloading: false, progress: 0 };
 let notify: ((s: VadStatus) => void) | null = null;
 
 export function onVadStatus(cb: (s: VadStatus) => void): void {
@@ -45,7 +47,7 @@ export function onVadStatus(cb: (s: VadStatus) => void): void {
 
 export function vadStatus(): VadStatus {
   if (status.downloading) return { ...status };
-  return { downloaded: vadDownloaded(), downloading: false, progress: 0 };
+  return { supported: SUPPORTED, downloaded: SUPPORTED && vadDownloaded(), downloading: false, progress: 0 };
 }
 
 function push(patch: Partial<VadStatus>): void {
@@ -69,7 +71,7 @@ async function fetchFirst(file: string): Promise<Response> {
 
 /** 按需下载 VAD 增强包（约 35MB），进度按多个文件合并计算 */
 export async function downloadVad(): Promise<VadStatus> {
-  if (status.downloading) return { ...status };
+  if (!SUPPORTED || status.downloading) return { ...status };
   if (vadDownloaded()) return vadStatus();
 
   push({ downloading: true, downloaded: false, progress: 0, error: undefined });
