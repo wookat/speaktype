@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   localSimplified: true,
   enhancedVad: false,
   keepFailedAudio: true,
+  captionLines: 3,
 };
 
 interface Schema {

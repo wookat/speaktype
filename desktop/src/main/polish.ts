@@ -8,8 +8,62 @@ const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然�
 const SELF_CORRECTION =
   /([^，。！？,.!?]{1,15})[，,]\s*(?:不对|说错了|口误|我是说)[，,]?\s*(?:是|应该是|改成)?/g;
 
+// 断句：这些连接词在口语里通常开启新分句，前面补标点（长词优先匹配）
+const BREAK_WORDS = [
+  "也就是说",
+  "换句话说",
+  "举个例子",
+  "就是说",
+  "比如说",
+  "要不然",
+  "然后",
+  "但是",
+  "不过",
+  "所以",
+  "因为",
+  "如果",
+  "还有",
+  "另外",
+  "其次",
+  "最后",
+  "首先",
+  "或者",
+  "其实",
+  "而且",
+  "接着",
+  "总之",
+];
+const BREAK_RE = new RegExp(`(?<![，。！？；、,.!?;\\s])(${BREAK_WORDS.join("|")})`, "g");
+const CJK_RE = /[\u4e00-\u9fff]/;
+// 相邻两个标点之间超过这么多字就把逗号升级成句号，避免一逗到底
+const SENTENCE_SPAN = 30;
+
 /**
- * 本地口语清理：删语气词、自我纠正、压重复、去尾句号。
+ * 本地断句：流式 ASR（如豆包）常整段无标点，这里按口语连接词保守补逗号/句号。
+ * 只在文本几乎没有标点时介入（whisper 等自带标点的通道不受影响）。
+ */
+export function addLocalPunctuation(text: string): string {
+  if (!CJK_RE.test(text) || text.length < 16) return text;
+  const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
+  if (punctCount > text.length / 25) return text;
+  let out = text.replace(BREAK_RE, "，$1");
+  // 每隔一段距离把逗号升级为句号，形成自然的句子边界
+  let sinceStop = 0;
+  const chars = Array.from(out);
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i]!;
+    if (ch === "。" || ch === "！" || ch === "？") sinceStop = 0;
+    else if (ch === "，" && sinceStop >= SENTENCE_SPAN) {
+      chars[i] = "。";
+      sinceStop = 0;
+    } else sinceStop++;
+  }
+  out = chars.join("");
+  return out.replace(/^[，。]/, "");
+}
+
+/**
+ * 本地口语清理：删语气词、自我纠正、压重复、断句补标点、去尾句号。
  * 本地自我纠正是保守的子句替换（会丢前缀语义），润色通道开启时交给 LLM 处理。
  */
 export function localCleanup(text: string, selfCorrect = true): string {
@@ -18,6 +72,7 @@ export function localCleanup(text: string, selfCorrect = true): string {
   if (selfCorrect) out = out.replace(SELF_CORRECTION, "");
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
+  if (selfCorrect) out = addLocalPunctuation(out);
   return out.replace(/[。．.]+$/, "");
 }
 
