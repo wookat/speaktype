@@ -133,6 +133,8 @@ export const zhCN = {
   "settings.localModelDownload": "下载模型",
   "settings.localModelDownloading": "下载中 {{progress}}%",
   "settings.localModelReady": "模型已就绪",
+  "settings.localSimplified": "强制简体输出",
+  "settings.localSimplifiedHint": "whisper 中文识别常出繁体，开启后落字前自动繁→简（仅对离线通道生效）。",
   "settings.asrOpenaiHint":
     "任意兼容 /audio/transcriptions 的服务都能接（OpenAI / SiliconFlow / Groq / 本地 Whisper 等），密钥只存本机。整句识别，录音中不显示实时文字。",
   "settings.asrBaseUrl": "Base URL",

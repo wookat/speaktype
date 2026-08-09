@@ -137,6 +137,8 @@ export const en: LocaleDict = {
   "settings.localModelDownload": "Download model",
   "settings.localModelDownloading": "Downloading {{progress}}%",
   "settings.localModelReady": "Model ready",
+  "settings.localSimplified": "Force Simplified Chinese",
+  "settings.localSimplifiedHint": "Whisper often outputs Traditional Chinese; converts to Simplified before typing (offline channel only).",
   "settings.asrOpenaiHint":
     "Any service compatible with /audio/transcriptions works (OpenAI / SiliconFlow / Groq / local Whisper). Keys stay on this machine. Whole-utterance recognition — no live text while recording.",
   "settings.asrBaseUrl": "Base URL",

@@ -53,6 +53,8 @@ export interface Settings {
   asrModel: string;
   /** 离线通道的 whisper.cpp 模型名，如 "base-q5_1" */
   localModel: string;
+  /** 离线通道落字前繁→简转换（whisper 中文常出繁体） */
+  localSimplified: boolean;
 }
 
 /** 离线模型下载/就绪状态，主进程推给设置页 */

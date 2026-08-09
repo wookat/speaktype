@@ -1,6 +1,15 @@
+import { Converter } from "opencc-js";
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { ensureLocalServer } from "./localasr";
+
+// whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
+let t2cn: ((text: string) => string) | null = null;
+
+function toSimplified(text: string): string {
+  if (!t2cn) t2cn = Converter({ from: "t", to: "cn" });
+  return t2cn(text);
+}
 
 const SAMPLE_RATE = 16000;
 
@@ -129,7 +138,8 @@ export function startLocalAsrSession(settings: Settings): DoubaoSession {
         throw new Error(`Local ASR HTTP ${res.status} ${body}`);
       }
       const data = (await res.json()) as TranscriptionResponse;
-      return (data.text ?? "").trim();
+      const text = (data.text ?? "").trim();
+      return settings.localSimplified !== false ? toSimplified(text) : text;
     },
   };
 }

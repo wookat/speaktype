@@ -1044,6 +1044,12 @@ function VoiceTab(props: {
             )}
             {local?.error && <span className="text-sm text-red-500">{local.error}</span>}
           </div>
+          <Toggle
+            label={t("settings.localSimplified")}
+            hint={t("settings.localSimplifiedHint")}
+            value={s.localSimplified !== false}
+            onChange={(v) => update({ localSimplified: v })}
+          />
         </div>
       ) : s.asrProvider === "doubao" ? (
         <>
