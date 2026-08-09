@@ -75,6 +75,10 @@ export interface HistoryItem {
   personaName: string;
   durationMs: number;
   failed?: string;
+  /** 识别失败的会话：音频留存本机，可从历史页重试 */
+  status?: "failed";
+  error?: string;
+  audioFile?: string;
 }
 
 export interface Stats {

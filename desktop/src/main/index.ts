@@ -223,6 +223,7 @@ function registerIpc(): void {
     deleteHistory(ids);
     return getHistory();
   });
+  ipcMain.handle("history:retry", (_e, id: string) => dictation.retryHistory(id));
   ipcMain.handle("stats:get", () => getStats());
   ipcMain.handle("doubao:ready", () => hasAppKey());
   ipcMain.handle("doubao:activate", () => showBridge());

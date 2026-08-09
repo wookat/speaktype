@@ -19,7 +19,7 @@ function transcriptionsUrl(baseUrl: string): string {
 }
 
 /** 16k/mono/PCM16 帧封装成 WAV，供整句转写接口使用 */
-function pcmToWav(frames: Int16Array[]): Buffer {
+export function pcmToWav(frames: Int16Array[]): Buffer {
   const dataLen = frames.reduce((sum, f) => sum + f.length * 2, 0);
   const header = Buffer.alloc(44);
   header.write("RIFF", 0);

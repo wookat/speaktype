@@ -356,6 +356,17 @@ function StatCard(props: { title: string; value: string; hint?: string }) {
 function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h: HistoryItem[]) => void }) {
   const { t } = props;
   const [query, setQuery] = useState("");
+  const [retrying, setRetrying] = useState("");
+  const [retryError, setRetryError] = useState("");
+  const retry = (id: string): void => {
+    setRetrying(id);
+    setRetryError("");
+    void api.retryHistory(id).then(async (r) => {
+      setRetrying("");
+      if (!r.ok) setRetryError(r.detail);
+      props.setHistory(await api.history());
+    });
+  };
   const filtered = query
     ? props.history.filter((h) => h.text.includes(query) || h.raw.includes(query))
     : props.history;
@@ -419,8 +430,26 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                       </button>
                     </span>
                   </div>
-                  <div className="mt-2 text-sm">{item.text}</div>
-                  {item.raw !== item.text && (
+                  {item.status === "failed" ? (
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-xs text-red-500">
+                        {t("history.failedEntry")}: {item.error}
+                      </span>
+                      {item.audioFile && (
+                        <button
+                          className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
+                          disabled={retrying === item.id}
+                          onClick={() => retry(item.id)}
+                        >
+                          {retrying === item.id ? t("history.retrying") : t("history.retry")}
+                        </button>
+                      )}
+                      {retryError && retrying === "" && <span className="text-xs text-red-400">{retryError}</span>}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-sm">{item.text}</div>
+                  )}
+                  {item.status !== "failed" && item.raw !== item.text && (
                     <div className="mt-1 text-xs text-slate-400">
                       {t("history.raw")}: {item.raw}
                     </div>

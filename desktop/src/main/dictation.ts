@@ -1,15 +1,17 @@
 import { randomUUID } from "node:crypto";
-import type { BrowserWindow } from "electron";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { startLocalAsrSession, startOpenAiAsrSession } from "./asr";
+import { pcmToWav, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
-import { addHistory, addStats, findPersona, getSettings } from "./store";
+import { addHistory, addStats, findPersona, getHistory, getSettings, updateHistoryItem } from "./store";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
@@ -24,6 +26,38 @@ const VAD_NO_VOICE_TIMEOUT_MS = 10000;
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
+// 失败会话的音频同时落盘（仅本机），从历史页可随时重试；滚动保留最近 20 段
+const FAILED_AUDIO_MAX = 20;
+
+function failedAudioDir(): string {
+  return join(app.getPath("userData"), "failed-audio");
+}
+
+function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
+  try {
+    mkdirSync(failedAudioDir(), { recursive: true });
+    const file = join(failedAudioDir(), `${id}.wav`);
+    writeFileSync(file, pcmToWav(frames));
+    const all = readdirSync(failedAudioDir())
+      .filter((f) => f.endsWith(".wav"))
+      .map((f) => ({ f, at: statSync(join(failedAudioDir(), f)).mtimeMs }))
+      .sort((a, b) => b.at - a.at);
+    for (const old of all.slice(FAILED_AUDIO_MAX)) rmSync(join(failedAudioDir(), old.f), { force: true });
+    return file;
+  } catch (error) {
+    log.warn("saveFailedAudio failed", error);
+    return undefined;
+  }
+}
+
+function wavToFrames(file: string): Int16Array[] {
+  const buf = readFileSync(file);
+  const data = buf.subarray(44);
+  // 拷贝一份保证 2 字节对齐（Buffer 池的 byteOffset 可能是奇数）
+  const copy = new Uint8Array(data.length - (data.length % 2));
+  copy.set(data.subarray(0, copy.length));
+  return [new Int16Array(copy.buffer, 0, copy.length / 2)];
+}
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -46,7 +80,13 @@ export class Dictation {
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private allFrames: Int16Array[] = [];
-  private lastFailed: { frames: Int16Array[]; durationMs: number; maxPeak: number; at: number } | null = null;
+  private lastFailed: {
+    frames: Int16Array[];
+    durationMs: number;
+    maxPeak: number;
+    at: number;
+    historyId?: string;
+  } | null = null;
 
   constructor(private deps: DictationDeps) {}
 
@@ -250,6 +290,42 @@ export class Dictation {
     return true;
   }
 
+  private resolveFailedEntry(id: string, text: string, raw: string): void {
+    const entry = getHistory().find((h) => h.id === id);
+    if (entry?.audioFile && existsSync(entry.audioFile)) rmSync(entry.audioFile, { force: true });
+    updateHistoryItem(id, { text, raw, at: Date.now(), status: undefined, error: undefined, audioFile: undefined });
+  }
+
+  /** 历史页的失败条目重试：读回落盘音频重跑识别+润色，成功后原地更新并复制到剪贴板 */
+  async retryHistory(id: string): Promise<{ ok: boolean; detail: string }> {
+    if (this.busy) return { ok: false, detail: "busy" };
+    const entry = getHistory().find((h) => h.id === id);
+    if (!entry || entry.status !== "failed" || !entry.audioFile || !existsSync(entry.audioFile)) {
+      return { ok: false, detail: t("history.retryGone") };
+    }
+    const settings = getSettings();
+    const persona = localizePersona(findPersona(settings.personaId), translator());
+    try {
+      const session =
+        settings.asrProvider === "openai"
+          ? startOpenAiAsrSession(settings)
+          : settings.asrProvider === "local"
+            ? startLocalAsrSession(settings)
+            : await startDoubaoSession(settings.language, () => undefined);
+      for (const frame of wavToFrames(entry.audioFile)) session.pushPcm(frame);
+      const raw = await session.finish();
+      if (!raw) return { ok: false, detail: t("toast.noSpeech") };
+      const text = await polishText(settings, persona, raw);
+      this.resolveFailedEntry(id, text, raw);
+      addStats(text.length, entry.durationMs);
+      clipboard.writeText(text);
+      this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
+      return { ok: true, detail: text };
+    } catch (error) {
+      return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   private async finalize(): Promise<void> {
     const session = this.session;
     if (!session) return;
@@ -278,12 +354,27 @@ export class Dictation {
     try {
       raw = await session.finish();
     } catch (error) {
-      this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now() };
-      this.busy = false;
       const message = error instanceof Error ? error.message : String(error);
+      const id = randomUUID();
+      const audioFile = saveFailedAudio(id, this.allFrames);
+      addHistory({
+        id,
+        at: Date.now(),
+        text: "",
+        raw: "",
+        personaName: persona.name,
+        durationMs,
+        status: "failed",
+        error: message,
+        audioFile,
+      });
+      this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
+      this.busy = false;
       this.report("error", `${message} · ${t("error.retryHint")}`);
       return;
     }
+    // 本次是热键重试且成功：把之前的失败条目原地升级，后面 addHistory 前先清掉
+    const retriedId = this.lastFailed?.historyId;
     this.lastFailed = null;
 
     if (durationMs < settings.minRecordMs || !raw) {
@@ -307,15 +398,17 @@ export class Dictation {
       }
     }
 
-    addHistory({
-      id: randomUUID(),
-      at: Date.now(),
-      text,
-      raw,
-      personaName: persona.name,
-      durationMs,
-      failed,
-    });
+    if (retriedId) this.resolveFailedEntry(retriedId, text, raw);
+    else
+      addHistory({
+        id: randomUUID(),
+        at: Date.now(),
+        text,
+        raw,
+        personaName: persona.name,
+        durationMs,
+        failed,
+      });
     addStats(text.length, durationMs);
 
     this.busy = false;
