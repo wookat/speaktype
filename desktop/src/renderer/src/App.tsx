@@ -23,6 +23,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import logoUrl from "./assets/logo.png";
 import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
@@ -191,11 +192,7 @@ export default function App() {
       {/* 侧边栏 */}
       <aside className="flex w-52 shrink-0 flex-col border-r border-slate-200 bg-white/70 pt-10">
         <div className="flex items-center gap-2 px-5 pb-6">
-          <div className="flex h-9 w-9 items-end justify-center gap-[3px] rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 pb-2">
-            {[10, 16, 22, 16, 10].map((h, i) => (
-              <span key={i} className="w-[3px] rounded-full bg-white" style={{ height: `${h}px` }} />
-            ))}
-          </div>
+          <img src={logoUrl} alt="" className="h-9 w-9 rounded-xl" />
           <div>
             <div className="text-sm font-semibold leading-tight">{t("app.name")}</div>
             <div className="text-xs text-slate-400">{t("app.tagline")}</div>
