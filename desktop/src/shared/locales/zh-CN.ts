@@ -113,6 +113,7 @@ export const zhCN = {
   "settings.asrStatus": "识别状态",
   "settings.asrReady": "已就绪",
   "settings.asrNotReady": "未配置",
+  "settings.asrConfigured": "已配置（未验证）",
   "settings.asrOpenLogin": "打开豆包登录 / 自动获取",
   "settings.asrAppKey": "豆包 App Key",
   "settings.asrAppKeyPlaceholder": "留空则使用自动获取到的 App Key",
@@ -150,10 +151,12 @@ export const zhCN = {
   "settings.about.license": "开源许可",
   "settings.about.author": "作者与维护者",
   "settings.about.contribute": "参与贡献",
+  "settings.about.logs": "运行日志",
+  "settings.about.logsOpen": "打开日志目录",
   "settings.about.contributeDesc": "欢迎提交 Issue 与 Pull Request，一起把开源语音输入做好。",
   "settings.about.privacy": "隐私说明",
   "settings.about.privacyDesc":
-    "所有配置（热键、人设、词典、密钥）都保存在本机 %APPDATA%\\speaktype 下；历史记录仅存本地，可随时清空。",
+    "所有配置（热键、人设、词典、密钥）都保存在本机 %APPDATA%\\SpeakType 下；历史记录仅存本地，可随时清空。",
 
   "panel.connecting": "连接中…",
   "panel.recording": "开始说话",

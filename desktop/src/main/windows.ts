@@ -12,7 +12,7 @@ export const DOUBAO_URL = "https://www.doubao.com/chat";
 
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 150;
-const TOAST_WIDTH = 360;
+const TOAST_WIDTH = 520;
 const TOAST_HEIGHT = 92;
 
 function load(win: BrowserWindow, page: string): void {

@@ -41,6 +41,7 @@ const api = {
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
+  openLogs: (): Promise<void> => ipcRenderer.invoke("log:open"),
 
   onStatus: (fn: (payload: StatusPayload) => void) => {
     const listener = (_e: unknown, payload: StatusPayload) => fn(payload);

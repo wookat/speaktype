@@ -919,8 +919,10 @@ function VoiceTab(props: {
   doubaoReady: boolean;
 }) {
   const { t, s, update } = props;
-  const ready = s.asrProvider === "openai" ? Boolean(s.asrBaseUrl && s.asrApiKey) : props.doubaoReady;
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+  const configured = s.asrProvider === "openai" ? Boolean(s.asrBaseUrl && s.asrApiKey) : props.doubaoReady;
+  // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
+  const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
   const [testDetail, setTestDetail] = useState("");
   const presetId = ASR_PRESETS.find((p) => p.baseUrl === s.asrBaseUrl && p.model === s.asrModel)?.id ?? "custom";
   const applyPreset = (id: string) => {
@@ -953,11 +955,11 @@ function VoiceTab(props: {
       <Row label={t("settings.asrStatus")}>
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${
-            ready ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+            ready ? "bg-emerald-50 text-emerald-600" : configured ? "bg-sky-50 text-sky-600" : "bg-amber-50 text-amber-600"
           }`}
         >
           {ready && <Check className="mr-1 inline h-3.5 w-3.5" />}
-          {ready ? t("settings.asrReady") : t("settings.asrNotReady")}
+          {ready ? t("settings.asrReady") : configured ? t("settings.asrConfigured") : t("settings.asrNotReady")}
         </span>
       </Row>
       {s.asrProvider === "doubao" ? (
@@ -1140,6 +1142,14 @@ function AboutTab(props: { t: Translator; version: string }) {
             onClick={() => void api.openExternal(`${REPO_URL}/releases`)}
           >
             Releases <ExternalLink className="inline h-3.5 w-3.5" />
+          </button>
+        </Row>
+        <Row label={t("settings.about.logs")}>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={() => void api.openLogs()}
+          >
+            {t("settings.about.logsOpen")}
           </button>
         </Row>
       </section>

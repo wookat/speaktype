@@ -117,6 +117,7 @@ export const en: LocaleDict = {
   "settings.asrStatus": "Status",
   "settings.asrReady": "Ready",
   "settings.asrNotReady": "Not configured",
+  "settings.asrConfigured": "Configured (untested)",
   "settings.asrOpenLogin": "Open Doubao login / auto capture",
   "settings.asrAppKey": "Doubao App Key",
   "settings.asrAppKeyPlaceholder": "Leave empty to use the auto-captured key",
@@ -154,10 +155,12 @@ export const en: LocaleDict = {
   "settings.about.license": "License",
   "settings.about.author": "Author & maintainers",
   "settings.about.contribute": "Contributing",
+  "settings.about.logs": "Logs",
+  "settings.about.logsOpen": "Open log folder",
   "settings.about.contributeDesc": "Issues and pull requests are welcome — help us build great open-source voice typing.",
   "settings.about.privacy": "Privacy",
   "settings.about.privacyDesc":
-    "All settings (hotkeys, personas, dictionary, keys) live locally under %APPDATA%\\speaktype; history is local-only and can be cleared anytime.",
+    "All settings (hotkeys, personas, dictionary, keys) live locally under %APPDATA%\\SpeakType; history is local-only and can be cleared anytime.",
 
   "panel.connecting": "Connecting…",
   "panel.recording": "Listening",
