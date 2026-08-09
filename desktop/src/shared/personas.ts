@@ -1,4 +1,15 @@
+import type { LocaleKey, Translator } from "./i18n";
 import type { Persona } from "./types";
+
+/** 内置人设的名称与 prompt 随界面语言本地化，自定义人设保持原样 */
+export function localizePersona(persona: Persona, t: Translator): Persona {
+  if (!persona.builtin) return persona;
+  return {
+    ...persona,
+    name: t(`persona.${persona.id}.name` as LocaleKey),
+    prompt: t(`persona.${persona.id}.prompt` as LocaleKey),
+  };
+}
 
 /**
  * 内置人设 = 一段后处理 prompt，切换只影响润色阶段，不影响识别。

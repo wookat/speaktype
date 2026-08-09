@@ -26,6 +26,7 @@ const INPUT_KEYBOARD = 1;
 const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
+const VK_VOLUME_MUTE = 0xad;
 
 function key(vk: number, up: boolean) {
   return {
@@ -33,6 +34,12 @@ function key(vk: number, up: boolean) {
     ki: { wVk: vk, wScan: 0, dwFlags: up ? KEYEVENTF_KEYUP : 0, time: 0, dwExtraInfo: 0 },
     padding: new Array(8).fill(0),
   };
+}
+
+/** “录音时静音其他应用”：系统静音是开关键，开始时敲一次、结束时再敲一次恢复 */
+export function toggleSystemMute(): void {
+  const inputs = [key(VK_VOLUME_MUTE, false), key(VK_VOLUME_MUTE, true)];
+  SendInput(inputs.length, inputs, koffi.sizeof(INPUT));
 }
 
 function sendCtrlV(): void {

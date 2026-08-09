@@ -9,8 +9,15 @@ export interface InitPayload {
   onboarded: boolean;
   doubaoReady: boolean;
   holdKeyChoices: string[];
+  toggleKeyChoices: string[];
   status: StatusPayload;
   version: string;
+  systemLocale: string;
+}
+
+export interface MicDevice {
+  deviceId: string;
+  label: string;
 }
 
 const api = {
@@ -27,6 +34,9 @@ const api = {
   onboardingDone: (): Promise<void> => ipcRenderer.invoke("onboarding:done"),
   toggleRecord: (): Promise<void> => ipcRenderer.invoke("record:toggle"),
   cancelRecord: (): Promise<void> => ipcRenderer.invoke("record:cancel"),
+  micList: (): Promise<MicDevice[]> => ipcRenderer.invoke("mic:list"),
+  micTest: (on: boolean): Promise<void> => ipcRenderer.invoke("mic:test", on),
+  testPolish: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("polish:test"),
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
@@ -53,11 +63,14 @@ const api = {
   },
 
   recorder: {
-    onStart: (fn: () => void) => ipcRenderer.on("recorder:start", fn),
+    onStart: (fn: (opts: { deviceId: string }) => void) =>
+      ipcRenderer.on("recorder:start", (_e, opts: { deviceId: string }) => fn(opts ?? { deviceId: "" })),
     onStop: (fn: () => void) => ipcRenderer.on("recorder:stop", fn),
+    onEnumerate: (fn: () => void) => ipcRenderer.on("recorder:enumerate", fn),
     sendPcm: (chunk: ArrayBuffer) => ipcRenderer.send("recorder:pcm", chunk),
     sendLevel: (level: number) => ipcRenderer.send("recorder:level", level),
     sendError: (message: string) => ipcRenderer.send("recorder:error", message),
+    sendDevices: (list: MicDevice[]) => ipcRenderer.send("recorder:devices", list),
   },
 };
 

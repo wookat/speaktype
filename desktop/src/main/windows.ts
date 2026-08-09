@@ -20,7 +20,7 @@ function load(win: BrowserWindow, page: string): void {
   else void win.loadFile(join(rendererDir, `${page}.html`));
 }
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(visible = true): BrowserWindow {
   const win = new BrowserWindow({
     width: 1100,
     height: 740,
@@ -30,10 +30,10 @@ export function createMainWindow(): BrowserWindow {
     show: false,
     center: true,
     backgroundColor: "#f7f7f9",
-    title: "SpeakType 语音输入法",
+    title: "SpeakType",
     webPreferences: { preload, sandbox: false },
   });
-  win.on("ready-to-show", () => win.show());
+  if (visible) win.on("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: "deny" };
