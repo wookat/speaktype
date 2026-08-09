@@ -11,7 +11,15 @@ import type { VadStatus } from "../shared/types";
  * 未下载或加载失败时上层回退到峰值门槛。
  */
 
-const FILES = ["onnxruntime.dll", "DirectML.dll", "onnxruntime_binding.node", "silero_vad.onnx"] as const;
+// msvcp140_1/_2：干净机无 VC redist 时 onnxruntime 的加载依赖（msvcp140/vcruntime 已随 whisper 入安装包）
+const FILES = [
+  "onnxruntime.dll",
+  "DirectML.dll",
+  "msvcp140_1.dll",
+  "msvcp140_2.dll",
+  "onnxruntime_binding.node",
+  "silero_vad.onnx",
+] as const;
 // 与安装包同一发布分支托管；jsdelivr 作为国内可达的镜像源
 const SOURCES = [
   "https://github.com/wookat/speaktype/raw/dist-v0.1.0/vad",
