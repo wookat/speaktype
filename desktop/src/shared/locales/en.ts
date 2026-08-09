@@ -140,6 +140,7 @@ export const en: LocaleDict = {
   "settings.captionLines": "Caption height",
   "settings.captionLinesHint": "Max lines of live captions on the floating bar; scrolls to the latest text.",
   "settings.captionLinesOption": "{{n}} lines",
+  "settings.captionLinesOption1": "{{n}} line",
   "settings.keepFailedAudio": "Keep failed recordings",
   "settings.keepFailedAudioHint":
     "When recognition fails, keep the recording on this machine so it can be retried from History (max 20 clips / 7 days / 50MB; never uploaded).",

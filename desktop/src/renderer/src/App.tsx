@@ -1015,7 +1015,7 @@ function GeneralTab(props: {
           >
             {[1, 3, 6].map((n) => (
               <option key={n} value={n}>
-                {t("settings.captionLinesOption", { n: String(n) })}
+                {t(n === 1 ? "settings.captionLinesOption1" : "settings.captionLinesOption", { n: String(n) })}
               </option>
             ))}
           </select>

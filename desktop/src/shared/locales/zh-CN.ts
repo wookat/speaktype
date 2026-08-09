@@ -136,6 +136,7 @@ export const zhCN = {
   "settings.captionLines": "悬浮条字幕高度",
   "settings.captionLinesHint": "实时字幕最多显示的行数，超出自动滚动到最新。",
   "settings.captionLinesOption": "{{n}} 行",
+  "settings.captionLinesOption1": "{{n}} 行",
   "settings.keepFailedAudio": "保留失败录音",
   "settings.keepFailedAudioHint": "识别失败时把录音保存在本机，可从历史页重试（最多 20 段 / 7 天 / 50MB，不会上传）。",
   "settings.enhancedVad": "增强人声检测（Silero VAD）",
