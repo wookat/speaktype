@@ -11,8 +11,11 @@ export interface Persona {
 /** 界面语言："system" 表示跟随系统 */
 export type UiLanguage = "system" | "zh-CN" | "zh-TW" | "en" | "ja" | "ko";
 
-/** 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、或内置离线 whisper.cpp */
-export type AsrProvider = "doubao" | "openai" | "local";
+/**
+ * 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、
+ * ChatGPT 网页会话（免密钥，需应用内登录）、或内置离线 whisper.cpp
+ */
+export type AsrProvider = "doubao" | "openai" | "chatgpt" | "local";
 
 export interface Settings {
   /** 点按开关热键，uiohook 键名组合，例如 "Alt+Space" */

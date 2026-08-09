@@ -142,6 +142,11 @@ export const ja: LocaleDict = {
   "settings.asrProvider": "プロバイダー",
   "settings.asrProviderDoubao": "Doubao（ストリーミング、要ログイン）",
   "settings.asrProviderOpenai": "OpenAI 互換文字起こし（Whisper 系）",
+  "settings.asrProviderChatgpt": "ChatGPT ウェブ文字起こし（キー不要、要ログイン）",
+  "settings.asrChatgptHint":
+    "ご自身の ChatGPT ログイン状態を使って、ChatGPT の音声入力エンドポイントを呼び出します。API キー不要（無料アカウントでも可）。トークンは本機のブラウザセッション内に留まります。発話全体を認識するため、録音中のリアルタイム表示はありません。",
+  "settings.chatgptLogin": "ChatGPT にログイン",
+  "settings.chatgptLoginHint": "アプリ内で chatgpt.com に一度ログインすれば、あとはホットキーを押しながら話すだけです。",
   "settings.asrProviderLocal": "内蔵オフライン認識（whisper.cpp）",
   "settings.asrLocalHint":
     "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。発話全体を認識するため、録音中のリアルタイム表示はありません。",
@@ -223,6 +228,8 @@ export const ja: LocaleDict = {
 
   "error.noAppKey":
     "音声認識が未設定です：Doubao にログインして音声入力を一度使うか、設定で App Key を入力してください",
+  "error.chatgptNotReady": "ChatGPT ページの読み込みが未完了です：しばらくして再試行するか、設定で「ChatGPT にログイン」を押してください",
+  "error.chatgptNotLoggedIn": "ChatGPT に未ログインです：設定 → 音声認識で「ChatGPT にログイン」を押してください",
   "error.noAsrConfig": "音声認識が未設定です：設定で文字起こし API の Base URL と API キーを入力してください",
   "error.localModelMissing": "ローカルモデルが未ダウンロードです：設定 → 音声認識 →「モデルをダウンロード」をクリックしてください",
   "error.badUrl": "URL は http:// または https:// で始まる必要があります",
@@ -230,6 +237,7 @@ export const ja: LocaleDict = {
   "history.provider.doubao": "Doubao",
   "history.provider.openai": "クラウド API",
   "history.provider.local": "ローカルオフライン",
+  "history.provider.chatgpt": "ChatGPT",
   "history.retry": "再試行",
   "history.retrying": "再試行中…",
   "history.retryGone": "音声はもう利用できません（直近 20 件のみ保持）",

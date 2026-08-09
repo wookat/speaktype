@@ -139,6 +139,11 @@ export const zhCN = {
   "settings.asrProviderDoubao": "豆包（流式，需登录）",
   "settings.asrProviderOpenai": "OpenAI 兼容转写接口（Whisper 类）",
   "settings.asrProviderLocal": "内置离线识别（whisper.cpp）",
+  "settings.asrProviderChatgpt": "ChatGPT 网页转写（免密钥，需登录）",
+  "settings.asrChatgptHint":
+    "复用你自己的 ChatGPT 登录态，调用它自带的语音输入接口，不需要 API Key（免费账号也可用）。令牌只留在本机浏览器会话里；整句识别，录音中不显示实时文字。",
+  "settings.chatgptLogin": "登录 ChatGPT",
+  "settings.chatgptLoginHint": "在应用内打开 chatgpt.com 登录一次，之后直接按住热键说话即可。",
   "settings.asrLocalHint":
     "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件；整句识别，录音中不显示实时文字。",
   "settings.localModel": "本地模型",
@@ -216,6 +221,8 @@ export const zhCN = {
   "tray.quit": "退出",
 
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
+  "error.chatgptNotReady": "ChatGPT 页面还没加载完：请稍后重试，或先在设置里点“登录 ChatGPT”",
+  "error.chatgptNotLoggedIn": "未登录 ChatGPT：请在设置 → 语音识别里点“登录 ChatGPT”完成登录",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
   "error.badUrl": "URL 需以 http:// 或 https:// 开头",
@@ -223,6 +230,7 @@ export const zhCN = {
   "history.provider.doubao": "豆包",
   "history.provider.openai": "云转写",
   "history.provider.local": "本地离线",
+  "history.provider.chatgpt": "ChatGPT",
   "history.retry": "重试",
   "history.retrying": "重试中…",
   "history.retryGone": "录音已不在（仅保留最近 20 段）",

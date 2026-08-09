@@ -12,6 +12,7 @@ declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
+import { chatgptLoggedIn, showChatgptLogin } from "./chatgpt";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
 import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
@@ -273,6 +274,8 @@ function registerIpc(): void {
   ipcMain.handle("stats:get", () => getStats());
   ipcMain.handle("doubao:ready", () => hasAppKey());
   ipcMain.handle("doubao:activate", () => showBridge());
+  ipcMain.handle("chatgpt:ready", () => chatgptLoggedIn());
+  ipcMain.handle("chatgpt:login", () => showChatgptLogin());
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => {
     if (dictation.isRecording()) void dictation.stop();

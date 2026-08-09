@@ -9,6 +9,7 @@ const rendererDir = join(dir, "../renderer");
 const devServer = process.env["ELECTRON_RENDERER_URL"];
 
 export const DOUBAO_URL = "https://www.doubao.com/chat";
+export const CHATGPT_URL = "https://chatgpt.com/";
 
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 150;
@@ -112,6 +113,22 @@ export function createBridgeWindow(): BrowserWindow {
     webPreferences: { preload: doubaoPreload, sandbox: false, backgroundThrottling: false },
   });
   void win.loadURL(DOUBAO_URL);
+  return win;
+}
+
+/**
+ * ChatGPT 桥接窗口：转写走 chatgpt.com 自己的 /backend-api/transcribe，
+ * 依赖该站点的登录态与 Cloudflare 校验，必须在站内页面发起请求。
+ */
+export function createChatgptWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    show: false,
+    width: 1080,
+    height: 760,
+    title: "ChatGPT（SpeakType 桥接）",
+    webPreferences: { sandbox: true, backgroundThrottling: false },
+  });
+  void win.loadURL(CHATGPT_URL);
   return win;
 }
 

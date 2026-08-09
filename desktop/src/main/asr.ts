@@ -2,6 +2,7 @@ import { Converter } from "opencc-js/t2cn";
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
+import { ensureChatgptBridge, transcribeViaChatgpt } from "./chatgpt";
 import { ensureLocalServer } from "./localasr";
 
 // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
@@ -116,6 +117,30 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
       }
       const data = (await res.json()) as TranscriptionResponse;
       return (data.text ?? "").trim();
+    },
+  };
+}
+
+/**
+ * ChatGPT 网页转写：复用已登录的 chatgpt.com 会话调用它自带的语音输入接口，
+ * 免密钥、免额度配置；整句识别，无流式 partial。
+ */
+export function startChatgptAsrSession(): DoubaoSession {
+  const frames: Int16Array[] = [];
+  let cancelled = false;
+  ensureChatgptBridge();
+
+  return {
+    pushPcm(frame: Int16Array): void {
+      if (!cancelled) frames.push(frame);
+    },
+    cancel(): void {
+      cancelled = true;
+      frames.length = 0;
+    },
+    async finish(): Promise<string> {
+      if (cancelled || frames.length === 0) return "";
+      return transcribeViaChatgpt(pcmToWav(frames));
     },
   };
 }

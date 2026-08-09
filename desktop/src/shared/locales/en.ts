@@ -142,6 +142,11 @@ export const en: LocaleDict = {
   "settings.asrProvider": "Provider",
   "settings.asrProviderDoubao": "Doubao (streaming, requires login)",
   "settings.asrProviderOpenai": "OpenAI-compatible transcription (Whisper-style)",
+  "settings.asrProviderChatgpt": "ChatGPT web transcription (no key, sign-in required)",
+  "settings.asrChatgptHint":
+    "Reuses your own ChatGPT session to call its built-in voice input endpoint — no API key needed (works on free accounts). The token stays in the local browser session. Whole-utterance recognition, so no live captions while recording.",
+  "settings.chatgptLogin": "Sign in to ChatGPT",
+  "settings.chatgptLoginHint": "Sign in to chatgpt.com once inside the app, then just hold the hotkey and talk.",
   "settings.asrProviderLocal": "Built-in offline recognition (whisper.cpp)",
   "settings.asrLocalHint":
     "Runs fully on this machine — no internet, no account, no API key; audio never leaves this computer. Download a model file once; whole-utterance recognition, no live text while recording.",
@@ -223,6 +228,8 @@ export const en: LocaleDict = {
 
   "error.noAppKey":
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
+  "error.chatgptNotReady": "The ChatGPT page hasn't finished loading — retry shortly, or click “Sign in to ChatGPT” in Settings first",
+  "error.chatgptNotLoggedIn": "Not signed in to ChatGPT: click “Sign in to ChatGPT” in Settings → Speech recognition",
   "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.localModelMissing": "Local model not downloaded yet: open Settings → Speech recognition and click \"Download model\"",
   "error.badUrl": "URL must start with http:// or https://",
@@ -230,6 +237,7 @@ export const en: LocaleDict = {
   "history.provider.doubao": "Doubao",
   "history.provider.openai": "Cloud API",
   "history.provider.local": "Local offline",
+  "history.provider.chatgpt": "ChatGPT",
   "history.retry": "Retry",
   "history.retrying": "Retrying…",
   "history.retryGone": "Audio no longer available (only the last 20 recordings are kept)",

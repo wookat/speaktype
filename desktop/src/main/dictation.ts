@@ -5,7 +5,14 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { pcmToWav, preconnectAsr, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
+import {
+  pcmToWav,
+  preconnectAsr,
+  startChatgptAsrSession,
+  startLocalAsrSession,
+  startOpenAiAsrSession,
+} from "./asr";
+import { ensureChatgptBridge } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
@@ -137,6 +144,7 @@ export class Dictation {
     const settings = getSettings();
     if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
     if (settings.asrProvider === "openai") preconnectAsr(settings);
+    if (settings.asrProvider === "chatgpt") ensureChatgptBridge();
   }
 
   private report(state: RecordState, message = ""): void {
@@ -234,9 +242,11 @@ export class Dictation {
       const opening: Promise<DoubaoSession> =
         settings.asrProvider === "openai"
           ? Promise.resolve(startOpenAiAsrSession(settings))
-          : settings.asrProvider === "local"
-            ? Promise.resolve(startLocalAsrSession(settings))
-            : startDoubaoSession(settings.language, (text) => this.setPartial(text));
+          : settings.asrProvider === "chatgpt"
+            ? Promise.resolve(startChatgptAsrSession())
+            : settings.asrProvider === "local"
+              ? Promise.resolve(startLocalAsrSession(settings))
+              : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
@@ -316,9 +326,11 @@ export class Dictation {
       const session =
         settings.asrProvider === "openai"
           ? startOpenAiAsrSession(settings)
-          : settings.asrProvider === "local"
-            ? startLocalAsrSession(settings)
-            : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
+          : settings.asrProvider === "chatgpt"
+            ? startChatgptAsrSession()
+            : settings.asrProvider === "local"
+              ? startLocalAsrSession(settings)
+              : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
       for (const frame of failed.frames) session.pushPcm(frame);
       this.session = session;
       this.startedAt = Date.now() - failed.durationMs;

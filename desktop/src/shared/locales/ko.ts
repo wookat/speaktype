@@ -142,6 +142,11 @@ export const ko: LocaleDict = {
   "settings.asrProvider": "제공자",
   "settings.asrProviderDoubao": "Doubao (스트리밍, 로그인 필요)",
   "settings.asrProviderOpenai": "OpenAI 호환 전사 (Whisper 계열)",
+  "settings.asrProviderChatgpt": "ChatGPT 웹 전사(키 불필요, 로그인 필요)",
+  "settings.asrChatgptHint":
+    "본인의 ChatGPT 로그인 상태를 그대로 사용해 ChatGPT 음성 입력 엔드포인트를 호출합니다. API 키가 필요 없으며 무료 계정에서도 동작합니다. 토큰은 로컬 브라우저 세션에만 남습니다. 발화 전체를 인식하므로 녹음 중 실시간 자막은 없습니다.",
+  "settings.chatgptLogin": "ChatGPT 로그인",
+  "settings.chatgptLoginHint": "앱 안에서 chatgpt.com 에 한 번 로그인하면 이후에는 단축키를 누른 채 말하기만 하면 됩니다.",
   "settings.asrProviderLocal": "내장 오프라인 인식 (whisper.cpp)",
   "settings.asrLocalHint":
     "완전히 이 PC 에서 실행 — 인터넷, 계정, API 키 불필요. 오디오가 이 컴퓨터를 벗어나지 않습니다. 모델을 한 번 다운로드하면 사용 가능. 발화 전체를 인식하므로 녹음 중 실시간 자막은 없습니다.",
@@ -223,6 +228,8 @@ export const ko: LocaleDict = {
 
   "error.noAppKey":
     "음성 인식이 설정되지 않았습니다: Doubao 에 로그인해 음성 입력을 한 번 사용하거나 설정에서 App Key 를 입력하세요",
+  "error.chatgptNotReady": "ChatGPT 페이지가 아직 로드되지 않았습니다: 잠시 후 다시 시도하거나 설정에서 “ChatGPT 로그인”을 누르세요",
+  "error.chatgptNotLoggedIn": "ChatGPT 에 로그인되지 않았습니다: 설정 → 음성 인식에서 “ChatGPT 로그인”을 누르세요",
   "error.noAsrConfig": "음성 인식이 설정되지 않았습니다: 설정에서 전사 API 의 Base URL 과 API 키를 입력하세요",
   "error.localModelMissing": "로컬 모델이 아직 다운로드되지 않았습니다: 설정 → 음성 인식 → \"모델 다운로드\" 를 클릭하세요",
   "error.badUrl": "URL 은 http:// 또는 https:// 로 시작해야 합니다",
@@ -230,6 +237,7 @@ export const ko: LocaleDict = {
   "history.provider.doubao": "Doubao",
   "history.provider.openai": "클라우드 API",
   "history.provider.local": "로컬 오프라인",
+  "history.provider.chatgpt": "ChatGPT",
   "history.retry": "재시도",
   "history.retrying": "재시도 중…",
   "history.retryGone": "오디오를 더 이상 사용할 수 없습니다 (최근 20개만 보관)",

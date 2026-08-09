@@ -305,6 +305,7 @@ function Home(props: {
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
       {props.settings.asrProvider !== "local" &&
+        props.settings.asrProvider !== "chatgpt" &&
         !(props.settings.asrProvider === "openai"
           ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
           : props.doubaoReady) && (
@@ -1214,12 +1215,19 @@ function VoiceTab(props: {
     void api.localModelStatus(localModel).then(setLocal);
   }, [localModel]);
 
+  const [chatgptReady, setChatgptReady] = useState(false);
+  useEffect(() => {
+    if (s.asrProvider === "chatgpt") void api.chatgptReady().then(setChatgptReady);
+  }, [s.asrProvider]);
+
   const configured =
     s.asrProvider === "openai"
       ? Boolean(s.asrBaseUrl && s.asrApiKey)
       : s.asrProvider === "local"
         ? Boolean(local?.downloaded)
-        : props.doubaoReady;
+        : s.asrProvider === "chatgpt"
+          ? chatgptReady
+          : props.doubaoReady;
   // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
   const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
   const [testDetail, setTestDetail] = useState("");
@@ -1243,7 +1251,9 @@ function VoiceTab(props: {
           ? t("settings.asrOpenaiHint")
           : s.asrProvider === "local"
             ? t("settings.asrLocalHint")
-            : t("settings.asrHint")}
+            : s.asrProvider === "chatgpt"
+              ? t("settings.asrChatgptHint")
+              : t("settings.asrHint")}
       </div>
       <Row label={t("settings.asrProvider")}>
         <select
@@ -1253,6 +1263,7 @@ function VoiceTab(props: {
         >
           <option value="doubao">{t("settings.asrProviderDoubao")}</option>
           <option value="openai">{t("settings.asrProviderOpenai")}</option>
+          <option value="chatgpt">{t("settings.asrProviderChatgpt")}</option>
           <option value="local">{t("settings.asrProviderLocal")}</option>
         </select>
       </Row>
@@ -1307,6 +1318,15 @@ function VoiceTab(props: {
             onChange={(v) => update({ localSimplified: v })}
           />
         </div>
+      ) : s.asrProvider === "chatgpt" ? (
+        <Row label={t("settings.chatgptLogin")} hint={t("settings.chatgptLoginHint")}>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={() => void api.loginChatgpt().then(() => api.chatgptReady().then(setChatgptReady))}
+          >
+            {t("settings.chatgptLogin")}
+          </button>
+        </Row>
       ) : s.asrProvider === "doubao" ? (
         <>
           <Row label={t("settings.asrOpenLogin")}>
