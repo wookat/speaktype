@@ -35,6 +35,7 @@ export class Dictation {
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
   private lastVoiceAt = 0;
+  private everVoiced = false;
 
   constructor(private deps: DictationDeps) {}
 
@@ -88,7 +89,6 @@ export class Dictation {
 
   /** 免按模式：说完后持续静音自动结束，不用再按一次 */
   private checkAutoStop(frame: Int16Array): void {
-    if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     let peak = 0;
     for (const v of frame) {
       const a = v < 0 ? -v : v;
@@ -97,8 +97,10 @@ export class Dictation {
     const now = Date.now();
     if (peak >= VAD_SILENCE_PEAK) {
       this.lastVoiceAt = now;
-      return;
+      this.everVoiced = true;
     }
+    if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
+    if (peak >= VAD_SILENCE_PEAK) return;
     const settings = getSettings();
     if (!settings.vadAutoStop) return;
     if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
@@ -114,6 +116,7 @@ export class Dictation {
     this.buffered = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
+    this.everVoiced = false;
     const settings = getSettings();
 
     try {
@@ -206,6 +209,17 @@ export class Dictation {
 
     this.deps.recorder()?.webContents.send("recorder:stop");
     this.unmute();
+
+    // 全程没有一帧超过语音门限：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
+    if (!this.everVoiced) {
+      session.cancel();
+      this.busy = false;
+      this.partial = "";
+      this.report("idle");
+      this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
+      return;
+    }
+
     this.report("transcribing");
 
     let raw = "";
