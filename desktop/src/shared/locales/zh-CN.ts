@@ -144,6 +144,9 @@ export const zhCN = {
     "复用你自己的 ChatGPT 登录态，调用它自带的语音输入接口，不需要 API Key（免费账号也可用）。令牌只留在本机浏览器会话里；整句识别，录音中不显示实时文字。",
   "settings.chatgptLogin": "登录 ChatGPT",
   "settings.chatgptLoginHint": "在应用内打开 chatgpt.com 登录一次，之后直接按住热键说话即可。",
+  "settings.chatgptTest": "测试转写",
+  "settings.chatgptTestHint": "上传一段静音验证登录态与接口是否可用，失败会显示具体原因。",
+  "settings.chatgptCodexHint": "若本机已登录 Codex CLI / Codex Desktop，会自动复用它的登录态，无需再登录。",
   "settings.asrLocalHint":
     "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件；整句识别，录音中不显示实时文字。",
   "settings.localModel": "本地模型",

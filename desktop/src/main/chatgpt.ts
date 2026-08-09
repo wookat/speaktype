@@ -1,11 +1,81 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { t } from "./i18n";
 import { createChatgptWindow } from "./windows";
 
+/**
+ * ChatGPT 自带的一次性转写端点。不是公开稳定 API：它只认 ChatGPT 账号的
+ * access token，并要求带上桌面客户端标识，随时可能变动或被风控。
+ */
+const ENDPOINT = "https://chatgpt.com/backend-api/transcribe";
+const ORIGINATOR = "Codex Desktop";
+const CLIENT_VERSION = "26.429.30905";
+const USER_AGENT = `${ORIGINATOR}/${CLIENT_VERSION} (${process.platform}; ${process.arch})`;
+
+interface ChatgptAuth {
+  accessToken: string;
+  accountId: string | null;
+  /** 令牌来源，只用于给用户看，不含任何令牌内容 */
+  source: "codex" | "login";
+}
+
+interface CodexAuthFile {
+  tokens?: { access_token?: string; account_id?: string };
+}
+
+interface SessionResponse {
+  accessToken?: string;
+  account?: { id?: string };
+}
+
+interface TranscribeResponse {
+  text?: string;
+}
+
 let bridge: BrowserWindow | null = null;
 let loaded = false;
 
-/** 抢跑：热键按下即把 chatgpt.com 拉起来，松手时登录态与 Cloudflare 校验已就绪 */
+/** 从 JWT 里取 ChatGPT 账号 ID；解析失败返回 null，请求照常发（服务端会用默认账号） */
+function accountIdFromToken(token: string): string | null {
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const json: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof json !== "object" || json === null) return null;
+    const auth = (json as Record<string, unknown>)["https://api.openai.com/auth"];
+    if (typeof auth !== "object" || auth === null) return null;
+    const id = (auth as Record<string, unknown>)["chatgpt_account_id"];
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 优先复用本机 Codex CLI / Codex Desktop 已有的登录态（$CODEX_HOME/auth.json），
+ * 用户装过 Codex 就完全免登录。文件只读不写，令牌不落我们自己的配置。
+ */
+function authFromCodexHome(): ChatgptAuth | null {
+  const home = process.env["CODEX_HOME"] || join(homedir(), ".codex");
+  const path = join(home, "auth.json");
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as CodexAuthFile;
+    const token = parsed.tokens?.access_token;
+    if (!token) return null;
+    return {
+      accessToken: token,
+      accountId: parsed.tokens?.account_id ?? accountIdFromToken(token),
+      source: "codex",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 抢跑：热键按下即把 chatgpt.com 拉起来，松手时登录态已就绪 */
 export function ensureChatgptBridge(): BrowserWindow {
   if (bridge && !bridge.isDestroyed()) return bridge;
   loaded = false;
@@ -20,68 +90,105 @@ export function ensureChatgptBridge(): BrowserWindow {
   return bridge;
 }
 
-/** 让用户在应用内登录 ChatGPT */
+/** 抢跑，但本机 Codex 已登录时无需拉起网页，省一个隐藏窗口 */
+export function warmChatgpt(): void {
+  if (!authFromCodexHome()) ensureChatgptBridge();
+}
+
+/** 让用户在应用内的官方页面登录 ChatGPT */
 export function showChatgptLogin(): void {
   const win = ensureChatgptBridge();
   win.show();
   win.focus();
 }
 
-/** 页面内取一次会话态，判断是否已登录（token 只留在本机页面上下文里） */
-export async function chatgptLoggedIn(): Promise<boolean> {
-  if (!bridge || bridge.isDestroyed() || !loaded) return false;
+/** 从应用内已登录页面取一次会话态。令牌只在内存里流转，不写配置、不给渲染进程 */
+async function authFromLoginWindow(wait: boolean): Promise<ChatgptAuth | null> {
+  if (!bridge || bridge.isDestroyed()) return null;
+  for (let i = 0; wait && i < 100 && !loaded; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (!loaded) return null;
   try {
-    return await bridge.webContents.executeJavaScript(
+    const session = (await bridge.webContents.executeJavaScript(
       `fetch("/api/auth/session", { credentials: "include" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => Boolean(d && d.accessToken))
-        .catch(() => false)`,
-    );
+        .catch(() => null)`,
+    )) as SessionResponse | null;
+    if (!session?.accessToken) return null;
+    return {
+      accessToken: session.accessToken,
+      accountId: session.account?.id ?? accountIdFromToken(session.accessToken),
+      source: "login",
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
-/**
- * 在已登录的 chatgpt.com 页面里把 WAV 发给它自己的转写接口。
- * 走站内 fetch 而不是主进程 fetch：Cookie、cf_clearance 与浏览器指纹都天然带上，
- * 访问令牌始终留在页面上下文，不经过我们的存储。
- */
-export async function transcribeViaChatgpt(wav: Buffer): Promise<string> {
-  const win = ensureChatgptBridge();
-  for (let i = 0; i < 100 && !loaded; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+async function resolveAuth(wait: boolean): Promise<ChatgptAuth | null> {
+  return authFromCodexHome() ?? (await authFromLoginWindow(wait));
+}
+
+/** 设置页用：是否已有可用登录态（Codex 本机登录或应用内登录任一即可） */
+export async function chatgptLoggedIn(): Promise<boolean> {
+  return (await resolveAuth(false)) !== null;
+}
+
+async function post(auth: ChatgptAuth, wav: Buffer, language: string): Promise<string> {
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
+  if (language) form.append("language", language);
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${auth.accessToken}`,
+    originator: ORIGINATOR,
+    "User-Agent": USER_AGENT,
+  };
+  if (auth.accountId) headers["ChatGPT-Account-Id"] = auth.accountId;
+
+  const res = await fetch(ENDPOINT, { method: "POST", headers, body: form });
+  if (res.status === 401 || res.status === 403) throw new Error(t("error.chatgptNotLoggedIn"));
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 160);
+    throw new Error(`ChatGPT ASR HTTP ${res.status} ${body}`);
   }
-  if (!loaded) throw new Error(t("error.chatgptNotReady"));
+  const data = (await res.json()) as TranscribeResponse;
+  return (data.text ?? "").trim();
+}
 
-  const base64 = wav.toString("base64");
-  const result = (await win.webContents.executeJavaScript(
-    `(async () => {
-      const bytes = Uint8Array.from(atob(${JSON.stringify(base64)}), (c) => c.charCodeAt(0));
-      const session = await fetch("/api/auth/session", { credentials: "include" })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null);
-      if (!session || !session.accessToken) return { error: "unauthorized" };
-      const form = new FormData();
-      form.append("file", new Blob([bytes], { type: "audio/wav" }), "speech.wav");
-      const res = await fetch("/backend-api/transcribe", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Authorization: "Bearer " + session.accessToken,
-          ...(session.account && session.account.id
-            ? { "chatgpt-account-id": session.account.id }
-            : {}),
-        },
-        body: form,
-      });
-      if (!res.ok) return { error: "http " + res.status + " " + (await res.text()).slice(0, 160) };
-      const data = await res.json().catch(() => null);
-      return { text: data && typeof data.text === "string" ? data.text : "" };
-    })()`,
-  )) as { text?: string; error?: string };
+/**
+ * 用本机已有的 ChatGPT 登录态把 WAV 发给它自带的转写接口。
+ * 请求由主进程直发（需要桌面客户端的 originator/User-Agent，页面内 fetch 改不了这两项），
+ * 令牌仅在本次调用的内存里，不写日志、不写配置、不出本机。
+ */
+export async function transcribeViaChatgpt(wav: Buffer, language: string): Promise<string> {
+  const auth = await resolveAuth(true);
+  if (!auth) throw new Error(t("error.chatgptNotLoggedIn"));
+  return post(auth, wav, language);
+}
 
-  if (result.error === "unauthorized") throw new Error(t("error.chatgptNotLoggedIn"));
-  if (result.error) throw new Error(`ChatGPT ASR ${result.error}`);
-  return (result.text ?? "").trim();
+/** 设置页“测试转写”：传一段极短静音，把真实失败原因（含 HTTP 状态）显示出来 */
+export async function testChatgpt(): Promise<{ ok: boolean; detail: string }> {
+  const auth = await resolveAuth(false);
+  if (!auth) return { ok: false, detail: t("error.chatgptNotLoggedIn") };
+  try {
+    const silence = Buffer.alloc(44 + 8000);
+    silence.write("RIFF", 0);
+    silence.writeUInt32LE(36 + 8000, 4);
+    silence.write("WAVEfmt ", 8);
+    silence.writeUInt32LE(16, 16);
+    silence.writeUInt16LE(1, 20);
+    silence.writeUInt16LE(1, 22);
+    silence.writeUInt32LE(16000, 24);
+    silence.writeUInt32LE(32000, 28);
+    silence.writeUInt16LE(2, 32);
+    silence.writeUInt16LE(16, 34);
+    silence.write("data", 36);
+    silence.writeUInt32LE(8000, 40);
+    await post(auth, silence, "");
+    return { ok: true, detail: auth.source === "codex" ? "Codex" : "ChatGPT" };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
 }

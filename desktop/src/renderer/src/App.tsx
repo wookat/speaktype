@@ -1216,6 +1216,7 @@ function VoiceTab(props: {
   }, [localModel]);
 
   const [chatgptReady, setChatgptReady] = useState(false);
+  const [chatgptDetail, setChatgptDetail] = useState("");
   useEffect(() => {
     if (s.asrProvider === "chatgpt") void api.chatgptReady().then(setChatgptReady);
   }, [s.asrProvider]);
@@ -1319,14 +1320,33 @@ function VoiceTab(props: {
           />
         </div>
       ) : s.asrProvider === "chatgpt" ? (
-        <Row label={t("settings.chatgptLogin")} hint={t("settings.chatgptLoginHint")}>
-          <button
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
-            onClick={() => void api.loginChatgpt().then(() => api.chatgptReady().then(setChatgptReady))}
+        <>
+          <Row
+            label={t("settings.chatgptLogin")}
+            hint={`${t("settings.chatgptLoginHint")} ${t("settings.chatgptCodexHint")}`}
           >
-            {t("settings.chatgptLogin")}
-          </button>
-        </Row>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => void api.loginChatgpt().then(() => api.chatgptReady().then(setChatgptReady))}
+            >
+              {t("settings.chatgptLogin")}
+            </button>
+          </Row>
+          <Row label={t("settings.chatgptTest")} hint={chatgptDetail || t("settings.chatgptTestHint")}>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => {
+                setChatgptDetail(t("settings.modelTesting"));
+                void api.testChatgpt().then(({ ok, detail }) => {
+                  setChatgptDetail(`${ok ? "OK" : "FAIL"} · ${detail.slice(0, 160)}`);
+                  void api.chatgptReady().then(setChatgptReady);
+                });
+              }}
+            >
+              {t("settings.chatgptTest")}
+            </button>
+          </Row>
+        </>
       ) : s.asrProvider === "doubao" ? (
         <>
           <Row label={t("settings.asrOpenLogin")}>

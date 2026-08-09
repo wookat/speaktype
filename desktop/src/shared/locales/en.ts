@@ -147,6 +147,9 @@ export const en: LocaleDict = {
     "Reuses your own ChatGPT session to call its built-in voice input endpoint — no API key needed (works on free accounts). The token stays in the local browser session. Whole-utterance recognition, so no live captions while recording.",
   "settings.chatgptLogin": "Sign in to ChatGPT",
   "settings.chatgptLoginHint": "Sign in to chatgpt.com once inside the app, then just hold the hotkey and talk.",
+  "settings.chatgptTest": "Test transcription",
+  "settings.chatgptTestHint": "Uploads a short silence to verify the session and endpoint; failures show the exact reason.",
+  "settings.chatgptCodexHint": "If Codex CLI / Codex Desktop is already signed in on this machine, its session is reused automatically.",
   "settings.asrProviderLocal": "Built-in offline recognition (whisper.cpp)",
   "settings.asrLocalHint":
     "Runs fully on this machine — no internet, no account, no API key; audio never leaves this computer. Download a model file once; whole-utterance recognition, no live text while recording.",

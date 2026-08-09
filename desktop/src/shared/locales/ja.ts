@@ -147,6 +147,9 @@ export const ja: LocaleDict = {
     "ご自身の ChatGPT ログイン状態を使って、ChatGPT の音声入力エンドポイントを呼び出します。API キー不要（無料アカウントでも可）。トークンは本機のブラウザセッション内に留まります。発話全体を認識するため、録音中のリアルタイム表示はありません。",
   "settings.chatgptLogin": "ChatGPT にログイン",
   "settings.chatgptLoginHint": "アプリ内で chatgpt.com に一度ログインすれば、あとはホットキーを押しながら話すだけです。",
+  "settings.chatgptTest": "文字起こしをテスト",
+  "settings.chatgptTestHint": "無音を送信してログイン状態とエンドポイントを検証します。失敗時は原因を表示します。",
+  "settings.chatgptCodexHint": "このPCで Codex CLI / Codex Desktop にログイン済みなら、そのセッションを自動的に再利用します。",
   "settings.asrProviderLocal": "内蔵オフライン認識（whisper.cpp）",
   "settings.asrLocalHint":
     "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。発話全体を認識するため、録音中のリアルタイム表示はありません。",

@@ -46,6 +46,7 @@ const api = {
   activateDoubao: (): Promise<void> => ipcRenderer.invoke("doubao:activate"),
   chatgptReady: (): Promise<boolean> => ipcRenderer.invoke("chatgpt:ready"),
   loginChatgpt: (): Promise<void> => ipcRenderer.invoke("chatgpt:login"),
+  testChatgpt: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("chatgpt:test"),
   onboardingDone: (): Promise<void> => ipcRenderer.invoke("onboarding:done"),
   toggleRecord: (): Promise<void> => ipcRenderer.invoke("record:toggle"),
   cancelRecord: (): Promise<void> => ipcRenderer.invoke("record:cancel"),

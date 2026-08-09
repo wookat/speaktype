@@ -12,7 +12,7 @@ import {
   startLocalAsrSession,
   startOpenAiAsrSession,
 } from "./asr";
-import { ensureChatgptBridge } from "./chatgpt";
+import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
@@ -144,7 +144,7 @@ export class Dictation {
     const settings = getSettings();
     if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
     if (settings.asrProvider === "openai") preconnectAsr(settings);
-    if (settings.asrProvider === "chatgpt") ensureChatgptBridge();
+    if (settings.asrProvider === "chatgpt") warmChatgpt();
   }
 
   private report(state: RecordState, message = ""): void {
@@ -243,7 +243,7 @@ export class Dictation {
         settings.asrProvider === "openai"
           ? Promise.resolve(startOpenAiAsrSession(settings))
           : settings.asrProvider === "chatgpt"
-            ? Promise.resolve(startChatgptAsrSession())
+            ? Promise.resolve(startChatgptAsrSession(settings))
             : settings.asrProvider === "local"
               ? Promise.resolve(startLocalAsrSession(settings))
               : startDoubaoSession(settings.language, (text) => this.setPartial(text));
@@ -327,7 +327,7 @@ export class Dictation {
         settings.asrProvider === "openai"
           ? startOpenAiAsrSession(settings)
           : settings.asrProvider === "chatgpt"
-            ? startChatgptAsrSession()
+            ? startChatgptAsrSession(settings)
             : settings.asrProvider === "local"
               ? startLocalAsrSession(settings)
               : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
