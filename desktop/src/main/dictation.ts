@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { BrowserWindow } from "electron";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
+import { startOpenAiAsrSession } from "./asr";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
@@ -52,7 +53,7 @@ export class Dictation {
     const now = Date.now();
     if (now - this.lastWarmUp < WARM_UP_COOLDOWN_MS) return;
     this.lastWarmUp = now;
-    if (hasAppKey()) ensureBridge();
+    if (getSettings().asrProvider === "doubao" && hasAppKey()) ensureBridge();
   }
 
   private report(state: RecordState, message = ""): void {
@@ -90,11 +91,17 @@ export class Dictation {
 
     try {
       this.report("connecting");
+      if (settings.asrProvider === "openai" && (!settings.asrBaseUrl || !settings.asrApiKey)) {
+        throw new Error(t("error.noAsrConfig"));
+      }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;
         toggleSystemMute();
       }
-      const opening = startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      const opening: Promise<DoubaoSession> =
+        settings.asrProvider === "openai"
+          ? Promise.resolve(startOpenAiAsrSession(settings))
+          : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发

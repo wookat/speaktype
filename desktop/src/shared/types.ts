@@ -11,6 +11,9 @@ export interface Persona {
 /** 界面语言："system" 表示跟随系统 */
 export type UiLanguage = "system" | "zh-CN" | "en";
 
+/** 语音识别服务商：豆包（流式，需登录）或任意 OpenAI 兼容转写接口（整句） */
+export type AsrProvider = "doubao" | "openai";
+
 export interface Settings {
   /** 点按开关热键，uiohook 键名组合，例如 "Alt+Space" */
   hotkeyToggle: string;
@@ -40,6 +43,10 @@ export interface Settings {
   polishModel: string;
   hotwords: string[];
   doubaoAppKey: string;
+  asrProvider: AsrProvider;
+  asrBaseUrl: string;
+  asrApiKey: string;
+  asrModel: string;
 }
 
 export interface HistoryItem {

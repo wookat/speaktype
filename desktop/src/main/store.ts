@@ -23,6 +23,10 @@ export const DEFAULT_SETTINGS: Settings = {
   polishModel: "",
   hotwords: [],
   doubaoAppKey: "",
+  asrProvider: "doubao",
+  asrBaseUrl: "",
+  asrApiKey: "",
+  asrModel: "",
 };
 
 interface Schema {

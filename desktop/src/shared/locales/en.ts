@@ -121,6 +121,14 @@ export const en: LocaleDict = {
   "settings.asrAppKey": "Doubao App Key",
   "settings.asrAppKeyPlaceholder": "Leave empty to use the auto-captured key",
   "settings.asrLanguage": "Recognition language",
+  "settings.asrProvider": "Provider",
+  "settings.asrProviderDoubao": "Doubao (streaming, requires login)",
+  "settings.asrProviderOpenai": "OpenAI-compatible transcription (Whisper-style)",
+  "settings.asrOpenaiHint":
+    "Any service compatible with /audio/transcriptions works (OpenAI / SiliconFlow / Groq / local Whisper). Keys stay on this machine. Whole-utterance recognition — no live text while recording.",
+  "settings.asrBaseUrl": "Base URL",
+  "settings.asrApiKey": "API Key",
+  "settings.asrModel": "Model",
 
   "settings.model": "AI model (polish)",
   "settings.modelHint":
@@ -171,6 +179,7 @@ export const en: LocaleDict = {
 
   "error.noAppKey":
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
+  "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.micDenied": "Microphone access denied: allow desktop apps to use the microphone in Windows Settings → Privacy",
   "error.micNotFound": "No microphone found",
 

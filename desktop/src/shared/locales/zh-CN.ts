@@ -117,6 +117,14 @@ export const zhCN = {
   "settings.asrAppKey": "豆包 App Key",
   "settings.asrAppKeyPlaceholder": "留空则使用自动获取到的 App Key",
   "settings.asrLanguage": "识别语言",
+  "settings.asrProvider": "识别服务商",
+  "settings.asrProviderDoubao": "豆包（流式，需登录）",
+  "settings.asrProviderOpenai": "OpenAI 兼容转写接口（Whisper 类）",
+  "settings.asrOpenaiHint":
+    "任意兼容 /audio/transcriptions 的服务都能接（OpenAI / SiliconFlow / Groq / 本地 Whisper 等），密钥只存本机。整句识别，录音中不显示实时文字。",
+  "settings.asrBaseUrl": "Base URL",
+  "settings.asrApiKey": "API Key",
+  "settings.asrModel": "模型名",
 
   "settings.model": "AI 模型（润色）",
   "settings.modelHint":
@@ -166,6 +174,7 @@ export const zhCN = {
   "tray.quit": "退出",
 
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
+  "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.micDenied": "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风",
   "error.micNotFound": "没有找到麦克风设备",
 

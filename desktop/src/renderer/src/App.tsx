@@ -260,7 +260,9 @@ function Home(props: {
       </h1>
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
-      {!props.doubaoReady && (
+      {!(props.settings.asrProvider === "openai"
+        ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
+        : props.doubaoReady) && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
           <div>
             <div className="font-medium text-indigo-700">{t("home.activate.title")}</div>
@@ -902,37 +904,76 @@ function VoiceTab(props: {
   doubaoReady: boolean;
 }) {
   const { t, s, update } = props;
+  const ready = s.asrProvider === "openai" ? Boolean(s.asrBaseUrl && s.asrApiKey) : props.doubaoReady;
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="font-medium">{t("settings.asr")}</div>
-      <div className="mt-1 text-xs text-slate-400">{t("settings.asrHint")}</div>
+      <div className="mt-1 text-xs text-slate-400">
+        {s.asrProvider === "openai" ? t("settings.asrOpenaiHint") : t("settings.asrHint")}
+      </div>
+      <Row label={t("settings.asrProvider")}>
+        <select
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+          value={s.asrProvider}
+          onChange={(e) => update({ asrProvider: e.target.value as Settings["asrProvider"] })}
+        >
+          <option value="doubao">{t("settings.asrProviderDoubao")}</option>
+          <option value="openai">{t("settings.asrProviderOpenai")}</option>
+        </select>
+      </Row>
       <Row label={t("settings.asrStatus")}>
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${
-            props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+            ready ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
           }`}
         >
-          {props.doubaoReady && <Check className="mr-1 inline h-3.5 w-3.5" />}
-          {props.doubaoReady ? t("settings.asrReady") : t("settings.asrNotReady")}
+          {ready && <Check className="mr-1 inline h-3.5 w-3.5" />}
+          {ready ? t("settings.asrReady") : t("settings.asrNotReady")}
         </span>
       </Row>
-      <Row label={t("settings.asrOpenLogin")}>
-        <button
-          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
-          onClick={() => void api.activateDoubao()}
-        >
-          {t("settings.asrOpenLogin")}
-        </button>
-      </Row>
-      <Row label={t("settings.asrAppKey")}>
-        <input
-          className="w-64 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-          type="password"
-          placeholder={t("settings.asrAppKeyPlaceholder")}
-          value={s.doubaoAppKey}
-          onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
-        />
-      </Row>
+      {s.asrProvider === "doubao" ? (
+        <>
+          <Row label={t("settings.asrOpenLogin")}>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => void api.activateDoubao()}
+            >
+              {t("settings.asrOpenLogin")}
+            </button>
+          </Row>
+          <Row label={t("settings.asrAppKey")}>
+            <input
+              className="w-64 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              type="password"
+              placeholder={t("settings.asrAppKeyPlaceholder")}
+              value={s.doubaoAppKey}
+              onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
+            />
+          </Row>
+        </>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.asrBaseUrl")}: https://api.openai.com/v1`}
+            value={s.asrBaseUrl}
+            onChange={(e) => update({ asrBaseUrl: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            type="password"
+            placeholder={t("settings.asrApiKey")}
+            value={s.asrApiKey}
+            onChange={(e) => update({ asrApiKey: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.asrModel")}: whisper-1`}
+            value={s.asrModel}
+            onChange={(e) => update({ asrModel: e.target.value.trim() })}
+          />
+        </div>
+      )}
       <Row label={t("settings.asrLanguage")}>
         <select
           className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
