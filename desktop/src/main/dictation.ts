@@ -171,6 +171,8 @@ export class Dictation {
   async start(mode: "hold" | "toggle" = "hold"): Promise<void> {
     if (this.busy) return;
     if (this.state === "error" && (await this.retryLast())) return;
+    // 全新录音：丢弃上一次失败的重试上下文，成功后不得吞掉历史里的失败条目
+    this.lastFailed = null;
     this.busy = true;
     this.mode = mode;
     this.pendingEnd = null;
