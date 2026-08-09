@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # SpeakType
 
@@ -8,7 +8,7 @@ Hold a key, talk, release. Recognition, AI polishing and correction are all your
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#install)
-[![i18n](https://img.shields.io/badge/i18n-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%20%7C%20English-16a34a.svg)](#internationalization)
+[![i18n](https://img.shields.io/badge/i18n-5%20languages-16a34a.svg)](#internationalization)
 
 [Download installer](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.1.0.exe) · [简体中文](README.md) · [Report an issue](https://github.com/wookat/speaktype/issues) · [Desktop dev docs](desktop/README.md)
 
@@ -58,7 +58,7 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (DeepSeek / Zh
 
 ## Internationalization
 
-Simplified Chinese and English built in (follows system or manual, applies instantly); the locale architecture welcomes community additions (日本語, 한국어, 繁體中文, …).
+Simplified Chinese, Traditional Chinese, English, Japanese and Korean built in (follows system or manual, applies instantly); the locale architecture welcomes more community additions.
 
 ## Contributing
 

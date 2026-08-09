@@ -9,7 +9,7 @@ export interface Persona {
 }
 
 /** 界面语言："system" 表示跟随系统 */
-export type UiLanguage = "system" | "zh-CN" | "en";
+export type UiLanguage = "system" | "zh-CN" | "zh-TW" | "en" | "ja" | "ko";
 
 /** 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、或内置离线 whisper.cpp */
 export type AsrProvider = "doubao" | "openai" | "local";

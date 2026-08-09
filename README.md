@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # SpeakType
 
@@ -8,7 +8,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#安装)
-[![i18n](https://img.shields.io/badge/i18n-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%20%7C%20English-16a34a.svg)](#国际化)
+[![i18n](https://img.shields.io/badge/i18n-5%20languages-16a34a.svg)](#国际化)
 
 [下载安装包](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.1.0.exe) · [English](README.en.md) · [报告问题](https://github.com/wookat/speaktype/issues) · [桌面版开发文档](desktop/README.md)
 
@@ -61,7 +61,7 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（DeepSeek / 智谱 / Kimi / 
 
 ## 国际化
 
-界面内置简体中文与 English（跟随系统或手动切换，即时生效）；语言包架构支持社区继续添加日本語、한국어、繁體中文等。
+界面内置简体中文、繁體中文、English、日本語、한국어（跟随系统或手动切换，即时生效）；语言包架构支持社区继续添加更多语言。
 
 ## 参与开发
 

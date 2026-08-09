@@ -1,9 +1,10 @@
 import { app } from "electron";
 import { makeTranslator, resolveLanguage, type LocaleKey, type Translator } from "../shared/i18n";
+import type { UiLanguage } from "../shared/types";
 import { getSettings } from "./store";
 
 /** 主进程侧翻译：每次取用都按当前设置解析，语言切换即时生效 */
-export function currentLanguage(): "zh-CN" | "en" {
+export function currentLanguage(): Exclude<UiLanguage, "system"> {
   return resolveLanguage(getSettings().uiLanguage, app.getLocale() || "zh-CN");
 }
 
