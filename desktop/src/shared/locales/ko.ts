@@ -121,11 +121,11 @@ export const ko: LocaleDict = {
   "settings.remoteMicWaiting": "휴대폰 연결 대기 중…",
   "settings.remoteMicConnected": "{{n}}대 연결됨",
   "settings.remoteMicMode": "연결 방식",
-  "settings.remoteMicModeHint": "같은 Wi-Fi는 LAN 직접 연결, 다른 네트워크는 인터넷 중계(저장소 relay/에서 셀프 배포).",
+  "settings.remoteMicModeHint": "같은 Wi-Fi는 LAN 직접 연결, 다른 네트워크는 인터넷 중계(기본 제공 공식 중계, 저장소 relay/로 셀프 배포도 가능).",
   "settings.remoteMicModeLan": "LAN 직접 연결",
   "settings.remoteMicModeRelay": "인터넷 중계",
   "settings.remoteRelayUrl": "중계 서버 URL",
-  "settings.remoteRelayUrlHint": "직접 배포한 Cloudflare Worker. 오디오는 중계만 되며 저장되지 않습니다.",
+  "settings.remoteRelayUrlHint": "기본값은 공식 중계(오디오는 중계만 되며 저장되지 않음). 직접 배포한 Cloudflare Worker로 교체 가능.",
   "settings.remoteMicStepsRelay": "휴대폰으로 QR을 스캔(어느 네트워크든 가능)하고 둥근 버튼을 누른 채 말하고 떼면 입력됩니다. 링크의 방 번호는 이번만 유효합니다.",
 
   "settings.asr": "음성 인식 서비스",

@@ -121,11 +121,11 @@ export const ja: LocaleDict = {
   "settings.remoteMicWaiting": "スマホの接続を待っています…",
   "settings.remoteMicConnected": "{{n}} 台接続中",
   "settings.remoteMicMode": "接続方式",
-  "settings.remoteMicModeHint": "同じ Wi-Fi なら LAN 直接接続、別ネットワークならインターネット中継（リポジトリの relay/ でセルフデプロイ）。",
+  "settings.remoteMicModeHint": "同じ Wi-Fi なら LAN 直接接続、別ネットワークならインターネット中継（既定で公式中継を提供、relay/ でセルフデプロイも可）。",
   "settings.remoteMicModeLan": "LAN 直接接続",
   "settings.remoteMicModeRelay": "インターネット中継",
   "settings.remoteRelayUrl": "中継サーバー URL",
-  "settings.remoteRelayUrlHint": "自分でデプロイした Cloudflare Worker。音声は中継のみで保存されません。",
+  "settings.remoteRelayUrlHint": "既定は公式中継（音声は中継のみで保存されません）。自分の Cloudflare Worker に差し替えも可。",
   "settings.remoteMicStepsRelay": "スマホで QR を読み取り（どのネットワークでも可）、丸ボタンを押しながら話し、離すと入力。リンクのルーム番号は今回限り有効。",
 
   "settings.asr": "音声認識サービス",

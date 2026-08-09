@@ -121,11 +121,11 @@ export const en: LocaleDict = {
   "settings.remoteMicWaiting": "Waiting for a phone to connect…",
   "settings.remoteMicConnected": "{{n}} device(s) connected",
   "settings.remoteMicMode": "Connection",
-  "settings.remoteMicModeHint": "Same Wi-Fi: LAN direct. Different networks: internet relay (self-deploy, see relay/ in the repo for one-click deploy).",
+  "settings.remoteMicModeHint": "Same Wi-Fi: LAN direct. Different networks: internet relay (official relay preset by default; self-deploy via relay/ in the repo if you prefer).",
   "settings.remoteMicModeLan": "LAN direct",
   "settings.remoteMicModeRelay": "Internet relay",
   "settings.remoteRelayUrl": "Relay URL",
-  "settings.remoteRelayUrlHint": "Your self-deployed Cloudflare Worker; audio is piped through, never stored.",
+  "settings.remoteRelayUrlHint": "Official relay by default (audio is piped through, never stored); replace with your own Cloudflare Worker if you prefer.",
   "settings.remoteMicStepsRelay": "Scan the QR on your phone (works on any network); hold the round button to talk, release to type. The link carries a random room id valid for this session only.",
 
   "settings.asr": "Speech recognition service",

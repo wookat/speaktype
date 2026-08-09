@@ -64,11 +64,11 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
   { id: "openai", label: "OpenAI Whisper", baseUrl: "https://api.openai.com/v1", model: "whisper-1" },
   {
     id: "siliconflow",
-    label: "SiliconFlow 硅基流动",
+    label: "（免费模型）SiliconFlow 硅基流动",
     baseUrl: "https://api.siliconflow.cn/v1",
     model: "FunAudioLLM/SenseVoiceSmall",
   },
-  { id: "groq", label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+  { id: "groq", label: "（免费额度）Groq Whisper", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
   { id: "fireworks", label: "Fireworks", baseUrl: "https://api.fireworks.ai/inference/v1", model: "whisper-v3-turbo" },
   { id: "mistral", label: "Mistral Voxtral", baseUrl: "https://api.mistral.ai/v1", model: "voxtral-mini-latest" },
   {
@@ -82,7 +82,19 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
 
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
-  { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  { id: "zhipu", label: "（免费）智谱 GLM-4-Flash", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  {
+    id: "siliconflow",
+    label: "（免费模型）SiliconFlow 硅基流动",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "Qwen/Qwen2.5-7B-Instruct",
+  },
+  {
+    id: "openrouter",
+    label: "（免费模型）OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
+  },
   { id: "kimi", label: "Kimi (Moonshot)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
   { id: "qwen", label: "通义千问", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
