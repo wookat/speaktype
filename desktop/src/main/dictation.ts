@@ -5,7 +5,7 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { pcmToWav, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
+import { pcmToWav, preconnectAsr, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
@@ -134,7 +134,9 @@ export class Dictation {
     const now = Date.now();
     if (now - this.lastWarmUp < WARM_UP_COOLDOWN_MS) return;
     this.lastWarmUp = now;
-    if (getSettings().asrProvider === "doubao" && hasAppKey()) ensureBridge();
+    const settings = getSettings();
+    if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
+    if (settings.asrProvider === "openai") preconnectAsr(settings);
   }
 
   private report(state: RecordState, message = ""): void {

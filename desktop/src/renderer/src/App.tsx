@@ -233,7 +233,9 @@ export default function App() {
             goSettings={() => setPage("settings")}
           />
         )}
-        {page === "history" && <History t={t} history={history} setHistory={setHistory} />}
+        {page === "history" && (
+          <History t={t} history={history} setHistory={setHistory} settings={settings} update={update} />
+        )}
         {page === "personas" && (
           <Personas t={t} personas={personas} localized={localized} setPersonas={setPersonas} settings={settings} update={update} />
         )}
@@ -350,11 +352,46 @@ function StatCard(props: { title: string; value: string; hint?: string }) {
   );
 }
 
-function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h: HistoryItem[]) => void }) {
+/** 找出纰正后新增的词：去掉共同前后缀后，新文本中间部分若是 2-6 字纯中文就建议加入词典 */
+function suggestHotword(before: string, after: string): string | null {
+  if (before === after) return null;
+  const a = Array.from(before);
+  const b = Array.from(after);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let end = 0;
+  while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  const mid = b.slice(start, b.length - end).join("");
+  return /^[\u4e00-\u9fff]{2,6}$/.test(mid) ? mid : null;
+}
+
+function History(props: {
+  t: Translator;
+  history: HistoryItem[];
+  setHistory: (h: HistoryItem[]) => void;
+  settings: Settings;
+  update: (patch: Partial<Settings>) => void;
+}) {
   const { t } = props;
   const [query, setQuery] = useState("");
   const [retrying, setRetrying] = useState("");
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
+  const saveEdit = (item: HistoryItem): void => {
+    if (!editing) return;
+    const next = editing.text.trim();
+    setEditing(null);
+    if (!next || next === item.text) return;
+    const word = suggestHotword(item.text, next);
+    if (word && !props.settings.hotwords.includes(word)) setSuggest({ id: item.id, word });
+    void api.correctHistory(item.id, next).then(props.setHistory);
+  };
+  const addSuggested = (): void => {
+    if (!suggest) return;
+    props.update({ hotwords: [...props.settings.hotwords, suggest.word] });
+    setSuggest(null);
+  };
   const retry = (id: string): void => {
     setRetrying(id);
     setRetryError(null);
@@ -420,6 +457,17 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
                         {t("history.copy")}
                       </button>
+                      {item.status !== "failed" && (
+                        <button
+                          className="hover:text-slate-600"
+                          onClick={() => {
+                            setSuggest(null);
+                            setEditing({ id: item.id, text: item.text });
+                          }}
+                        >
+                          {t("history.edit")}
+                        </button>
+                      )}
                       <button
                         className="hover:text-red-500"
                         onClick={() => void api.deleteHistory([item.id]).then(props.setHistory)}
@@ -444,8 +492,46 @@ function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h:
                       )}
                       {retryError?.id === item.id && <span className="text-xs text-red-400">{retryError.msg}</span>}
                     </div>
+                  ) : editing?.id === item.id ? (
+                    <div className="mt-2">
+                      <textarea
+                        className="w-full rounded-xl border border-indigo-200 p-2 text-sm"
+                        rows={2}
+                        autoFocus
+                        value={editing.text}
+                        onChange={(e) => setEditing({ id: item.id, text: e.target.value })}
+                      />
+                      <div className="mt-1 flex gap-2">
+                        <button
+                          className="rounded-lg bg-indigo-500 px-2.5 py-1 text-xs text-white hover:bg-indigo-600"
+                          onClick={() => saveEdit(item)}
+                        >
+                          {t("history.editSave")}
+                        </button>
+                        <button
+                          className="rounded-lg px-2.5 py-1 text-xs text-slate-400 hover:text-slate-600"
+                          onClick={() => setEditing(null)}
+                        >
+                          {t("history.editCancel")}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="mt-2 text-sm">{item.text}</div>
+                  )}
+                  {suggest?.id === item.id && (
+                    <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700">
+                      <span>{t("history.hotwordAsk", { word: suggest.word })}</span>
+                      <button
+                        className="rounded-lg bg-violet-500 px-2 py-0.5 text-white hover:bg-violet-600"
+                        onClick={addSuggested}
+                      >
+                        {t("history.hotwordAdd")}
+                      </button>
+                      <button className="text-violet-400 hover:text-violet-600" onClick={() => setSuggest(null)}>
+                        {t("history.editCancel")}
+                      </button>
+                    </div>
                   )}
                   {item.status !== "failed" && item.raw !== item.text && (
                     <div className="mt-1 text-xs text-slate-400">

@@ -2,7 +2,7 @@ import { pinyin } from "pinyin-pro";
 
 /**
  * 词典热词本地纠错：把转写里与热词同音/近音的片段替换成热词本身。
- * 近音按普通话常见混淆归并：平翘舌（z/zh、c/ch、s/sh）、n/l、f/h、前后鼻音（in/ing、an/ang、en/eng）。
+ * 近音按普通话常见混淆归并：平翘舌（z/zh、c/ch、s/sh）、n/l/r、f/h、前后鼻音（in/ing、an/ang、en/eng、ian/iang、uan/uang）。
  * 只处理两字及以上的纯中文热词，避免单字误替换。
  */
 const CJK = /^[\u4e00-\u9fff]+$/;
@@ -12,9 +12,12 @@ function normalize(syllable: string): string {
     .replace(/^zh/, "z")
     .replace(/^ch/, "c")
     .replace(/^sh/, "s")
+    .replace(/^r/, "l")
     .replace(/^l/, "n")
     .replace(/^h/, "f")
     .replace(/ing$/, "in")
+    .replace(/iang$/, "ian")
+    .replace(/uang$/, "uan")
     .replace(/ang$/, "an")
     .replace(/eng$/, "en");
 }
