@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, Tray, app, ipcMain, nativeImage, shell } from "electron";
+import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
@@ -34,6 +34,23 @@ import {
 } from "./windows";
 
 log.initialize();
+
+// 崩溃兜底：任何未捕获异常都落日志并弹窗告知日志位置，避免静默秒退
+process.on("uncaughtException", (error) => {
+  log.error("uncaughtException", error);
+  try {
+    dialog.showErrorBox(
+      "SpeakType",
+      `${error instanceof Error ? error.message : String(error)}\n\nLog: ${log.transports.file.getFile().path}`,
+    );
+  } catch {
+    // dialog 在 app ready 前也可用；仅在极端情况下忽略
+  }
+  app.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  log.error("unhandledRejection", reason);
+});
 
 const single = app.requestSingleInstanceLock();
 if (!single) app.quit();
