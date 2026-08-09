@@ -7,11 +7,14 @@ const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然�
 const SELF_CORRECTION =
   /([^，。！？,.!?]{1,15})[，,]\s*(?:不对|说错了|口误|我是说)[，,]?\s*(?:是|应该是|改成)?/g;
 
-/** 没有 LLM 时的本地口语清理：删语气词、自我纠正、压重复、去尾句号 */
-export function localCleanup(text: string): string {
+/**
+ * 本地口语清理：删语气词、自我纠正、压重复、去尾句号。
+ * 本地自我纠正是保守的子句替换（会丢前缀语义），润色通道开启时交给 LLM 处理。
+ */
+export function localCleanup(text: string, selfCorrect = true): string {
   let out = text.trim();
   for (const re of FILLERS) out = out.replace(re, "");
-  out = out.replace(SELF_CORRECTION, "");
+  if (selfCorrect) out = out.replace(SELF_CORRECTION, "");
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
   return out.replace(/[。．.]+$/, "");
@@ -61,10 +64,9 @@ export async function polishText(
   persona: Persona,
   transcript: string,
 ): Promise<string> {
-  const cleaned = correctHotwords(localCleanup(transcript), settings.hotwords);
-  if (!settings.polishEnabled || !cleaned || !settings.polishBaseUrl || !settings.polishApiKey) {
-    return cleaned;
-  }
+  const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl && settings.polishApiKey);
+  const cleaned = correctHotwords(localCleanup(transcript, !useLlm), settings.hotwords);
+  if (!useLlm || !cleaned) return cleaned;
 
   const url = chatUrl(settings.polishBaseUrl);
   const hotwords = settings.hotwords.length

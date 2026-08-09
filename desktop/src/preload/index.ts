@@ -12,6 +12,7 @@ export interface InitPayload {
   toggleKeyChoices: string[];
   status: StatusPayload;
   version: string;
+  commit: string;
   systemLocale: string;
 }
 

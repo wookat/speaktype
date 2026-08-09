@@ -1,11 +1,21 @@
+import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 
+const commit = ((): string => {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+})();
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    define: { __COMMIT__: JSON.stringify(commit) },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],

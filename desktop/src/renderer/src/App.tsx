@@ -242,6 +242,7 @@ export default function App() {
             toggleKeyChoices={init.toggleKeyChoices}
             doubaoReady={doubaoReady}
             version={init.version}
+            commit={init.commit}
           />
         )}
       </main>
@@ -699,6 +700,7 @@ function SettingsPage(props: {
   toggleKeyChoices: string[];
   doubaoReady: boolean;
   version: string;
+  commit: string;
 }) {
   const { t, settings: s } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
@@ -733,7 +735,7 @@ function SettingsPage(props: {
         )}
         {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
         {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
-        {tab === "about" && <AboutTab t={t} version={props.version} />}
+        {tab === "about" && <AboutTab t={t} version={props.version} commit={props.commit} />}
       </div>
     </div>
   );
@@ -1153,13 +1155,13 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
   );
 }
 
-function AboutTab(props: { t: Translator; version: string }) {
+function AboutTab(props: { t: Translator; version: string; commit: string }) {
   const { t } = props;
   return (
     <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="font-medium">{t("settings.about.version")}</div>
-        <Row label={`${t("app.name")} ${props.version}`}>
+        <Row label={`${t("app.name")} ${props.version} (${props.commit})`}>
           <button
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
             onClick={() => void api.openExternal(`${REPO_URL}/releases`)}

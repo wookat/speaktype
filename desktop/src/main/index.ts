@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
 import pkg from "../../package.json";
+
+// 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
+declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
@@ -194,6 +197,7 @@ function registerIpc(): void {
     toggleKeyChoices: TOGGLE_KEY_CHOICES,
     status: dictation.status(),
     version: app.isPackaged ? app.getVersion() : pkg.version,
+    commit: typeof __COMMIT__ === "string" ? __COMMIT__ : "unknown",
     systemLocale: app.getLocale() || "zh-CN",
   }));
   ipcMain.handle("settings:update", async (_e, patch: Partial<Settings>) => {
