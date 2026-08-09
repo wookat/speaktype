@@ -76,6 +76,8 @@ export const ko: LocaleDict = {
   "dict.manage": "핫워드 관리",
   "dict.empty": "아직 핫워드가 없습니다",
   "dict.emptyHint": "인명이나 전문 용어를 추가하면 인식 시 우선 반영됩니다",
+  "dict.autoLearn": "수정에서 자동 학습",
+  "dict.autoLearnHint": "입력 후 직접 고친 단어를 사전에 자동 등록합니다(비교는 모두 로컬, 업로드 없음)",
   "dict.save": "저장",
   "dict.clear": "지우기",
   "dict.search": "핫워드 검색",
@@ -236,6 +238,8 @@ export const ko: LocaleDict = {
   "toast.noSpeechBody": "음성이 감지되지 않았습니다 — 다시 시도하세요",
   "toast.pasteFailed": "붙여넣기 실패, 클립보드에 복사했습니다",
   "toast.micUnavailable": "마이크를 사용할 수 없습니다",
+  "toast.learned": "새 단어를 학습했습니다",
+  "toast.learnedBody": "‘{{word}}’을(를) 사전에 추가했습니다. 다음부터 자동 교정됩니다",
 
   "tray.open": "SpeakType 열기",
   "tray.activate": "음성 인식 설정",

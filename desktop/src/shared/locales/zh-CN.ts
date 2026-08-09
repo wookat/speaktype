@@ -72,6 +72,8 @@ export const zhCN = {
   "dict.manage": "管理热词",
   "dict.empty": "还没有任何热词",
   "dict.emptyHint": "我们会记住你独特的名称和词汇，支持手动添加",
+  "dict.autoLearn": "自动学习纠错",
+  "dict.autoLearnHint": "落字后你在输入框里手动改对的词，自动学进词典（仅本机比对，不上传）",
   "dict.save": "保存",
   "dict.clear": "清空",
   "dict.search": "搜索热词",
@@ -230,6 +232,8 @@ export const zhCN = {
   "toast.noSpeechBody": "这次没识别到内容，再说一次试试",
   "toast.pasteFailed": "落字失败，已复制到剪贴板",
   "toast.micUnavailable": "麦克风不可用",
+  "toast.learned": "已学会新词",
+  "toast.learnedBody": "「{{word}}」已加入词典，下次自动纠正",
 
   "tray.open": "打开 SpeakType",
   "tray.activate": "配置语音识别",

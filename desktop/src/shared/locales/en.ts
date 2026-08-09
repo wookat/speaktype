@@ -76,6 +76,8 @@ export const en: LocaleDict = {
   "dict.manage": "Manage hotwords",
   "dict.empty": "No hotwords yet",
   "dict.emptyHint": "Add names and jargon unique to you — recognition will respect them",
+  "dict.autoLearn": "Learn from your corrections",
+  "dict.autoLearnHint": "After text lands, words you manually fix in the target field are learned into the dictionary (compared locally, never uploaded)",
   "dict.save": "Save",
   "dict.clear": "Clear",
   "dict.search": "Search hotwords",
@@ -236,6 +238,8 @@ export const en: LocaleDict = {
   "toast.noSpeechBody": "No speech detected — try again",
   "toast.pasteFailed": "Paste failed, copied to clipboard",
   "toast.micUnavailable": "Microphone unavailable",
+  "toast.learned": "New word learned",
+  "toast.learnedBody": "\"{{word}}\" added to dictionary; future misrecognitions auto-corrected",
 
   "tray.open": "Open SpeakType",
   "tray.activate": "Set up speech recognition",

@@ -20,7 +20,8 @@ import { t, translator } from "./i18n";
 import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
 import { SileroVad } from "./vad";
-import { addHistory, addStats, findPersona, getHistory, getSettings, updateHistoryItem } from "./store";
+import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
+import { watchPastedText } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
@@ -394,6 +395,18 @@ export class Dictation {
     }
   }
 
+  /** 用户在目标输入框里手动改对了词：学进词典 + 同步修正历史条目 + 提示 */
+  private learnCorrection(historyId: string, wrong: string, right: string): void {
+    const settings = getSettings();
+    if (settings.hotwords.includes(right) || settings.hotwords.length >= 300) return;
+    setSettings({ hotwords: [...settings.hotwords, right] });
+    const entry = getHistory().find((h) => h.id === historyId);
+    if (entry && entry.text.includes(wrong)) {
+      updateHistoryItem(historyId, { text: entry.text.replace(wrong, right) });
+    }
+    this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }));
+  }
+
   private async finalize(): Promise<void> {
     const session = this.session;
     if (!session) return;
@@ -472,10 +485,11 @@ export class Dictation {
       }
     }
 
+    const historyId = retriedId ?? randomUUID();
     if (retriedId) this.resolveFailedEntry(retriedId, text, raw);
     else
       addHistory({
-        id: randomUUID(),
+        id: historyId,
         at: Date.now(),
         text,
         raw,
@@ -485,6 +499,11 @@ export class Dictation {
         provider: settings.asrProvider,
       });
     addStats(text.length, durationMs);
+
+    // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典
+    if (settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]/.test(text)) {
+      watchPastedText(text, (wrong, right) => this.learnCorrection(historyId, wrong, right));
+    }
 
     this.busy = false;
     this.setPartial(text);

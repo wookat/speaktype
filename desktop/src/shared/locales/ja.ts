@@ -76,6 +76,8 @@ export const ja: LocaleDict = {
   "dict.manage": "ホットワードを管理",
   "dict.empty": "ホットワードはまだありません",
   "dict.emptyHint": "人名や専門用語を追加すると、認識時に優先されます",
+  "dict.autoLearn": "修正から自動学習",
+  "dict.autoLearnHint": "入力後に手動で直した語を辞書に自動登録します（比較はすべてローカル、アップロードなし）",
   "dict.save": "保存",
   "dict.clear": "消去",
   "dict.search": "ホットワードを検索",
@@ -236,6 +238,8 @@ export const ja: LocaleDict = {
   "toast.noSpeechBody": "音声が検出されませんでした — もう一度お試しください",
   "toast.pasteFailed": "貼り付けに失敗、クリップボードにコピーしました",
   "toast.micUnavailable": "マイクを使用できません",
+  "toast.learned": "新しい語を学習しました",
+  "toast.learnedBody": "「{{word}}」を辞書に追加しました。次回から自動訂正されます",
 
   "tray.open": "SpeakType を開く",
   "tray.activate": "音声認識を設定",

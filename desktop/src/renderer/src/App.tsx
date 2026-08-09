@@ -922,6 +922,15 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
         </button>
       </div>
 
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-5 py-1">
+        <Toggle
+          label={t("dict.autoLearn")}
+          hint={t("dict.autoLearnHint")}
+          value={props.settings.autoLearn}
+          onChange={(v) => props.update({ autoLearn: v })}
+        />
+      </div>
+
       <div className="mt-6 flex items-center justify-between">
         <div className="text-sm font-medium">{t("dict.manage")}</div>
         {words.length > 0 && (

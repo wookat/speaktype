@@ -72,6 +72,8 @@ export interface Settings {
   remoteRelayUrl: string;
   /** 按当前应用自动切人设；匹配前台进程名或窗口标题，先命中先用 */
   appPersonas: AppPersonaRule[];
+  /** 落字后观察输入框：用户手动改对的词自动学进词典（仅 Windows，纯本地） */
+  autoLearn: boolean;
 }
 
 export interface AppPersonaRule {
