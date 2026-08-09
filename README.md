@@ -1,6 +1,8 @@
-# SpeakType — 网页内 AI 语音输入助手
+# SpeakType — 开源 AI 语音输入
 
-你说，我写。在任意网页的输入框里**按住 `Ctrl` 说话、松手落字**（也可按 `Alt+Q` 或点悬浮条按钮开/关），自动转写 + 按场景改写，直接落到光标处。
+开源（MIT）的 AI 语音输入，两种形态：**Windows 桌面版**（[`desktop/`](desktop/)，全局热键、任意程序落字、NSIS 安装包）与 **Chrome 浏览器扩展**。SpeakType 自身不提供任何云端服务：识别与润色都直连你自己配置的服务，配置与密钥只存本机。
+
+以下为浏览器扩展部分。你说，我写。在任意网页的输入框里**按住 `Ctrl` 说话、松手落字**（也可按 `Alt+Q` 或点悬浮条按钮开/关），自动转写 + 按场景改写，直接落到光标处。
 
 灵感来自智谱 AutoGLM 输入法的桌面端体验，但做成浏览器扩展，不需要装客户端、不用模拟 `Ctrl+V`。
 
@@ -79,3 +81,10 @@ chrome --use-fake-ui-for-media-stream \
 ## 说明
 
 `doubao` 引擎用的是未公开接口，依赖使用者自己的登录会话，不携带也不分发任何第三方凭证；它随豆包发版可能失效，对稳定性有要求的场景请用 `volc`（同一 bigasr 引擎的官方接口）。
+
+## 开源与贡献
+
+- 许可：[MIT](LICENSE)。
+- 作者与维护：wookat & SpeakType contributors。
+- 欢迎提 [Issue](https://github.com/wookat/speaktype/issues) 与 Pull Request。
+- 隐私：不上传语音/文本到 SpeakType 的服务器（没有这样的服务器）；所有凭证只保存在本机，仓库里不内置任何第三方密钥。

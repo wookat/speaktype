@@ -15,6 +15,37 @@ interface ChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
 
+function chatUrl(baseUrl: string): string {
+  const base = baseUrl.replace(/\/$/, "");
+  return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
+}
+
+/** 设置页“测试连接”：发一条最小请求验证端点/密钥/模型名 */
+export async function testPolish(settings: Settings): Promise<{ ok: boolean; detail: string }> {
+  if (!settings.polishBaseUrl || !settings.polishApiKey) return { ok: false, detail: "Base URL / API Key" };
+  try {
+    const res = await fetch(chatUrl(settings.polishBaseUrl), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.polishApiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.polishModel || "gpt-4o-mini",
+        max_tokens: 4,
+        messages: [{ role: "user", content: "ping" }],
+      }),
+    });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 160);
+      return { ok: false, detail: `HTTP ${res.status} ${body}` };
+    }
+    return { ok: true, detail: settings.polishModel || "gpt-4o-mini" };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 /**
  * 人设润色。识别与润色解耦：任何 OpenAI 兼容端点都能接
  * （DeepSeek / Kimi / 通义 / 智谱 / 本地 Ollama），没配就只做本地清理。
@@ -29,8 +60,7 @@ export async function polishText(
     return cleaned;
   }
 
-  const base = settings.polishBaseUrl.replace(/\/$/, "");
-  const url = /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
+  const url = chatUrl(settings.polishBaseUrl);
   const hotwords = settings.hotwords.length
     ? `\n用户常用词汇（识别可能写错，按此纠正）：${settings.hotwords.join("、")}`
     : "";

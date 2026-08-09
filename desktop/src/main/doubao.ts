@@ -8,6 +8,7 @@ import {
   type DoubaoIds,
   type ServerFrame,
 } from "../shared/doubao-protocol";
+import { t } from "./i18n";
 import { createBridgeWindow } from "./windows";
 import { getAppKeyCache, getSettings, setAppKeyCache } from "./store";
 
@@ -130,9 +131,7 @@ export async function startDoubaoSession(
   const settings = getSettings();
   const appKey = settings.doubaoAppKey || getAppKeyCache();
   if (!appKey) {
-    throw new Error(
-      "还没拿到豆包语音入口：在应用里打开豆包并用一次它自带的语音输入（麦克风按钮），之后就会自动记住",
-    );
+    throw new Error(t("error.noAppKey"));
   }
 
   ensureBridge();

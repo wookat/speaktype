@@ -1,31 +1,67 @@
-import { useEffect, useMemo, useState } from "react";
-import { api, type InitPayload } from "./api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { api, type InitPayload, type MicDevice } from "./api";
+import { getT, type Translator } from "./i18n";
+import { localizePersona } from "../../shared/personas";
+import { UI_LANGUAGES } from "../../shared/i18n";
 import type { HistoryItem, Persona, Settings, StatusPayload } from "../../shared/types";
 
 type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
-const NAV: Array<{ id: Page; label: string; icon: string }> = [
-  { id: "home", label: "首页", icon: "🏠" },
-  { id: "history", label: "历史记录", icon: "🕘" },
-  { id: "personas", label: "人设", icon: "🎭" },
-  { id: "dictionary", label: "词典", icon: "📖" },
-  { id: "settings", label: "设置", icon: "⚙️" },
+export const REPO_URL = "https://github.com/wookat/speaktype";
+
+/** 人设图标：存名字不存 emoji，便于以后换图标库 */
+const PERSONA_ICONS: Record<string, string> = {
+  sparkles: "✨",
+  languages: "🌐",
+  briefcase: "💼",
+  users: "👥",
+  heart: "❤️",
+  terminal: "🖥️",
+  code: "📟",
+  book: "📖",
+  mic: "🎙️",
+  zap: "⚡",
+  crown: "👑",
+  pen: "🖊️",
+  leaf: "🍃",
+};
+
+const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
+  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  { id: "kimi", label: "Kimi (Moonshot)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
+  { id: "qwen", label: "通义千问", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
+  { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  { id: "ollama", label: "Ollama（本地）", baseUrl: "http://localhost:11434/v1", model: "llama3.1" },
 ];
 
-function fmtDuration(ms: number): string {
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}秒`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}分`;
-  return `${Math.floor(m / 60)}时${m % 60}分`;
+const MAX_HOTWORDS = 300;
+const MAX_HOTWORD_LEN = 20;
+
+function personaIcon(name: string): string {
+  return PERSONA_ICONS[name] ?? "✨";
 }
 
-function fmtTime(at: number): string {
+function fmtDuration(ms: number, t: Translator): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}min`;
+  return `${Math.floor(m / 60)}h${m % 60}min`;
+}
+
+function dayLabel(at: number, t: Translator): string {
   const d = new Date(at);
   const today = new Date();
-  const sameDay = d.toDateString() === today.toDateString();
-  const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  return sameDay ? `今天 ${hm}` : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  const yesterday = new Date(today.getTime() - 86400000);
+  if (d.toDateString() === today.toDateString()) return t("history.today");
+  if (d.toDateString() === yesterday.toDateString()) return t("history.yesterday");
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function fmtClock(at: number): string {
+  const d = new Date(at);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 export default function App() {
@@ -64,12 +100,27 @@ export default function App() {
     };
   }, []);
 
-  if (!init || !settings || !status) return null;
+  const t = useMemo(
+    () => (settings && init ? getT(settings.uiLanguage, init.systemLocale) : null),
+    [settings?.uiLanguage, init?.systemLocale],
+  );
+
+  if (!init || !settings || !status || !t) return null;
+
+  const localized = personas.map((p) => localizePersona(p, t));
 
   const update = (patch: Partial<Settings>) => {
     setSettings({ ...settings, ...patch });
     void api.updateSettings(patch);
   };
+
+  const NAV: Array<{ id: Page; label: string; icon: string }> = [
+    { id: "home", label: t("nav.home"), icon: "🏠" },
+    { id: "history", label: t("nav.history"), icon: "🕘" },
+    { id: "personas", label: t("nav.personas"), icon: "🎭" },
+    { id: "dictionary", label: t("nav.dictionary"), icon: "📖" },
+    { id: "settings", label: t("nav.settings"), icon: "⚙️" },
+  ];
 
   return (
     <div className="flex h-full text-slate-800">
@@ -96,8 +147,8 @@ export default function App() {
             α
           </div>
           <div>
-            <div className="text-sm font-semibold leading-tight">SpeakType</div>
-            <div className="text-xs text-slate-400">AI 语音输入法</div>
+            <div className="text-sm font-semibold leading-tight">{t("app.name")}</div>
+            <div className="text-xs text-slate-400">{t("app.tagline")}</div>
           </div>
         </div>
         <nav className="flex flex-col gap-1 px-3">
@@ -114,28 +165,42 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="mt-auto px-5 pb-4 text-xs text-slate-400">v{init.version}</div>
+        <div className="mt-auto px-5 pb-4 text-xs text-slate-400">
+          <button className="hover:text-orange-500" onClick={() => void api.openExternal(REPO_URL)}>
+            GitHub · MIT
+          </button>
+          <div className="mt-1">v{init.version}</div>
+        </div>
       </aside>
 
       <main className="flex-1 overflow-y-auto px-8 pb-10 pt-12">
         {page === "home" && (
           <Home
+            t={t}
             settings={settings}
-            personas={personas}
-            status={status}
+            personas={localized}
             doubaoReady={doubaoReady}
             statsWords={init.stats.words}
             statsDuration={init.stats.durationMs}
             statsSessions={init.stats.sessions}
+            goSettings={() => setPage("settings")}
           />
         )}
-        {page === "history" && <History history={history} setHistory={setHistory} />}
+        {page === "history" && <History t={t} history={history} setHistory={setHistory} />}
         {page === "personas" && (
-          <Personas personas={personas} setPersonas={setPersonas} settings={settings} update={update} />
+          <Personas t={t} personas={personas} localized={localized} setPersonas={setPersonas} settings={settings} update={update} />
         )}
-        {page === "dictionary" && <Dictionary settings={settings} update={update} />}
+        {page === "dictionary" && <Dictionary t={t} settings={settings} update={update} />}
         {page === "settings" && (
-          <SettingsPage settings={settings} update={update} holdKeyChoices={init.holdKeyChoices} />
+          <SettingsPage
+            t={t}
+            settings={settings}
+            update={update}
+            holdKeyChoices={init.holdKeyChoices}
+            toggleKeyChoices={init.toggleKeyChoices}
+            doubaoReady={doubaoReady}
+            version={init.version}
+          />
         )}
       </main>
     </div>
@@ -143,73 +208,82 @@ export default function App() {
 }
 
 function Home(props: {
+  t: Translator;
   settings: Settings;
   personas: Persona[];
-  status: StatusPayload;
   doubaoReady: boolean;
   statsWords: number;
   statsDuration: number;
   statsSessions: number;
+  goSettings: () => void;
 }) {
+  const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
   const saved = Math.max(0, Math.round(props.statsWords / 40) * 60000 - props.statsDuration);
+  // 标题里的热键要渲染成键帽样式，按占位符拆开
+  const [titleBefore, titleAfter = ""] = t("home.title").split("{{key}}");
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-semibold">
-        你好，按住 <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-lg text-white">{props.settings.hotkeyHold}</span> 键，开启语音输入
+        {titleBefore}
+        <span className="rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-lg text-white">
+          {props.settings.hotkeyHold}
+        </span>
+        {titleAfter}
       </h1>
-      <p className="mt-2 text-sm text-slate-500">松开按键即自动整理并落到光标处；按一下 {props.settings.hotkeyToggle} 可免按说话。</p>
+      <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
       {!props.doubaoReady && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4">
           <div>
-            <div className="font-medium text-orange-700">还差一步：激活豆包语音</div>
-            <div className="mt-1 text-sm text-orange-600">
-              登录豆包并用一次它自带的语音输入（麦克风按钮），SpeakType 会自动记住语音入口。
-            </div>
+            <div className="font-medium text-orange-700">{t("home.activate.title")}</div>
+            <div className="mt-1 text-sm text-orange-600">{t("home.activate.desc")}</div>
           </div>
           <button
-            className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+            className="shrink-0 rounded-xl bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
             onClick={() => void api.activateDoubao()}
           >
-            去激活
+            {t("home.activate.button")}
           </button>
         </div>
       )}
 
       <div className="mt-6 grid grid-cols-4 gap-4">
-        <StatCard title="协作次数" value={`${props.statsSessions}次`} />
-        <StatCard title="口述字数" value={`${props.statsWords}字`} />
-        <StatCard title="累计口述时间" value={fmtDuration(props.statsDuration)} />
-        <StatCard title="节省时间" value={fmtDuration(saved)} hint="按 40 WPM 估算" />
+        <StatCard title={t("home.stat.sessions")} value={`${props.statsSessions}`} />
+        <StatCard title={t("home.stat.words")} value={`${props.statsWords}`} />
+        <StatCard title={t("home.stat.duration")} value={fmtDuration(props.statsDuration, t)} />
+        <StatCard title={t("home.stat.saved")} value={fmtDuration(saved, t)} hint={t("home.stat.savedHint")} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div className="font-medium">首次使用？4 步就搞定</div>
-          <div className="text-xs text-slate-400">您可以这样使用 SpeakType</div>
-        </div>
+        <div className="font-medium">{t("home.steps.title")}</div>
         <ol className="mt-4 grid grid-cols-4 gap-3 text-sm text-slate-600">
-          {["打开应用", "将光标定位到输入位置", `按住 ${props.settings.hotkeyHold}，说出你想输入的内容`, "松开按键，文字自动落到光标处"].map(
-            (step, i) => (
-              <li key={step} className="rounded-xl bg-slate-50 p-3">
-                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">
-                  {i + 1}
-                </div>
-                {step}
-              </li>
-            ),
-          )}
+          {[
+            t("home.steps.1"),
+            t("home.steps.2"),
+            t("home.steps.3", { key: props.settings.hotkeyHold }),
+            t("home.steps.4"),
+          ].map((step, i) => (
+            <li key={step} className="rounded-xl bg-slate-50 p-3">
+              <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">
+                {i + 1}
+              </div>
+              {step}
+            </li>
+          ))}
         </ol>
       </div>
 
       <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5">
         <div>
-          <div className="text-xs text-slate-400">当前人设</div>
-          <div className="mt-1 font-medium">{persona?.name}</div>
+          <div className="text-xs text-slate-400">{t("home.persona.current")}</div>
+          <div className="mt-1 flex items-center gap-2 font-medium">
+            <span>{personaIcon(persona?.icon ?? "")}</span>
+            {persona?.name}
+          </div>
           <div className="mt-1 max-w-md text-xs text-slate-500">{persona?.prompt}</div>
         </div>
-        <div className="text-xs text-slate-400">Alt+1..9 快速切换</div>
+        <div className="text-xs text-slate-400">{t("home.persona.switch")}</div>
       </div>
     </div>
   );
@@ -225,67 +299,105 @@ function StatCard(props: { title: string; value: string; hint?: string }) {
   );
 }
 
-function History(props: { history: HistoryItem[]; setHistory: (h: HistoryItem[]) => void }) {
+function History(props: { t: Translator; history: HistoryItem[]; setHistory: (h: HistoryItem[]) => void }) {
+  const { t } = props;
+  const [query, setQuery] = useState("");
+  const filtered = query
+    ? props.history.filter((h) => h.text.includes(query) || h.raw.includes(query))
+    : props.history;
+
+  const groups: Array<{ label: string; items: HistoryItem[] }> = [];
+  for (const item of filtered) {
+    const label = dayLabel(item.at, t);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">历史记录</h1>
-        {props.history.length > 0 && (
-          <button
-            className="text-sm text-slate-400 hover:text-red-500"
-            onClick={() => void api.clearHistory().then(props.setHistory)}
-          >
-            清空历史
-          </button>
-        )}
+        <h1 className="text-xl font-semibold">{t("history.title")}</h1>
+        <div className="flex items-center gap-3">
+          {props.history.length > 0 && (
+            <input
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              placeholder={t("history.search")}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          )}
+          {props.history.length > 0 && (
+            <button
+              className="text-sm text-slate-400 hover:text-red-500"
+              onClick={() => void api.clearHistory().then(props.setHistory)}
+            >
+              {t("history.clear")}
+            </button>
+          )}
+        </div>
       </div>
-      {props.history.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="mt-16 text-center text-sm text-slate-400">
-          暂时没有历史记录
-          <div className="mt-1 text-xs">按住热键开始语音，这里会记录你的每一次协作</div>
+          {t("history.empty")}
+          <div className="mt-1 text-xs">{t("history.emptyHint")}</div>
         </div>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {props.history.map((item) => (
-            <li key={item.id} className="group rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>
-                  {fmtTime(item.at)} · {item.personaName} · {fmtDuration(item.durationMs)}
-                </span>
-                <span className="hidden gap-3 group-hover:flex">
-                  <button
-                    className="hover:text-slate-600"
-                    onClick={() => void navigator.clipboard.writeText(item.text)}
-                  >
-                    复制
-                  </button>
-                  <button
-                    className="hover:text-red-500"
-                    onClick={() => void api.deleteHistory([item.id]).then(props.setHistory)}
-                  >
-                    删除
-                  </button>
-                </span>
-              </div>
-              <div className="mt-2 text-sm">{item.text}</div>
-              {item.raw !== item.text && <div className="mt-1 text-xs text-slate-400">原文：{item.raw}</div>}
-              {item.failed && <div className="mt-1 text-xs text-red-400">落字失败：{item.failed}</div>}
-            </li>
-          ))}
-        </ul>
+        groups.map((group) => (
+          <div key={group.label}>
+            <div className="mt-6 text-sm font-medium text-slate-500">{group.label}</div>
+            <ul className="mt-2 space-y-3">
+              {group.items.map((item) => (
+                <li key={item.id} className="group rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>
+                      {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
+                    </span>
+                    <span className="hidden gap-3 group-hover:flex">
+                      <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
+                        {t("history.copy")}
+                      </button>
+                      <button
+                        className="hover:text-red-500"
+                        onClick={() => void api.deleteHistory([item.id]).then(props.setHistory)}
+                      >
+                        {t("history.delete")}
+                      </button>
+                    </span>
+                  </div>
+                  <div className="mt-2 text-sm">{item.text}</div>
+                  {item.raw !== item.text && (
+                    <div className="mt-1 text-xs text-slate-400">
+                      {t("history.raw")}: {item.raw}
+                    </div>
+                  )}
+                  {item.failed && (
+                    <div className="mt-1 text-xs text-red-400">
+                      {t("history.failed")}: {item.failed}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
 function Personas(props: {
+  t: Translator;
   personas: Persona[];
+  localized: Persona[];
   setPersonas: (p: Persona[]) => void;
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
 }) {
+  const { t } = props;
   const [editing, setEditing] = useState<Persona | null>(null);
   const current = props.settings.personaId;
+  const currentPersona = props.localized.find((p) => p.id === current) ?? props.localized[0];
 
   const save = (persona: Persona) => {
     const custom = props.personas.filter((p) => !p.builtin);
@@ -295,21 +407,44 @@ function Personas(props: {
     setEditing(null);
   };
 
+  const duplicate = (persona: Persona) => {
+    setEditing({
+      id: `custom-${Date.now()}`,
+      name: persona.name,
+      prompt: persona.prompt,
+      builtin: false,
+      icon: persona.icon,
+    });
+  };
+
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">我的人设</h1>
+      {/* 当前人设卡 */}
+      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-100 to-amber-50 p-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+            {personaIcon(currentPersona?.icon ?? "")}
+          </div>
+          <div>
+            <div className="text-xs text-orange-700/70">{t("home.persona.current")}</div>
+            <div className="text-lg font-semibold">{currentPersona?.name}</div>
+            <div className="mt-0.5 max-w-lg text-xs text-slate-500">{currentPersona?.prompt}</div>
+          </div>
+        </div>
         <button
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
-          onClick={() =>
-            setEditing({ id: `custom-${Date.now()}`, name: "", prompt: "", builtin: false, icon: "✨" })
-          }
+          className="shrink-0 rounded-xl bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-orange-50"
+          onClick={() => setEditing({ id: `custom-${Date.now()}`, name: "", prompt: "", builtin: false, icon: "sparkles" })}
         >
-          新增人设
+          {t("personas.new")}
         </button>
       </div>
-      <ul className="mt-4 space-y-3">
-        {props.personas.map((persona, index) => (
+
+      <div className="mt-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold">{t("personas.mine")}</h1>
+        <div className="text-xs text-slate-400">{t("personas.subtitle")}</div>
+      </div>
+      <ul className="mt-3 space-y-3">
+        {props.localized.map((persona, index) => (
           <li
             key={persona.id}
             className={`flex cursor-pointer items-center justify-between rounded-2xl border bg-white p-4 ${
@@ -317,72 +452,105 @@ function Personas(props: {
             }`}
             onClick={() => props.update({ personaId: persona.id })}
           >
-            <div>
-              <div className="flex items-center gap-2 text-sm font-medium">
-                {persona.name}
-                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">
-                  {persona.builtin ? "内置" : "自定义"}
-                </span>
-                {index < 9 && <span className="text-[10px] text-slate-300">Alt+{index + 1}</span>}
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-lg">
+                {personaIcon(persona.icon)}
               </div>
-              <div className="mt-1 max-w-lg text-xs text-slate-500">{persona.prompt}</div>
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  {persona.name}
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">
+                    {persona.builtin ? t("personas.builtin") : t("personas.custom")}
+                  </span>
+                  {index < 9 && props.settings.personaHotkeysEnabled && (
+                    <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[10px] text-orange-400">Alt+{index + 1}</span>
+                  )}
+                </div>
+                <div className="mt-1 max-w-lg text-xs text-slate-500">{persona.prompt}</div>
+              </div>
             </div>
-            {!persona.builtin && (
-              <div className="flex gap-2 text-xs text-slate-400">
+            <div className="flex gap-2 text-xs text-slate-400">
+              {persona.builtin ? (
                 <button
-                  className="hover:text-slate-600"
+                  className="hover:text-orange-500"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setEditing(persona);
+                    duplicate(persona);
                   }}
                 >
-                  编辑
+                  {t("personas.duplicate")}
                 </button>
-                <button
-                  className="hover:text-red-500"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void api
-                      .savePersonas(props.personas.filter((p) => !p.builtin && p.id !== persona.id))
-                      .then(props.setPersonas);
-                  }}
-                >
-                  删除
-                </button>
-              </div>
-            )}
+              ) : (
+                <>
+                  <button
+                    className="hover:text-slate-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditing(props.personas.find((p) => p.id === persona.id) ?? persona);
+                    }}
+                  >
+                    {t("personas.edit")}
+                  </button>
+                  <button
+                    className="hover:text-red-500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void api
+                        .savePersonas(props.personas.filter((p) => !p.builtin && p.id !== persona.id))
+                        .then(props.setPersonas);
+                    }}
+                  >
+                    {t("personas.delete")}
+                  </button>
+                </>
+              )}
+            </div>
           </li>
         ))}
       </ul>
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-[480px] rounded-2xl bg-white p-6 shadow-xl">
-            <div className="font-medium">人设详情</div>
-            <label className="mt-4 block text-xs text-slate-500">名称</label>
+          <div className="w-[520px] rounded-2xl bg-white p-6 shadow-xl">
+            <div className="font-medium">{t("personas.detail")}</div>
+            <label className="mt-4 block text-xs text-slate-500">{t("personas.name")}</label>
             <input
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder="给人设一个名字，比如 “面对客户”"
+              placeholder={t("personas.namePlaceholder")}
               value={editing.name}
               onChange={(e) => setEditing({ ...editing, name: e.target.value })}
             />
-            <label className="mt-3 block text-xs text-slate-500">风格描述</label>
+            <label className="mt-3 block text-xs text-slate-500">{t("personas.icon")}</label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {Object.entries(PERSONA_ICONS).map(([name, emoji]) => (
+                <button
+                  key={name}
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${
+                    editing.icon === name ? "border-orange-400 bg-orange-50" : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                  onClick={() => setEditing({ ...editing, icon: name })}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <label className="mt-3 block text-xs text-slate-500">{t("personas.prompt")}</label>
             <textarea
               className="mt-1 h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder="写一段指令描述如何润色。例如：保持幽默但不失礼貌，强调解决方案，避免冗长。"
+              placeholder={t("personas.promptPlaceholder")}
               value={editing.prompt}
               onChange={(e) => setEditing({ ...editing, prompt: e.target.value })}
             />
             <div className="mt-4 flex justify-end gap-2">
               <button className="rounded-xl px-4 py-2 text-sm text-slate-500" onClick={() => setEditing(null)}>
-                取消
+                {t("common.cancel")}
               </button>
               <button
                 className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
                 disabled={!editing.name || !editing.prompt}
                 onClick={() => save(editing)}
               >
-                保存
+                {t("common.save")}
               </button>
             </div>
           </div>
@@ -392,70 +560,180 @@ function Personas(props: {
   );
 }
 
-function Dictionary(props: { settings: Settings; update: (patch: Partial<Settings>) => void }) {
-  const [text, setText] = useState(props.settings.hotwords.join("\n"));
+function Dictionary(props: { t: Translator; settings: Settings; update: (patch: Partial<Settings>) => void }) {
+  const { t } = props;
+  const [text, setText] = useState("");
+  const [query, setQuery] = useState("");
+  const words = props.settings.hotwords;
+
+  const addFromText = () => {
+    const incoming = text
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s && s.length <= MAX_HOTWORD_LEN);
+    const merged = [...new Set([...words, ...incoming])].slice(0, MAX_HOTWORDS);
+    props.update({ hotwords: merged });
+    setText("");
+  };
+
+  const remove = (word: string) => props.update({ hotwords: words.filter((w) => w !== word) });
+  const filtered = query ? words.filter((w) => w.includes(query)) : words;
+
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-xl font-semibold">词典（热词）</h1>
-      <p className="mt-2 text-sm text-slate-500">
-        添加行业词汇、公司名称或口头表达，润色时会按这些词纠正识别结果。每行一个，最多 64 个。
-      </p>
-      <textarea
-        className="mt-4 h-64 w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm"
-        placeholder="热词列表（每行一个）"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <button
-        className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white"
-        onClick={() =>
-          props.update({
-            hotwords: text
-              .split("\n")
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .slice(0, 64),
-          })
-        }
-      >
-        保存
-      </button>
+      <h1 className="text-xl font-semibold">
+        {t("dict.title")} <span className="ml-2 text-sm font-normal text-slate-400">{t("dict.subtitle")}</span>
+      </h1>
+      <div className="relative mt-4">
+        <textarea
+          className="h-36 w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm"
+          placeholder={t("dict.placeholder")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="absolute bottom-3 right-4 text-xs text-slate-400">{t("dict.count", { count: words.length })}</div>
+      </div>
+      <div className="mt-2 flex justify-end gap-2">
+        <button
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+          disabled={words.length === 0}
+          onClick={() => props.update({ hotwords: [] })}
+        >
+          {t("dict.clear")}
+        </button>
+        <button
+          className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+          disabled={!text.trim()}
+          onClick={addFromText}
+        >
+          {t("dict.save")}
+        </button>
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm font-medium">{t("dict.manage")}</div>
+        {words.length > 0 && (
+          <input
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            placeholder={t("dict.search")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        )}
+      </div>
+      {filtered.length === 0 ? (
+        <div className="mt-12 text-center text-sm text-slate-400">
+          {t("dict.empty")}
+          <div className="mt-1 text-xs">{t("dict.emptyHint")}</div>
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {filtered.map((word) => (
+            <span
+              key={word}
+              className="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+            >
+              {word}
+              <button className="text-slate-300 hover:text-red-500" onClick={() => remove(word)}>
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+type SettingsTab = "general" | "voice" | "model" | "about";
+
 function SettingsPage(props: {
+  t: Translator;
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
   holdKeyChoices: string[];
+  toggleKeyChoices: string[];
+  doubaoReady: boolean;
+  version: string;
 }) {
-  const s = props.settings;
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold">设置</h1>
+  const { t, settings: s } = props;
+  const [tab, setTab] = useState<SettingsTab>("general");
 
+  const TABS: Array<{ id: SettingsTab; label: string }> = [
+    { id: "general", label: t("settings.tab.general") },
+    { id: "voice", label: t("settings.tab.voice") },
+    { id: "model", label: t("settings.tab.model") },
+    { id: "about", label: t("settings.tab.about") },
+  ];
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <h1 className="text-xl font-semibold">{t("settings.title")}</h1>
+      <div className="mt-4 flex gap-2">
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            className={`rounded-xl px-4 py-2 text-sm ${
+              tab === item.id ? "bg-slate-900 text-white" : "bg-white text-slate-500 hover:bg-slate-100"
+            }`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 space-y-6">
+        {tab === "general" && (
+          <GeneralTab t={t} s={s} update={props.update} holdKeyChoices={props.holdKeyChoices} toggleKeyChoices={props.toggleKeyChoices} />
+        )}
+        {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
+        {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
+        {tab === "about" && <AboutTab t={t} version={props.version} />}
+      </div>
+    </div>
+  );
+}
+
+function GeneralTab(props: {
+  t: Translator;
+  s: Settings;
+  update: (patch: Partial<Settings>) => void;
+  holdKeyChoices: string[];
+  toggleKeyChoices: string[];
+}) {
+  const { t, s, update } = props;
+  return (
+    <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="font-medium">键盘快捷键</div>
-        <div className="mt-1 text-xs text-slate-400">按下以下按键即可随时开始语音输入。</div>
-        <Row label="按住说话" hint="按住说话，松手落字">
+        <div className="font-medium">{t("settings.hotkeys")}</div>
+        <Row label={t("settings.hold")} hint={t("settings.holdHint", { key: s.hotkeyHold })}>
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.hotkeyHold}
-            onChange={(e) => props.update({ hotkeyHold: e.target.value })}
+            onChange={(e) => update({ hotkeyHold: e.target.value })}
           >
             {props.holdKeyChoices.map((key) => (
               <option key={key}>{key}</option>
             ))}
           </select>
         </Row>
-        <Row label="点按开关" hint="按一下开始、再按一下结束（免按模式）">
-          <span className="rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-sm">{s.hotkeyToggle}</span>
+        <Row label={t("settings.toggle")} hint={t("settings.toggleHint", { key: s.hotkeyToggle })}>
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.hotkeyToggle}
+            onChange={(e) => update({ hotkeyToggle: e.target.value })}
+          >
+            {props.toggleKeyChoices.map((key) => (
+              <option key={key}>{key}</option>
+            ))}
+          </select>
         </Row>
-        <Row label="长按判定时长" hint="低于它算误触，不起录">
+        <Row label={t("settings.holdDelay")} hint={t("settings.holdDelayHint")}>
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.holdDelayMs}
-            onChange={(e) => props.update({ holdDelayMs: Number(e.target.value) })}
+            onChange={(e) => update({ holdDelayMs: Number(e.target.value) })}
           >
             {[80, 120, 200, 300].map((ms) => (
               <option key={ms} value={ms}>
@@ -464,64 +742,320 @@ function SettingsPage(props: {
             ))}
           </select>
         </Row>
+        <Toggle
+          label={t("settings.personaHotkeys")}
+          hint={t("settings.personaHotkeysHint")}
+          value={s.personaHotkeysEnabled}
+          onChange={(v) => update({ personaHotkeysEnabled: v })}
+        />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="font-medium">基础输入偏好</div>
-        <Row label="识别语言">
+        <div className="font-medium">{t("settings.appBehavior")}</div>
+        <Toggle
+          label={t("settings.launchAtLogin")}
+          hint={t("settings.launchAtLoginHint")}
+          value={s.launchAtLogin}
+          onChange={(v) => update({ launchAtLogin: v })}
+        />
+        {s.launchAtLogin && (
+          <div className="ml-4 border-l-2 border-slate-100 pl-4">
+            <Toggle
+              label={t("settings.startMinimized")}
+              hint={t("settings.startMinimizedHint")}
+              value={s.startMinimized}
+              onChange={(v) => update({ startMinimized: v })}
+            />
+          </div>
+        )}
+        <Toggle
+          label={t("settings.autoPaste")}
+          hint={t("settings.autoPasteHint")}
+          value={s.autoPaste}
+          onChange={(v) => update({ autoPaste: v })}
+        />
+        <Toggle
+          label={t("settings.mute")}
+          hint={t("settings.muteHint")}
+          value={s.muteWhileRecording}
+          onChange={(v) => update({ muteWhileRecording: v })}
+        />
+        <Row label={t("settings.uiLanguage")} hint={t("settings.uiLanguageHint")}>
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-            value={s.language}
-            onChange={(e) => props.update({ language: e.target.value })}
+            value={s.uiLanguage}
+            onChange={(e) => update({ uiLanguage: e.target.value as Settings["uiLanguage"] })}
           >
-            <option value="zh">简体中文</option>
-            <option value="en">英语</option>
+            {UI_LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.value === "system" ? t("settings.followSystem") : lang.label}
+              </option>
+            ))}
           </select>
         </Row>
-        <Toggle label="自动落字" hint="松手后自动粘贴到光标处；关掉则只进历史记录" value={s.autoPaste} onChange={(v) => props.update({ autoPaste: v })} />
       </section>
 
+      <MicSection t={t} s={s} update={props.update} />
+    </>
+  );
+}
+
+function MicSection(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
+  const { t, s, update } = props;
+  const [devices, setDevices] = useState<MicDevice[] | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [level, setLevel] = useState(0);
+  const testingRef = useRef(false);
+
+  useEffect(() => {
+    void api.micList().then(setDevices);
+    const offLevel = api.onLevel((v) => {
+      if (testingRef.current) setLevel(v);
+    });
+    return () => {
+      offLevel();
+      if (testingRef.current) void api.micTest(false);
+    };
+  }, []);
+
+  const toggleTest = () => {
+    const next = !testing;
+    setTesting(next);
+    testingRef.current = next;
+    if (!next) setLevel(0);
+    void api.micTest(next);
+  };
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="font-medium">{t("settings.audio")}</div>
+      <Row label={t("settings.mic")} hint={t("settings.micHint")}>
+        <div className="flex items-center gap-2">
+          <select
+            className="max-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.micDeviceId}
+            onChange={(e) => update({ micDeviceId: e.target.value })}
+          >
+            <option value="">{t("settings.micDefault")}</option>
+            {(devices ?? []).map((d) => (
+              <option key={d.deviceId} value={d.deviceId}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`rounded-xl px-3 py-1.5 text-sm ${
+              testing ? "bg-red-500 text-white" : "bg-slate-900 text-white hover:bg-slate-700"
+            }`}
+            onClick={toggleTest}
+          >
+            {testing ? t("settings.micStop") : t("settings.micTest")}
+          </button>
+        </div>
+      </Row>
+      {testing && (
+        <div className="mt-3">
+          <div className="text-xs text-slate-400">{t("settings.micTestHint")}</div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-emerald-400 transition-[width] duration-100"
+              style={{ width: `${Math.min(100, level * 160)}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function VoiceTab(props: {
+  t: Translator;
+  s: Settings;
+  update: (patch: Partial<Settings>) => void;
+  doubaoReady: boolean;
+}) {
+  const { t, s, update } = props;
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="font-medium">{t("settings.asr")}</div>
+      <div className="mt-1 text-xs text-slate-400">{t("settings.asrHint")}</div>
+      <Row label={t("settings.asrStatus")}>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            props.doubaoReady ? "bg-emerald-50 text-emerald-600" : "bg-orange-50 text-orange-500"
+          }`}
+        >
+          {props.doubaoReady ? `✓ ${t("settings.asrReady")}` : t("settings.asrNotReady")}
+        </span>
+      </Row>
+      <Row label={t("settings.asrOpenLogin")}>
+        <button
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+          onClick={() => void api.activateDoubao()}
+        >
+          {t("settings.asrOpenLogin")}
+        </button>
+      </Row>
+      <Row label={t("settings.asrAppKey")}>
+        <input
+          className="w-64 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+          type="password"
+          placeholder={t("settings.asrAppKeyPlaceholder")}
+          value={s.doubaoAppKey}
+          onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
+        />
+      </Row>
+      <Row label={t("settings.asrLanguage")}>
+        <select
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+          value={s.language}
+          onChange={(e) => update({ language: e.target.value })}
+        >
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </Row>
+    </section>
+  );
+}
+
+function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
+  const { t, s, update } = props;
+  const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
+  const [testDetail, setTestDetail] = useState("");
+
+  const presetId =
+    MODEL_PRESETS.find((p) => p.baseUrl === s.polishBaseUrl && p.model === s.polishModel)?.id ?? "custom";
+
+  const applyPreset = (id: string) => {
+    const preset = MODEL_PRESETS.find((p) => p.id === id);
+    if (preset) update({ polishBaseUrl: preset.baseUrl, polishModel: preset.model });
+  };
+
+  const runTest = () => {
+    setTestState("testing");
+    void api.testPolish().then(({ ok, detail }) => {
+      setTestState(ok ? "ok" : "fail");
+      setTestDetail(detail);
+    });
+  };
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="font-medium">{t("settings.model")}</div>
+      <div className="mt-1 text-xs text-slate-400">{t("settings.modelHint")}</div>
+      <Toggle label={t("settings.modelEnabled")} value={s.polishEnabled} onChange={(v) => update({ polishEnabled: v })} />
+      {s.polishEnabled && (
+        <div className="mt-3 space-y-3">
+          <Row label={t("settings.modelPreset")}>
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={presetId}
+              onChange={(e) => applyPreset(e.target.value)}
+            >
+              <option value="custom">{t("settings.modelPresetCustom")}</option>
+              {MODEL_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.modelBaseUrl")}: https://api.deepseek.com/v1`}
+            value={s.polishBaseUrl}
+            onChange={(e) => update({ polishBaseUrl: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            type="password"
+            placeholder={t("settings.modelApiKey")}
+            value={s.polishApiKey}
+            onChange={(e) => update({ polishApiKey: e.target.value.trim() })}
+          />
+          <input
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={`${t("settings.modelName")}: deepseek-chat`}
+            value={s.polishModel}
+            onChange={(e) => update({ polishModel: e.target.value.trim() })}
+          />
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={testState === "testing" || !s.polishBaseUrl || !s.polishApiKey}
+              onClick={runTest}
+            >
+              {testState === "testing" ? t("settings.modelTesting") : t("settings.modelTest")}
+            </button>
+            {testState === "ok" && (
+              <span className="text-sm text-emerald-600">{t("settings.modelTestOk", { model: testDetail })}</span>
+            )}
+            {testState === "fail" && (
+              <span className="text-sm text-red-500">{t("settings.modelTestFail", { error: testDetail })}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AboutTab(props: { t: Translator; version: string }) {
+  const { t } = props;
+  return (
+    <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="font-medium">App 行为</div>
-        <Toggle label="开机自启" hint="登录 Windows 后自动待命" value={s.launchAtLogin} onChange={(v) => props.update({ launchAtLogin: v })} />
-        <Row label="豆包语音">
-          <button className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50" onClick={() => void api.activateDoubao()}>
-            打开豆包登录/激活
+        <div className="font-medium">{t("settings.about.version")}</div>
+        <Row label={`${t("app.name")} ${props.version}`}>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={() => void api.openExternal(`${REPO_URL}/releases`)}
+          >
+            Releases ↗
           </button>
         </Row>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="font-medium">AI 润色（可选）</div>
-        <div className="mt-1 text-xs text-slate-400">
-          填任意 OpenAI 兼容端点（DeepSeek/Kimi/智谱/本地 Ollama）。不填只做本地口语清理，不影响识别。
-        </div>
-        <Toggle label="启用云端润色" value={s.polishEnabled} onChange={(v) => props.update({ polishEnabled: v })} />
-        {s.polishEnabled && (
-          <div className="mt-3 space-y-2">
-            <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder="Base URL，例如 https://api.deepseek.com/v1"
-              value={s.polishBaseUrl}
-              onChange={(e) => props.update({ polishBaseUrl: e.target.value })}
-            />
-            <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              type="password"
-              placeholder="API Key"
-              value={s.polishApiKey}
-              onChange={(e) => props.update({ polishApiKey: e.target.value })}
-            />
-            <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder="模型名，例如 deepseek-chat"
-              value={s.polishModel}
-              onChange={(e) => props.update({ polishModel: e.target.value })}
-            />
-          </div>
-        )}
+        <div className="font-medium">{t("settings.about.openSource")}</div>
+        <div className="mt-1 text-xs text-slate-400">{t("settings.about.openSourceDesc")}</div>
+        <Row label={t("settings.about.repo")}>
+          <button className="text-sm text-orange-500 hover:underline" onClick={() => void api.openExternal(REPO_URL)}>
+            github.com/wookat/speaktype ↗
+          </button>
+        </Row>
+        <Row label={t("settings.about.issues")}>
+          <button
+            className="text-sm text-orange-500 hover:underline"
+            onClick={() => void api.openExternal(`${REPO_URL}/issues`)}
+          >
+            GitHub Issues ↗
+          </button>
+        </Row>
+        <Row label={t("settings.about.license")}>
+          <button
+            className="text-sm text-orange-500 hover:underline"
+            onClick={() => void api.openExternal(`${REPO_URL}/blob/main/LICENSE`)}
+          >
+            MIT License ↗
+          </button>
+        </Row>
+        <Row label={t("settings.about.author")}>
+          <span className="text-sm text-slate-500">wookat & SpeakType contributors</span>
+        </Row>
       </section>
-    </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="font-medium">{t("settings.about.contribute")}</div>
+        <div className="mt-1 text-xs text-slate-400">{t("settings.about.contributeDesc")}</div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="font-medium">{t("settings.about.privacy")}</div>
+        <div className="mt-1 text-xs text-slate-400">{t("settings.about.privacyDesc")}</div>
+      </section>
+    </>
   );
 }
 

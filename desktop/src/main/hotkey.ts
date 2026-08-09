@@ -25,6 +25,9 @@ const KEY_NAMES: Record<string, number> = {
   LeftShift: UiohookKey.Shift,
   Space: UiohookKey.Space,
   Q: UiohookKey.Q,
+  W: UiohookKey.W,
+  Z: UiohookKey.Z,
+  X: UiohookKey.X,
   F1: UiohookKey.F1,
   F2: UiohookKey.F2,
   F3: UiohookKey.F3,
@@ -38,7 +41,22 @@ const KEY_NAMES: Record<string, number> = {
   Tab: UiohookKey.Tab,
 };
 
-export const HOLD_KEY_CHOICES = Object.keys(KEY_NAMES);
+export const HOLD_KEY_CHOICES = [
+  "RightCtrl",
+  "LeftCtrl",
+  "RightAlt",
+  "RightShift",
+  "CapsLock",
+  "F1",
+  "F2",
+  "F3",
+  "F4",
+  "F8",
+  "F9",
+  "F10",
+];
+
+export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "Alt+Space", "F9", "F10"];
 
 const DIGIT_KEYCODES: number[] = [
   UiohookKey[1],
@@ -57,6 +75,7 @@ export class HotkeyManager {
   private toggleModAlt = true;
   private toggleKeycode: number = UiohookKey.Space;
   private holdDelayMs = 120;
+  private personaHotkeys = true;
   private holdTimer: NodeJS.Timeout | null = null;
   private holdActive = false;
   private holdPressed = false;
@@ -64,9 +83,10 @@ export class HotkeyManager {
 
   constructor(private handlers: HotkeyHandlers) {}
 
-  configure(hotkeyHold: string, hotkeyToggle: string, holdDelayMs: number): void {
+  configure(hotkeyHold: string, hotkeyToggle: string, holdDelayMs: number, personaHotkeys = true): void {
     this.holdKeycode = KEY_NAMES[hotkeyHold] ?? UiohookKey.CtrlRight;
     this.holdDelayMs = holdDelayMs;
+    this.personaHotkeys = personaHotkeys;
     const parts = hotkeyToggle.split("+");
     this.toggleModAlt = parts.includes("Alt");
     this.toggleKeycode = KEY_NAMES[parts[parts.length - 1] ?? "Space"] ?? UiohookKey.Space;
@@ -106,7 +126,7 @@ export class HotkeyManager {
       this.handlers.onToggle();
       return;
     }
-    if (ev.altKey) {
+    if (ev.altKey && this.personaHotkeys) {
       const index = DIGIT_KEYCODES.indexOf(ev.keycode);
       if (index >= 0) this.handlers.onPersona(index);
     }

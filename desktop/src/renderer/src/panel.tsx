@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api } from "./api";
-import type { StatusPayload } from "../../shared/types";
+import { getT } from "./i18n";
+import type { StatusPayload, UiLanguage } from "../../shared/types";
 import "./global.css";
 
 const BAR_COUNT = 24;
@@ -10,9 +11,14 @@ const BAR_COUNT = 24;
 function Panel() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(0.08));
+  const [lang, setLang] = useState<{ ui: UiLanguage; system: string }>({ ui: "system", system: "zh-CN" });
   const levelRef = useRef(0);
 
   useEffect(() => {
+    void api.init().then((data) => setLang({ ui: data.settings.uiLanguage, system: data.systemLocale }));
+    const offSettings = api.onSettings(({ settings }) =>
+      setLang((prev) => ({ ...prev, ui: settings.uiLanguage })),
+    );
     const offStatus = api.onStatus(setStatus);
     const offLevel = api.onLevel((level) => {
       levelRef.current = level;
@@ -21,11 +27,14 @@ function Panel() {
       setLevels((prev) => [...prev.slice(1), Math.min(1, 0.08 + levelRef.current * 1.6)]);
     }, 60);
     return () => {
+      offSettings();
       offStatus();
       offLevel();
       clearInterval(timer);
     };
   }, []);
+
+  const t = getT(lang.ui, lang.system);
 
   if (!status || status.state === "idle") {
     if (!status?.partial) return null;
@@ -33,15 +42,15 @@ function Panel() {
 
   const label =
     status?.state === "connecting"
-      ? "连接中…"
+      ? t("panel.connecting")
       : status?.state === "recording"
-        ? "开始说话"
+        ? t("panel.recording")
         : status?.state === "transcribing"
-          ? "转写中…"
+          ? t("panel.transcribing")
           : status?.state === "polishing"
-            ? "润色中…"
+            ? t("panel.polishing")
             : status?.state === "error"
-              ? (status.message ?? "发生错误")
+              ? (status.message ?? t("panel.error"))
               : "";
 
   return (
@@ -76,7 +85,7 @@ function Panel() {
             className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-white/20"
             onClick={() => void api.cancelRecord()}
           >
-            取消
+            {t("panel.cancel")}
           </button>
         )}
       </div>

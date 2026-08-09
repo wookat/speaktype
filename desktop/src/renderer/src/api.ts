@@ -7,4 +7,4 @@ declare global {
 }
 
 export const api = window.speaktype;
-export type { InitPayload } from "../../preload/index";
+export type { InitPayload, MicDevice } from "../../preload/index";

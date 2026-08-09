@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { BrowserWindow } from "electron";
 import type { RecordState, StatusPayload } from "../shared/types";
+import { localizePersona } from "../shared/personas";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
-import { pasteText } from "./paste";
+import { t, translator } from "./i18n";
+import { pasteText, toggleSystemMute } from "./paste";
 import { polishText } from "./polish";
 import { addHistory, addStats, findPersona, getSettings } from "./store";
 
@@ -26,6 +28,7 @@ export class Dictation {
   private pendingEnd: "stop" | "cancel" | null = null;
   private startedAt = 0;
   private lastWarmUp = 0;
+  private muted = false;
 
   constructor(private deps: DictationDeps) {}
 
@@ -35,7 +38,7 @@ export class Dictation {
       state: this.state,
       message: this.message,
       partial: this.partial,
-      personaName: findPersona(settings.personaId).name,
+      personaName: localizePersona(findPersona(settings.personaId), translator()).name,
       hotkeyHold: settings.hotkeyHold,
     };
   }
@@ -87,11 +90,15 @@ export class Dictation {
 
     try {
       this.report("connecting");
+      if (settings.muteWhileRecording && !this.muted) {
+        this.muted = true;
+        toggleSystemMute();
+      }
       const opening = startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
-      this.deps.recorder()?.webContents.send("recorder:start");
+      this.deps.recorder()?.webContents.send("recorder:start", { deviceId: settings.micDeviceId });
       this.report("recording");
 
       this.session = await opening;
@@ -104,8 +111,15 @@ export class Dictation {
       this.pendingEnd = null;
       this.session = null;
       this.deps.recorder()?.webContents.send("recorder:stop");
+      this.unmute();
       this.report("error", error instanceof Error ? error.message : String(error));
     }
+  }
+
+  private unmute(): void {
+    if (!this.muted) return;
+    this.muted = false;
+    toggleSystemMute();
   }
 
   async stop(): Promise<void> {
@@ -128,6 +142,7 @@ export class Dictation {
     this.busy = false;
     this.buffered = [];
     this.deps.recorder()?.webContents.send("recorder:stop");
+    this.unmute();
     this.partial = "";
     this.report("idle");
   }
@@ -152,10 +167,11 @@ export class Dictation {
     if (!session) return;
     this.session = null;
     const settings = getSettings();
-    const persona = findPersona(settings.personaId);
+    const persona = localizePersona(findPersona(settings.personaId), translator());
     const durationMs = Date.now() - this.startedAt;
 
     this.deps.recorder()?.webContents.send("recorder:stop");
+    this.unmute();
     this.report("transcribing");
 
     let raw = "";
@@ -171,7 +187,7 @@ export class Dictation {
       this.busy = false;
       this.partial = "";
       this.report("idle");
-      if (!raw) this.deps.showToast("没听清", "这次没识别到内容，再说一次试试");
+      if (!raw) this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
       return;
     }
 
@@ -184,7 +200,7 @@ export class Dictation {
         await pasteText(text);
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
-        this.deps.showToast("落字失败，已复制", text.slice(0, 40));
+        this.deps.showToast(t("toast.pasteFailed"), text.slice(0, 40));
       }
     }
 
