@@ -128,6 +128,11 @@ export function createChatgptWindow(): BrowserWindow {
     title: "ChatGPT（SpeakType 桥接）",
     webPreferences: { sandbox: true, backgroundThrottling: false },
   });
+  // Google OAuth 拒绝内嵌浏览器（"此浏览器或应用可能不安全"）：UA 里去掉
+  // Electron/应用名标记，伪装成普通 Chrome 才能在窗口内完成谷歌登录
+  win.webContents.userAgent = win.webContents.userAgent
+    .replace(/\sSpeakType\/[\d.]+/i, "")
+    .replace(/\sElectron\/[\d.]+/i, "");
   void win.loadURL(CHATGPT_URL);
   return win;
 }

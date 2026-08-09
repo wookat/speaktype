@@ -3,7 +3,7 @@ import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
 import { transcribeViaChatgpt } from "./chatgpt";
-import { ensureLocalServer } from "./localasr";
+import { SENSEVOICE, ensureLocalServer, transcribeSenseVoice } from "./localasr";
 
 // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
 let t2cn: ((text: string) => string) | null = null;
@@ -144,17 +144,29 @@ export function startChatgptAsrSession(settings: Settings): DoubaoSession {
   };
 }
 
+/** PCM16 帧拼成 sherpa-onnx 要的 [-1,1] 浮点采样 */
+function pcmToFloat32(frames: Int16Array[]): Float32Array {
+  const total = frames.reduce((sum, f) => sum + f.length, 0);
+  const out = new Float32Array(total);
+  let offset = 0;
+  for (const frame of frames) {
+    for (let i = 0; i < frame.length; i++) out[offset + i] = (frame[i] ?? 0) / 32768;
+    offset += frame.length;
+  }
+  return out;
+}
+
 /**
- * 内置离线 whisper.cpp：同样是整句识别，松手后懒启动本地 whisper-server
- * 并 POST /inference（无需密钥）。
+ * 内置离线识别：SenseVoice 走进程内 sherpa-onnx，whisper 模型懒启动本地
+ * whisper-server 并 POST /inference。两者都不联网、不需密钥，整句识别。
  */
 export function startLocalAsrSession(settings: Settings): DoubaoSession {
   const frames: Int16Array[] = [];
   let cancelled = false;
+  const model = settings.localModel || "base-q5_1";
 
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
-  const warming = ensureLocalServer(settings.localModel || "base-q5_1");
-  warming.catch(() => undefined);
+  if (model !== SENSEVOICE) ensureLocalServer(model).catch(() => undefined);
 
   return {
     pushPcm(frame: Int16Array): void {
@@ -166,7 +178,11 @@ export function startLocalAsrSession(settings: Settings): DoubaoSession {
     },
     async finish(): Promise<string> {
       if (cancelled || frames.length === 0) return "";
-      const url = await ensureLocalServer(settings.localModel || "base-q5_1");
+      if (model === SENSEVOICE) {
+        // SenseVoice 本就输出简体，不再过繁→简以免误伤专名
+        return transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
+      }
+      const url = await ensureLocalServer(model);
       const wav = pcmToWav(frames);
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");

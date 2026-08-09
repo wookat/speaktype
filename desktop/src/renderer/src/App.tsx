@@ -926,14 +926,29 @@ function GeneralTab(props: {
     <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="font-medium">{t("settings.hotkeys")}</div>
-        <Row label={t("settings.hold")} hint={t("settings.holdHint", { key: s.hotkeyHold })}>
+        <Row
+          label={t("settings.hold")}
+          hint={
+            s.hotkeyHold.startsWith("Mouse")
+              ? t("settings.holdMouseHint")
+              : t("settings.holdHint", { key: s.hotkeyHold })
+          }
+        >
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.hotkeyHold}
             onChange={(e) => update({ hotkeyHold: e.target.value })}
           >
             {props.holdKeyChoices.map((key) => (
-              <option key={key}>{key}</option>
+              <option key={key} value={key}>
+                {key === "MouseBack"
+                  ? t("settings.mouseBack")
+                  : key === "MouseForward"
+                    ? t("settings.mouseForward")
+                    : key === "MouseMiddle"
+                      ? t("settings.mouseMiddle")
+                      : key}
+              </option>
             ))}
           </select>
         </Row>

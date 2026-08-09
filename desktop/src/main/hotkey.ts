@@ -1,8 +1,9 @@
-import { UiohookKey, uIOhook, type UiohookKeyboardEvent } from "uiohook-napi";
+import { UiohookKey, uIOhook, type UiohookKeyboardEvent, type UiohookMouseEvent } from "uiohook-napi";
 
 /**
- * 全局热键（uiohook 键盘钩子）：
+ * 全局热键（uiohook 键盘/鼠标钩子）：
  * - 长按键：按住说话、松手结束；按住不满判定时长算误触，直接忽略。
+ * - 长按位也可以是鼠标侧键（Mouse4/Mouse5），适合手一直在鼠标上的场景。
  * - 点按组合键：按一下开始、再按一下结束（免按模式）。
  * - Alt+1..9：切换人设。
  */
@@ -41,6 +42,9 @@ const KEY_NAMES: Record<string, number> = {
   Tab: UiohookKey.Tab,
 };
 
+/** uiohook 的鼠标按键编号：4/5 是大多数鼠标拇指位的后退/前进键 */
+const MOUSE_BUTTONS: Record<string, number> = { MouseBack: 4, MouseForward: 5, MouseMiddle: 3 };
+
 export const HOLD_KEY_CHOICES = [
   "RightCtrl",
   "LeftCtrl",
@@ -54,6 +58,9 @@ export const HOLD_KEY_CHOICES = [
   "F8",
   "F9",
   "F10",
+  "MouseBack",
+  "MouseForward",
+  "MouseMiddle",
 ];
 
 export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "Alt+Space", "F9", "F10"];
@@ -72,6 +79,7 @@ const DIGIT_KEYCODES: number[] = [
 
 export class HotkeyManager {
   private holdKeycode: number = UiohookKey.CtrlRight;
+  private holdMouseButton = 0;
   private toggleModAlt = true;
   private toggleKeycode: number = UiohookKey.Space;
   private holdDelayMs = 120;
@@ -84,7 +92,8 @@ export class HotkeyManager {
   constructor(private handlers: HotkeyHandlers) {}
 
   configure(hotkeyHold: string, hotkeyToggle: string, holdDelayMs: number, personaHotkeys = true): void {
-    this.holdKeycode = KEY_NAMES[hotkeyHold] ?? UiohookKey.CtrlRight;
+    this.holdMouseButton = MOUSE_BUTTONS[hotkeyHold] ?? 0;
+    this.holdKeycode = this.holdMouseButton ? -1 : (KEY_NAMES[hotkeyHold] ?? UiohookKey.CtrlRight);
     this.holdDelayMs = holdDelayMs;
     this.personaHotkeys = personaHotkeys;
     const parts = hotkeyToggle.split("+");
@@ -97,6 +106,8 @@ export class HotkeyManager {
     this.started = true;
     uIOhook.on("keydown", (ev) => this.onKeyDown(ev));
     uIOhook.on("keyup", (ev) => this.onKeyUp(ev));
+    uIOhook.on("mousedown", (ev) => this.onMouseDown(ev));
+    uIOhook.on("mouseup", (ev) => this.onMouseUp(ev));
     uIOhook.start();
   }
 
@@ -106,16 +117,42 @@ export class HotkeyManager {
     uIOhook.stop();
   }
 
+  private onMouseDown(ev: UiohookMouseEvent): void {
+    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.pressHold();
+  }
+
+  private onMouseUp(ev: UiohookMouseEvent): void {
+    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.releaseHold();
+  }
+
+  private pressHold(): void {
+    if (this.holdPressed) return; // 系统 key repeat
+    this.holdPressed = true;
+    this.handlers.onWarmUp();
+    this.holdTimer = setTimeout(() => {
+      this.holdTimer = null;
+      this.holdActive = true;
+      this.handlers.onHoldStart();
+    }, this.holdDelayMs);
+  }
+
+  private releaseHold(): void {
+    this.holdPressed = false;
+    if (this.holdTimer) {
+      // 按住不满判定时长：误触，撤掉待启动的录音
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+      return;
+    }
+    if (this.holdActive) {
+      this.holdActive = false;
+      this.handlers.onHoldEnd();
+    }
+  }
+
   private onKeyDown(ev: UiohookKeyboardEvent): void {
     if (ev.keycode === this.holdKeycode) {
-      if (this.holdPressed) return; // 系统 key repeat
-      this.holdPressed = true;
-      this.handlers.onWarmUp();
-      this.holdTimer = setTimeout(() => {
-        this.holdTimer = null;
-        this.holdActive = true;
-        this.handlers.onHoldStart();
-      }, this.holdDelayMs);
+      this.pressHold();
       return;
     }
     if (ev.altKey && ev.keycode === this.toggleKeycode && this.toggleModAlt) {
@@ -133,17 +170,6 @@ export class HotkeyManager {
   }
 
   private onKeyUp(ev: UiohookKeyboardEvent): void {
-    if (ev.keycode !== this.holdKeycode) return;
-    this.holdPressed = false;
-    if (this.holdTimer) {
-      // 按住不满判定时长：误触，撤掉待启动的录音
-      clearTimeout(this.holdTimer);
-      this.holdTimer = null;
-      return;
-    }
-    if (this.holdActive) {
-      this.holdActive = false;
-      this.handlers.onHoldEnd();
-    }
+    if (ev.keycode === this.holdKeycode) this.releaseHold();
   }
 }

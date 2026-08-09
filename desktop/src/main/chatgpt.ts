@@ -37,20 +37,29 @@ interface TranscribeResponse {
 let bridge: BrowserWindow | null = null;
 let loaded = false;
 
-/** 从 JWT 里取 ChatGPT 账号 ID；解析失败返回 null，请求照常发（服务端会用默认账号） */
-function accountIdFromToken(token: string): string | null {
+function tokenPayload(token: string): Record<string, unknown> | null {
   const payload = token.split(".")[1];
   if (!payload) return null;
   try {
     const json: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (typeof json !== "object" || json === null) return null;
-    const auth = (json as Record<string, unknown>)["https://api.openai.com/auth"];
-    if (typeof auth !== "object" || auth === null) return null;
-    const id = (auth as Record<string, unknown>)["chatgpt_account_id"];
-    return typeof id === "string" ? id : null;
+    return typeof json === "object" && json !== null ? (json as Record<string, unknown>) : null;
   } catch {
     return null;
   }
+}
+
+/** 从 JWT 里取 ChatGPT 账号 ID；解析失败返回 null，请求照常发（服务端会用默认账号） */
+function accountIdFromToken(token: string): string | null {
+  const auth = tokenPayload(token)?.["https://api.openai.com/auth"];
+  if (typeof auth !== "object" || auth === null) return null;
+  const id = (auth as Record<string, unknown>)["chatgpt_account_id"];
+  return typeof id === "string" ? id : null;
+}
+
+/** JWT 已过期（或即将过期）时不再使用，避免拿死 token 报“未登录”误导用户 */
+function tokenExpired(token: string): boolean {
+  const exp = tokenPayload(token)?.["exp"];
+  return typeof exp === "number" && exp * 1000 < Date.now() + 60_000;
 }
 
 /**
@@ -64,7 +73,7 @@ function authFromCodexHome(): ChatgptAuth | null {
   try {
     const parsed = JSON.parse(readFileSync(path, "utf8")) as CodexAuthFile;
     const token = parsed.tokens?.access_token;
-    if (!token) return null;
+    if (!token || tokenExpired(token)) return null;
     return {
       accessToken: token,
       accountId: parsed.tokens?.account_id ?? accountIdFromToken(token),
@@ -115,7 +124,7 @@ async function authFromLoginWindow(wait: boolean): Promise<ChatgptAuth | null> {
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)`,
     )) as SessionResponse | null;
-    if (!data?.accessToken) return null;
+    if (!data?.accessToken || tokenExpired(data.accessToken)) return null;
     return {
       accessToken: data.accessToken,
       accountId: data.account?.id ?? accountIdFromToken(data.accessToken),
@@ -126,8 +135,18 @@ async function authFromLoginWindow(wait: boolean): Promise<ChatgptAuth | null> {
   }
 }
 
+/** 全部可用登录态，按优先级排列；前面的 401 时逐个降级重试 */
+async function resolveAuths(wait: boolean): Promise<ChatgptAuth[]> {
+  const auths: ChatgptAuth[] = [];
+  const codex = authFromCodexHome();
+  if (codex) auths.push(codex);
+  const login = await authFromLoginWindow(wait);
+  if (login) auths.push(login);
+  return auths;
+}
+
 async function resolveAuth(wait: boolean): Promise<ChatgptAuth | null> {
-  return authFromCodexHome() ?? (await authFromLoginWindow(wait));
+  return (await resolveAuths(wait))[0] ?? null;
 }
 
 /** 设置页用：是否已有可用登录态（Codex 本机登录或应用内登录任一即可） */
@@ -190,14 +209,24 @@ async function post(auth: ChatgptAuth, wav: Buffer, language: string): Promise<s
  * 令牌仅在本次调用的内存里，不写日志、不写配置、不出本机。
  */
 export async function transcribeViaChatgpt(wav: Buffer, language: string): Promise<string> {
-  const auth = await resolveAuth(true);
-  if (!auth) throw new Error(t("error.chatgptNotLoggedIn"));
-  return post(auth, wav, language);
+  const auths = await resolveAuths(true);
+  if (auths.length === 0) throw new Error(t("error.chatgptNotLoggedIn"));
+  let lastError: unknown = null;
+  // 本机 Codex 的 token 可能失效但文件还在：401 时降级到应用内登录态重试
+  for (const auth of auths) {
+    try {
+      return await post(auth, wav, language);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof Error) || error.message !== t("error.chatgptNotLoggedIn")) throw error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 /** 设置页“测试转写”：传一段极短静音，把真实失败原因（含 HTTP 状态）显示出来 */
 export async function testChatgpt(): Promise<{ ok: boolean; detail: string }> {
-  const auth = await resolveAuth(false);
+  const auth = await resolveAuth(true);
   if (!auth) return { ok: false, detail: t("error.chatgptNotLoggedIn") };
   try {
     const silence = Buffer.alloc(44 + 8000);

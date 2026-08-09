@@ -176,7 +176,12 @@ function pushSettings(): void {
 }
 
 // isHidden 会给自启命令行追加 --hidden，配合“开机时不展示应用窗口”判断静默启动
-const autoLaunch = new AutoLaunch({ name: "SpeakType", isHidden: true });
+// 绿色版解压在临时目录运行，自启必须指向 exe 本体（PORTABLE_EXECUTABLE_FILE）
+const autoLaunch = new AutoLaunch({
+  name: "SpeakType",
+  path: process.env["PORTABLE_EXECUTABLE_FILE"] || undefined,
+  isHidden: true,
+});
 
 async function applyLaunchAtLogin(enabled: boolean): Promise<void> {
   try {
