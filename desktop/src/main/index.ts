@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
+import pkg from "../../package.json";
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
@@ -165,7 +166,7 @@ function registerIpc(): void {
     holdKeyChoices: HOLD_KEY_CHOICES,
     toggleKeyChoices: TOGGLE_KEY_CHOICES,
     status: dictation.status(),
-    version: app.getVersion(),
+    version: app.isPackaged ? app.getVersion() : pkg.version,
     systemLocale: app.getLocale() || "zh-CN",
   }));
   ipcMain.handle("settings:update", async (_e, patch: Partial<Settings>) => {
