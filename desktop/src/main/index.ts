@@ -1,5 +1,6 @@
+// 必须最先 import：在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
+import "./migrate";
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
@@ -35,6 +36,7 @@ import {
 } from "./windows";
 
 log.initialize();
+log.info(`SpeakType ${app.isPackaged ? app.getVersion() : pkg.version} starting (packaged=${app.isPackaged})`);
 
 // 崩溃兜底：任何未捕获异常都落日志并弹窗告知日志位置，避免静默秒退
 process.on("uncaughtException", (error) => {
@@ -52,32 +54,6 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (reason) => {
   log.error("unhandledRejection", reason);
 });
-
-// productName 曾为中文（生成过乱码 userData 目录），改为纯 ASCII 后把旧目录的配置迁移过来
-function migrateLegacyUserData(): void {
-  try {
-    const userData = app.getPath("userData");
-    if (existsSync(join(userData, "speaktype.json"))) return;
-    const appData = app.getPath("appData");
-    const legacy = readdirSync(appData).find(
-      (name) =>
-        name !== "SpeakType" &&
-        name.startsWith("SpeakType ") &&
-        existsSync(join(appData, name, "speaktype.json")),
-    );
-    if (!legacy) {
-      log.info("no legacy userData to migrate");
-      return;
-    }
-    // 只迁移配置文件本身，避免把 Cache/GPUCache 等运行时目录一并拷过来
-    mkdirSync(userData, { recursive: true });
-    cpSync(join(appData, legacy, "speaktype.json"), join(userData, "speaktype.json"));
-    log.info("migrated legacy userData from", legacy);
-  } catch (error) {
-    log.warn("legacy userData migration failed", error);
-  }
-}
-migrateLegacyUserData();
 
 // 隐藏自验参数：--test-crash 人为触发未捕获异常，用于验收崩溃兜底链路
 if (process.argv.includes("--test-crash")) {
