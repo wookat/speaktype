@@ -61,6 +61,10 @@ export const en: LocaleDict = {
   "personas.duplicate": "Duplicate & edit",
   "personas.edit": "Edit",
   "personas.delete": "Delete",
+  "personas.appRules": "Auto-switch persona by app",
+  "personas.appRulesHint": "When you start speaking, SpeakType checks the foreground window and uses the matching persona (e.g. concise in VS Code, casual in chat apps). Only the process name and window title are read — never window contents, and never leaves your machine.",
+  "personas.appRuleAdd": "Add rule",
+  "personas.appRulePlaceholder": "Contains, e.g. code.exe / slack / gmail",
   "personas.inUse": "In use",
   "personas.use": "Use",
 

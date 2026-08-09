@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   remoteMicMode: "lan",
   // 官方公共中转（Cloudflare Worker，音频直通不存储）；用户可换成自部署地址
   remoteRelayUrl: "https://speaktype-relay.wookat520.workers.dev",
+  appPersonas: [],
 };
 
 interface Schema {

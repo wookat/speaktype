@@ -685,6 +685,72 @@ function Personas(props: {
         </button>
       </div>
 
+      {/* 按应用自动切人设：录音起手时读前台进程名/窗口标题，命中即用该人设润色 */}
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium">{t("personas.appRules")}</div>
+            <div className="mt-1 text-xs text-slate-500">{t("personas.appRulesHint")}</div>
+          </div>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-50"
+            onClick={() =>
+              props.update({
+                appPersonas: [
+                  ...props.settings.appPersonas,
+                  { match: "", personaId: props.localized[0]?.id ?? "default" },
+                ],
+              })
+            }
+          >
+            {t("personas.appRuleAdd")}
+          </button>
+        </div>
+        {props.settings.appPersonas.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {props.settings.appPersonas.map((rule, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                  placeholder={t("personas.appRulePlaceholder")}
+                  value={rule.match}
+                  onChange={(e) => {
+                    const next = props.settings.appPersonas.map((r, j) =>
+                      j === i ? { ...r, match: e.target.value } : r,
+                    );
+                    props.update({ appPersonas: next });
+                  }}
+                />
+                <select
+                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                  value={rule.personaId}
+                  onChange={(e) => {
+                    const next = props.settings.appPersonas.map((r, j) =>
+                      j === i ? { ...r, personaId: e.target.value } : r,
+                    );
+                    props.update({ appPersonas: next });
+                  }}
+                >
+                  {props.localized.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="text-xs text-slate-400 hover:text-red-500"
+                  onClick={() =>
+                    props.update({ appPersonas: props.settings.appPersonas.filter((_, j) => j !== i) })
+                  }
+                >
+                  {t("personas.delete")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="mt-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">{t("personas.mine")}</h1>
         <div className="text-xs text-slate-400">{t("personas.subtitle")}</div>

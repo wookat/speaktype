@@ -61,6 +61,10 @@ export const ko: LocaleDict = {
   "personas.duplicate": "복제하여 편집",
   "personas.edit": "편집",
   "personas.delete": "삭제",
+  "personas.appRules": "앱별 페르소나 자동 전환",
+  "personas.appRulesHint": "말하기 시작 시 포그라운드 창을 확인해 일치하는 페르소나로 다듬습니다. 프로세스 이름과 창 제목만 읽으며 모두 로컬에서 처리됩니다.",
+  "personas.appRuleAdd": "규칙 추가",
+  "personas.appRulePlaceholder": "포함 문자, 예: code.exe / slack / gmail",
   "personas.inUse": "사용 중",
   "personas.use": "사용",
 

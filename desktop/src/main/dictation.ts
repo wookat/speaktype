@@ -5,6 +5,7 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
+import { personaForActiveApp } from "./activeapp";
 import {
   pcmToWav,
   preconnectAsr,
@@ -103,6 +104,8 @@ export class Dictation {
   private busy = false;
   private pendingEnd: "stop" | "cancel" | null = null;
   private startedAt = 0;
+  /** 本次录音起手时前台应用命中的人设；录完再读窗口就已经切走了，必须在按下时取 */
+  private appPersonaId: string | null = null;
   private lastWarmUp = 0;
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
@@ -222,6 +225,7 @@ export class Dictation {
     this.allFrames = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
+    this.appPersonaId = personaForActiveApp(getSettings().appPersonas);
     this.maxPeak = 0;
     this.voicedMs = 0;
     const settings = getSettings();
@@ -395,7 +399,10 @@ export class Dictation {
     if (!session) return;
     this.session = null;
     const settings = getSettings();
-    const persona = localizePersona(findPersona(settings.personaId), translator());
+    const persona = localizePersona(
+      findPersona(this.appPersonaId ?? settings.personaId),
+      translator(),
+    );
     const durationMs = Date.now() - this.startedAt;
 
     this.deps.recorder()?.webContents.send("recorder:stop");

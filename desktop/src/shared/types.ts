@@ -70,6 +70,14 @@ export interface Settings {
   remoteMicMode: "lan" | "relay";
   /** 公网中转服务地址，如 https://speaktype-relay.xxx.workers.dev */
   remoteRelayUrl: string;
+  /** 按当前应用自动切人设；匹配前台进程名或窗口标题，先命中先用 */
+  appPersonas: AppPersonaRule[];
+}
+
+export interface AppPersonaRule {
+  /** 子串匹配，如 "code.exe"、"wechat"、"gmail" */
+  match: string;
+  personaId: string;
 }
 
 /** 手机麦克风服务状态，主进程推给设置页 */
