@@ -1256,6 +1256,11 @@ function VoiceTab(props: {
               ? t("settings.asrChatgptHint")
               : t("settings.asrHint")}
       </div>
+      {(s.asrProvider === "chatgpt" || s.asrProvider === "doubao") && (
+        <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {t("settings.thirdPartyRisk")}
+        </div>
+      )}
       <Row label={t("settings.asrProvider")}>
         <select
           className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"

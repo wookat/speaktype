@@ -134,6 +134,7 @@ export const zhTW: LocaleDict = {
     "複用你自己的 ChatGPT 登入態，呼叫它自帶的語音輸入介面，不需要 API Key（免費帳號也可用）。令牌只留在本機瀏覽器實例裡；整句識別，錄音中不顯示即時文字。",
   "settings.chatgptLogin": "登入 ChatGPT",
   "settings.chatgptLoginHint": "在應用內打開 chatgpt.com 登入一次，之後直接按住熱鍵說話即可。",
+  "settings.thirdPartyRisk": "此通道沿用你自己的帳號存取對方網頁端的非公開介面，可能不符合其服務條款，帳號風險請自行判斷。介意可改用內建離線識別或自帶 API Key 的服務。",
   "settings.chatgptTest": "測試轉寫",
   "settings.chatgptTestHint": "上傳一段靜音驗證登入態與介面是否可用，失敗會顯示具體原因。",
   "settings.chatgptCodexHint": "若本機已登入 Codex CLI / Codex Desktop，會自動沿用它的登入態，無需再登入。",

@@ -109,4 +109,4 @@ npm run pack       # NSIS 安装包 → release/
 
 [MIT](LICENSE) © wookat & SpeakType contributors
 
-> SpeakType 是独立的开源项目，与智谱、字节跳动等公司无关；「豆包」为字节跳动商标，本项目仅指用户自有账号会话的接入方式。
+> SpeakType 是独立的开源项目，与 OpenAI、字节跳动、智谱等公司无关。「豆包」「ChatGPT 网页转写」两个通道复用用户自己在本机的登录态访问对方网页端的非公开接口，可能不符合其服务条款，账号风险由使用者自行判断；不介意可用，介意请改用内置离线识别或自带 API Key 的服务。完整说明见 [DISCLAIMER.md](DISCLAIMER.md)。

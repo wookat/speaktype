@@ -147,6 +147,7 @@ export const ko: LocaleDict = {
     "본인의 ChatGPT 로그인 상태를 그대로 사용해 ChatGPT 음성 입력 엔드포인트를 호출합니다. API 키가 필요 없으며 무료 계정에서도 동작합니다. 토큰은 로컬 브라우저 세션에만 남습니다. 발화 전체를 인식하므로 녹음 중 실시간 자막은 없습니다.",
   "settings.chatgptLogin": "ChatGPT 로그인",
   "settings.chatgptLoginHint": "앱 안에서 chatgpt.com 에 한 번 로그인하면 이후에는 단축키를 누른 채 말하기만 하면 됩니다.",
+  "settings.thirdPartyRisk": "이 공급자는 사용자 본인 계정으로 비공개 엔드포인트를 호출합니다. 해당 서비스 약관에 어긋날 수 있으며 계정 관련 위험은 사용자가 판단해야 합니다. 걱정된다면 내장 오프라인 인식이나 본인 API 키 서비스를 사용하세요.",
   "settings.chatgptTest": "전사 테스트",
   "settings.chatgptTestHint": "짧은 무음을 업로드해 로그인 상태와 엔드포인트를 확인합니다. 실패하면 원인을 표시합니다.",
   "settings.chatgptCodexHint": "이 컴퓨터에 Codex CLI / Codex Desktop 이 로그인되어 있으면 해당 세션을 자동으로 재사용합니다.",
