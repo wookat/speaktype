@@ -233,12 +233,14 @@ export async function startRemoteMic(): Promise<RemoteMicInfo> {
   });
 
   sockets.on("connection", (ws) => {
+    info.clients = sockets.clients.size;
     d.onClients(sockets.clients.size);
     ws.on("close", () => {
       if (activeWs === ws) {
         activeWs = null;
         d.cancel();
       }
+      info.clients = sockets.clients.size;
       d.onClients(sockets.clients.size);
     });
     ws.on("message", (data, isBinary) => {
