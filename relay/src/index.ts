@@ -14,6 +14,13 @@ export interface Env {
 
 const ROOM_RE = /^[0-9a-f]{12}$/;
 
+/** 直通转发：workerd 里二进制帧可能以 Blob 到达，直接 send(Blob) 会被字符串化，需转回 ArrayBuffer */
+async function forward(dst: WebSocket | null, data: unknown): Promise<void> {
+  if (dst?.readyState !== WebSocket.READY_STATE_OPEN) return;
+  if (typeof data === "string" || data instanceof ArrayBuffer) dst.send(data);
+  else dst.send(await (data as Blob).arrayBuffer());
+}
+
 export class Room {
   private desktop: WebSocket | null = null;
   private phone: WebSocket | null = null;
@@ -34,13 +41,18 @@ export class Room {
       this.desktop?.close(1000, "replaced");
       this.desktop = server;
       server.addEventListener("message", (ev) => {
-        if (this.phone?.readyState === WebSocket.READY_STATE_OPEN) this.phone.send(ev.data);
+        void forward(this.phone, ev.data);
       });
       server.addEventListener("close", () => {
         if (this.desktop === server) this.desktop = null;
         this.phone?.close(1000, "desktop left");
       });
-      if (this.phone) server.send(JSON.stringify({ type: "peer", connected: true }));
+      if (this.phone) {
+        server.send(JSON.stringify({ type: "peer", connected: true }));
+        if (this.phone.readyState === WebSocket.READY_STATE_OPEN) {
+          this.phone.send(JSON.stringify({ type: "peer", connected: true }));
+        }
+      }
     } else {
       if (this.phone?.readyState === WebSocket.READY_STATE_OPEN) {
         server.close(1008, "room occupied");
@@ -48,7 +60,7 @@ export class Room {
       }
       this.phone = server;
       server.addEventListener("message", (ev) => {
-        if (this.desktop?.readyState === WebSocket.READY_STATE_OPEN) this.desktop.send(ev.data);
+        void forward(this.desktop, ev.data);
       });
       server.addEventListener("close", () => {
         if (this.phone === server) this.phone = null;
@@ -58,6 +70,7 @@ export class Room {
       });
       if (this.desktop?.readyState === WebSocket.READY_STATE_OPEN) {
         this.desktop.send(JSON.stringify({ type: "peer", connected: true }));
+        server.send(JSON.stringify({ type: "peer", connected: true }));
       }
     }
     return new Response(null, { status: 101, webSocket: client });
