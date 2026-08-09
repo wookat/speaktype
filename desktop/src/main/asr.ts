@@ -69,6 +69,20 @@ export async function testAsr(settings: Settings): Promise<{ ok: boolean; detail
 }
 
 /**
+ * 抢跑建联：按下热键瞬间对转写服务发一次极小请求，把 DNS/TCP/TLS 握手提前做完，
+ * undici 连接池会复用这条连接，松手后的正式上传省掉冷启动往返。
+ */
+export function preconnectAsr(settings: Settings): void {
+  if (!/^https?:\/\//.test(settings.asrBaseUrl)) return;
+  try {
+    const origin = new URL(settings.asrBaseUrl).origin;
+    void fetch(origin, { method: "HEAD" }).catch(() => undefined);
+  } catch {
+    /* URL 非法时静默跳过，正式请求会给出可读报错 */
+  }
+}
+
+/**
  * OpenAI 兼容整句转写（POST /audio/transcriptions）：录音期本地缓存 PCM，
  * 松手后一次性上传识别。没有流式 partial，但任何 Whisper 类服务都能直接接。
  */

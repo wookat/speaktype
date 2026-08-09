@@ -30,6 +30,7 @@ import {
   setCustomPersonas,
   setOnboarded,
   setSettings,
+  updateHistoryItem,
 } from "./store";
 import {
   createMainWindow,
@@ -225,6 +226,10 @@ function registerIpc(): void {
     return getHistory();
   });
   ipcMain.handle("history:retry", (_e, id: string) => dictation.retryHistory(id));
+  ipcMain.handle("history:correct", (_e, id: string, text: string) => {
+    updateHistoryItem(id, { text });
+    return getHistory();
+  });
   ipcMain.handle("stats:get", () => getStats());
   ipcMain.handle("doubao:ready", () => hasAppKey());
   ipcMain.handle("doubao:activate", () => showBridge());

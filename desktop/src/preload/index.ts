@@ -30,6 +30,8 @@ const api = {
   clearHistory: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:clear"),
   deleteHistory: (ids: string[]): Promise<HistoryItem[]> => ipcRenderer.invoke("history:delete", ids),
   retryHistory: (id: string): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("history:retry", id),
+  correctHistory: (id: string, text: string): Promise<HistoryItem[]> =>
+    ipcRenderer.invoke("history:correct", id, text),
   stats: (): Promise<Stats> => ipcRenderer.invoke("stats:get"),
   doubaoReady: (): Promise<boolean> => ipcRenderer.invoke("doubao:ready"),
   activateDoubao: (): Promise<void> => ipcRenderer.invoke("doubao:activate"),
