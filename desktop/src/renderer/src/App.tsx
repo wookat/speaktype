@@ -174,15 +174,15 @@ export default function App() {
   return (
     <div className="flex h-full text-slate-800">
       {/* 顶部拖拽区 + 窗口按钮 */}
-      <div className="drag fixed inset-x-0 top-0 z-50 flex h-10 items-center justify-end pr-2">
+      <div className="drag fixed inset-x-0 top-0 z-50 flex h-10 items-stretch justify-end">
         <button
-          className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
+          className="no-drag flex w-12 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600"
           onClick={() => void api.minimize()}
         >
           <Minus className="h-4 w-4" />
         </button>
         <button
-          className="no-drag flex h-8 w-10 items-center justify-center rounded text-slate-400 hover:bg-red-100 hover:text-red-500"
+          className="no-drag flex w-12 items-center justify-center text-slate-400 hover:bg-red-500 hover:text-white"
           onClick={() => void api.close()}
         >
           <X className="h-4 w-4" />
@@ -546,7 +546,7 @@ function History(props: {
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-2 text-sm">{item.text}</div>
+                    <div className="selectable mt-2 text-sm">{item.text}</div>
                   )}
                   {suggest?.id === item.id && (
                     <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700">

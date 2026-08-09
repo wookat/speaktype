@@ -10,6 +10,21 @@ body,
 body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.selectable {
+  user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .drag {
