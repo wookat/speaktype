@@ -74,11 +74,12 @@ async function start(deviceId = ""): Promise<void> {
   } catch (error) {
     await stop();
     const name = error instanceof DOMException ? error.name : "";
+    // 发送错误码，由主进程按界面语言翻译成提示文案
     api.recorder.sendError(
       name === "NotAllowedError"
-        ? "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风"
+        ? "@micDenied"
         : name === "NotFoundError"
-          ? "没有找到麦克风设备"
+          ? "@micNotFound"
           : error instanceof Error
             ? error.message
             : String(error),

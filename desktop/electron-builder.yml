@@ -28,7 +28,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: SpeakType 语音输入法
+  shortcutName: SpeakType
   artifactName: SpeakType-Setup-${version}.exe
 electronDownload:
   cache: .electron-cache

@@ -931,7 +931,7 @@ function VoiceTab(props: {
     setTestState("testing");
     void api.testAsr().then(({ ok, detail }) => {
       setTestState(ok ? "ok" : "fail");
-      setTestDetail(detail);
+      setTestDetail(detail.slice(0, 120));
     });
   };
   return (
@@ -1063,7 +1063,7 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
     setTestState("testing");
     void api.testPolish().then(({ ok, detail }) => {
       setTestState(ok ? "ok" : "fail");
-      setTestDetail(detail);
+      setTestDetail(detail.slice(0, 120));
     });
   };
 

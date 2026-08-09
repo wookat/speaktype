@@ -1,4 +1,5 @@
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
+import { cpSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
@@ -51,6 +52,34 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (reason) => {
   log.error("unhandledRejection", reason);
 });
+
+// productName 曾为中文（生成过乱码 userData 目录），改为纯 ASCII 后把旧目录的配置迁移过来
+function migrateLegacyUserData(): void {
+  try {
+    const userData = app.getPath("userData");
+    if (existsSync(join(userData, "config.json"))) return;
+    const appData = app.getPath("appData");
+    const legacy = readdirSync(appData).find(
+      (name) =>
+        name !== "SpeakType" &&
+        name.startsWith("SpeakType ") &&
+        existsSync(join(appData, name, "config.json")),
+    );
+    if (!legacy) return;
+    cpSync(join(appData, legacy), userData, { recursive: true, force: false });
+    log.info("migrated legacy userData from", legacy);
+  } catch (error) {
+    log.warn("legacy userData migration failed", error);
+  }
+}
+migrateLegacyUserData();
+
+// 隐藏自验参数：--test-crash 人为触发未捕获异常，用于验收崩溃兜底链路
+if (process.argv.includes("--test-crash")) {
+  setTimeout(() => {
+    throw new Error("SpeakType --test-crash: intentional crash for verifying the crash guard");
+  }, 3000);
+}
 
 const single = app.requestSingleInstanceLock();
 if (!single) app.quit();
@@ -253,7 +282,13 @@ function registerIpc(): void {
   });
   ipcMain.on("recorder:error", (_e, message: string) => {
     dictation.cancel();
-    showToast(t("toast.micUnavailable"), message);
+    const body =
+      message === "@micDenied"
+        ? t("error.micDenied")
+        : message === "@micNotFound"
+          ? t("error.micNotFound")
+          : message;
+    showToast(t("toast.micUnavailable"), body);
   });
 }
 
