@@ -78,7 +78,7 @@ function Panel() {
         <span
           className={`text-[13px] ${
             status?.state === "error"
-              ? "line-clamp-2 max-w-[340px] leading-snug text-red-300"
+              ? "line-clamp-3 max-w-[420px] leading-snug text-red-300"
               : "max-w-[240px] truncate text-slate-200"
           }`}
         >

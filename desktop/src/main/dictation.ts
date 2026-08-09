@@ -78,12 +78,14 @@ export class Dictation {
     this.message = message;
     this.deps.broadcast(this.status());
     if (state === "error") {
+      // 可重试的失败多给些时间让用户读完提示并按键重试
+      const linger = this.lastFailed ? 15000 : 5000;
       setTimeout(() => {
         if (this.state === "error") {
           this.partial = "";
           this.report("idle");
         }
-      }, 5000);
+      }, linger);
     }
   }
 
