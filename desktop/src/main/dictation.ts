@@ -23,6 +23,8 @@ const VAD_MIN_RECORD_MS = 1500;
 const NO_SPEECH_PEAK = 250;
 // 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
+// 防幻听：整段录音里有声帧（peak≥900）不足 3 帧（约 60ms）时视为无有效人声，不送 ASR
+const MIN_VOICED_FRAMES = 3;
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
@@ -79,6 +81,7 @@ export class Dictation {
   private mode: "hold" | "toggle" = "hold";
   private lastVoiceAt = 0;
   private maxPeak = 0;
+  private voicedFrames = 0;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -151,7 +154,10 @@ export class Dictation {
     if (peak > this.maxPeak) this.maxPeak = peak;
     const now = Date.now();
     const voiced = peak >= VAD_SILENCE_PEAK;
-    if (voiced) this.lastVoiceAt = now;
+    if (voiced) {
+      this.lastVoiceAt = now;
+      this.voicedFrames++;
+    }
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     if (voiced) return;
     const settings = getSettings();
@@ -174,6 +180,7 @@ export class Dictation {
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
     this.maxPeak = 0;
+    this.voicedFrames = 0;
     const settings = getSettings();
 
     try {
@@ -280,6 +287,7 @@ export class Dictation {
       this.session = session;
       this.startedAt = Date.now() - failed.durationMs;
       this.maxPeak = failed.maxPeak;
+      this.voicedFrames = MIN_VOICED_FRAMES; // 该段音频进入过 ASR，已通过有声门槛
       this.allFrames = failed.frames;
       await this.finalize();
     } catch (error) {
@@ -346,8 +354,10 @@ export class Dictation {
     this.unmute();
 
     // 整段录音接近数字静音：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
-    log.info(`dictation finalize: durationMs=${durationMs} maxPeak=${this.maxPeak}`);
-    if (this.maxPeak < NO_SPEECH_PEAK) {
+    log.info(
+      `dictation finalize: durationMs=${durationMs} maxPeak=${this.maxPeak} voicedFrames=${this.voicedFrames}`,
+    );
+    if (this.maxPeak < NO_SPEECH_PEAK || this.voicedFrames < MIN_VOICED_FRAMES) {
       session.cancel();
       this.busy = false;
       this.partial = "";
