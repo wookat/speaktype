@@ -10,7 +10,6 @@ import { t } from "./i18n";
 /** 内置离线识别：管理 whisper.cpp whisper-server 子进程与 ggml 模型下载 */
 
 const PORT = 18717;
-const IDLE_EXIT_MS = 5 * 60 * 1000;
 
 export const LOCAL_MODELS = [
   { id: "tiny-q5_1", size: "32MB" },
@@ -34,10 +33,10 @@ function serverExe(): string {
   return join(dir, "whisper-server.exe");
 }
 
+// 输入法全天高频短用：server 首次拉起后常驻到 App 退出，避免反复 ~2s 模型冷启动
 let proc: ChildProcess | null = null;
 let procModel = "";
 let ready: Promise<void> | null = null;
-let idleTimer: NodeJS.Timeout | null = null;
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 let notify: ((s: LocalModelStatus) => void) | null = null;
@@ -107,14 +106,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   return { ...status };
 }
 
-function bumpIdle(): void {
-  if (idleTimer) clearTimeout(idleTimer);
-  idleTimer = setTimeout(() => stopLocalServer(), IDLE_EXIT_MS);
-}
-
 export function stopLocalServer(): void {
-  if (idleTimer) clearTimeout(idleTimer);
-  idleTimer = null;
   if (proc) {
     proc.kill();
     proc = null;
@@ -164,6 +156,5 @@ export async function ensureLocalServer(model: string): Promise<string> {
 
   const readyP = ready;
   await readyP;
-  bumpIdle();
   return `http://127.0.0.1:${PORT}/inference`;
 }

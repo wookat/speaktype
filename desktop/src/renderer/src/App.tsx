@@ -59,6 +59,8 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
     model: "FunAudioLLM/SenseVoiceSmall",
   },
   { id: "groq", label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+  { id: "fireworks", label: "Fireworks", baseUrl: "https://api.fireworks.ai/inference/v1", model: "whisper-v3-turbo" },
+  { id: "mistral", label: "Mistral Voxtral", baseUrl: "https://api.mistral.ai/v1", model: "voxtral-mini-latest" },
   { id: "local", label: "本地 Whisper (faster-whisper-server)", baseUrl: "http://127.0.0.1:8000/v1", model: "Systran/faster-whisper-small" },
 ];
 

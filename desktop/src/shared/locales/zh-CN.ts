@@ -129,7 +129,7 @@ export const zhCN = {
   "settings.asrLocalHint":
     "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件；整句识别，录音中不显示实时文字。",
   "settings.localModel": "本地模型",
-  "settings.localModelHint": "模型越大越准、速度越慢。中文推荐 base-q5_1。",
+  "settings.localModelHint": "模型越大越准、速度越慢。tiny 最快但易错；base 均衡；中文推荐 small。",
   "settings.localModelDownload": "下载模型",
   "settings.localModelDownloading": "下载中 {{progress}}%",
   "settings.localModelReady": "模型已就绪",
@@ -193,6 +193,7 @@ export const zhCN = {
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
+  "error.retryHint": "刚才的录音已保留，再按一次热键立即重试",
   "error.localServerFailed": "本地识别引擎启动失败：请从「关于 → 打开日志目录」查看 main.log 并反馈",
   "error.micDenied": "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风",
   "error.micNotFound": "没有找到麦克风设备",

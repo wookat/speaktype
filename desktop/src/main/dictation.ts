@@ -21,6 +21,9 @@ const VAD_MIN_RECORD_MS = 1500;
 const NO_SPEECH_PEAK = 250;
 // 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
+// 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
+const RETRY_WINDOW_MS = 60000;
+const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
 
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
@@ -42,6 +45,8 @@ export class Dictation {
   private mode: "hold" | "toggle" = "hold";
   private lastVoiceAt = 0;
   private maxPeak = 0;
+  private allFrames: Int16Array[] = [];
+  private lastFailed: { frames: Int16Array[]; durationMs: number; maxPeak: number; at: number } | null = null;
 
   constructor(private deps: DictationDeps) {}
 
@@ -90,6 +95,7 @@ export class Dictation {
   pushPcm(frame: Int16Array): void {
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
+    if (this.allFrames.length < RETRY_MAX_FRAMES) this.allFrames.push(frame);
     this.checkAutoStop(frame);
   }
 
@@ -116,11 +122,13 @@ export class Dictation {
 
   async start(mode: "hold" | "toggle" = "hold"): Promise<void> {
     if (this.busy) return;
+    if (this.state === "error" && (await this.retryLast())) return;
     this.busy = true;
     this.mode = mode;
     this.pendingEnd = null;
     this.partial = "";
     this.buffered = [];
+    this.allFrames = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
     this.maxPeak = 0;
@@ -211,6 +219,35 @@ export class Dictation {
     return false;
   }
 
+  /** 错误态下再按一次热键：用保留的音频重走识别管线，不重新录音 */
+  private async retryLast(): Promise<boolean> {
+    const failed = this.lastFailed;
+    if (!failed || Date.now() - failed.at > RETRY_WINDOW_MS || failed.frames.length === 0) return false;
+    this.busy = true;
+    this.partial = "";
+    const settings = getSettings();
+    try {
+      this.report("connecting");
+      const session =
+        settings.asrProvider === "openai"
+          ? startOpenAiAsrSession(settings)
+          : settings.asrProvider === "local"
+            ? startLocalAsrSession(settings)
+            : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      for (const frame of failed.frames) session.pushPcm(frame);
+      this.session = session;
+      this.startedAt = Date.now() - failed.durationMs;
+      this.maxPeak = failed.maxPeak;
+      this.allFrames = failed.frames;
+      await this.finalize();
+    } catch (error) {
+      this.busy = false;
+      this.session = null;
+      this.report("error", error instanceof Error ? error.message : String(error));
+    }
+    return true;
+  }
+
   private async finalize(): Promise<void> {
     const session = this.session;
     if (!session) return;
@@ -239,10 +276,13 @@ export class Dictation {
     try {
       raw = await session.finish();
     } catch (error) {
+      this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now() };
       this.busy = false;
-      this.report("error", error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      this.report("error", `${message} · ${t("error.retryHint")}`);
       return;
     }
+    this.lastFailed = null;
 
     if (durationMs < settings.minRecordMs || !raw) {
       this.busy = false;

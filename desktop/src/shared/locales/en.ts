@@ -133,7 +133,7 @@ export const en: LocaleDict = {
   "settings.asrLocalHint":
     "Runs fully on this machine — no internet, no account, no API key; audio never leaves this computer. Download a model file once; whole-utterance recognition, no live text while recording.",
   "settings.localModel": "Local model",
-  "settings.localModelHint": "Bigger models are more accurate but slower. base-q5_1 recommended.",
+  "settings.localModelHint": "Bigger models are more accurate but slower. tiny = fastest, base = balanced, small recommended for Chinese.",
   "settings.localModelDownload": "Download model",
   "settings.localModelDownloading": "Downloading {{progress}}%",
   "settings.localModelReady": "Model ready",
@@ -198,6 +198,7 @@ export const en: LocaleDict = {
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
   "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.localModelMissing": "Local model not downloaded yet: open Settings → Speech recognition and click \"Download model\"",
+  "error.retryHint": "Recording kept — press the hotkey again to retry",
   "error.localServerFailed": "Local recognition engine failed to start: check main.log via About → Open log folder and report the issue",
   "error.micDenied": "Microphone access denied: allow desktop apps to use the microphone in Windows Settings → Privacy",
   "error.micNotFound": "No microphone found",
