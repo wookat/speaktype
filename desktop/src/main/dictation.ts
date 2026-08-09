@@ -249,7 +249,7 @@ export class Dictation {
           : settings.asrProvider === "chatgpt"
             ? Promise.resolve(startChatgptAsrSession(settings))
             : settings.asrProvider === "local"
-              ? Promise.resolve(startLocalAsrSession(settings))
+              ? Promise.resolve(startLocalAsrSession(settings, (text) => this.setPartial(text)))
               : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 

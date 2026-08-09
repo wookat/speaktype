@@ -14,6 +14,11 @@ function toSimplified(text: string): string {
 }
 
 const SAMPLE_RATE = 16000;
+// 离线流式字幕：每 1s 重解一次已录音频，1s 起步、超过 20s 停止预览（重解耗时随长度线性增长）
+const PARTIAL_TICK_MS = 250;
+const PARTIAL_INTERVAL_MS = 1000;
+const PARTIAL_MIN_SAMPLES = SAMPLE_RATE;
+const PARTIAL_MAX_SAMPLES = SAMPLE_RATE * 20;
 
 function transcriptionsUrl(baseUrl: string): string {
   const base = baseUrl.replace(/\/$/, "");
@@ -160,7 +165,10 @@ function pcmToFloat32(frames: Int16Array[]): Float32Array {
  * 内置离线识别：SenseVoice 走进程内 sherpa-onnx，whisper 模型懒启动本地
  * whisper-server 并 POST /inference。两者都不联网、不需密钥，整句识别。
  */
-export function startLocalAsrSession(settings: Settings): DoubaoSession {
+export function startLocalAsrSession(
+  settings: Settings,
+  onPartial?: (text: string) => void,
+): DoubaoSession {
   const frames: Int16Array[] = [];
   let cancelled = false;
   const model = settings.localModel || "base-q5_1";
@@ -168,15 +176,44 @@ export function startLocalAsrSession(settings: Settings): DoubaoSession {
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
   if (model !== SENSEVOICE) ensureLocalServer(model).catch(() => undefined);
 
+  // SenseVoice 是整句模型，流式字幕靠定时重解已录部分近似；解码同步阻塞，
+  // 所以只在音频够长且不过长时做，超过上限就停掉预览留给最终识别
+  let timer: NodeJS.Timeout | null = null;
+  if (onPartial && model === SENSEVOICE) {
+    let nextAt = 0;
+    timer = setInterval(() => {
+      const samples = frames.reduce((sum, f) => sum + f.length, 0);
+      if (samples < PARTIAL_MIN_SAMPLES || samples > PARTIAL_MAX_SAMPLES) return;
+      if (Date.now() < nextAt) return;
+      try {
+        const started = Date.now();
+        const text = transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
+        const cost = Date.now() - started;
+        // 重解是同步阻塞的，句子越长越慢；按上次耗时拉开间隔，别把主进程占满
+        nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, cost * 3);
+        if (text) onPartial(text);
+      } catch {
+        /* 预览失败无所谓，最终识别会给出真正的报错 */
+        nextAt = Date.now() + PARTIAL_INTERVAL_MS * 5;
+      }
+    }, PARTIAL_TICK_MS);
+  }
+  const stopTimer = (): void => {
+    if (timer) clearInterval(timer);
+    timer = null;
+  };
+
   return {
     pushPcm(frame: Int16Array): void {
       if (!cancelled) frames.push(frame);
     },
     cancel(): void {
       cancelled = true;
+      stopTimer();
       frames.length = 0;
     },
     async finish(): Promise<string> {
+      stopTimer();
       if (cancelled || frames.length === 0) return "";
       if (model === SENSEVOICE) {
         // SenseVoice 本就输出简体，不再过繁→简以免误伤专名
