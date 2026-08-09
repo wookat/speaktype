@@ -30,7 +30,7 @@ function serverExe(): string {
   const dir = app.isPackaged
     ? join(process.resourcesPath, "whisper")
     : join(fileURLToPath(new URL(".", import.meta.url)), "../../resources/whisper");
-  return join(dir, "whisper-server.exe");
+  return join(dir, process.platform === "win32" ? "whisper-server.exe" : "whisper-server");
 }
 
 // 输入法全天高频短用：server 首次拉起后常驻到 App 退出，避免反复 ~2s 模型冷启动

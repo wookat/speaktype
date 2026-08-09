@@ -63,6 +63,8 @@ export interface Settings {
 
 /** VAD 增强包下载/就绪状态，主进程推给设置页 */
 export interface VadStatus {
+  /** 当前平台是否支持增强包（目前仅 Windows x64） */
+  supported: boolean;
   downloaded: boolean;
   downloading: boolean;
   /** 0-100 */
