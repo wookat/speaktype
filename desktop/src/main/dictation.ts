@@ -23,9 +23,9 @@ const VAD_MIN_RECORD_MS = 1500;
 const NO_SPEECH_PEAK = 250;
 // 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
-// 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足 60ms 时视为无有效人声，不送 ASR
+// 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足门槛时视为无有效人声，不送 ASR
 const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
-const MIN_VOICED_MS = 60;
+const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
