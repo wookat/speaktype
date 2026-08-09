@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enhancedVad: false,
   keepFailedAudio: true,
   captionLines: 3,
+  remoteMicEnabled: false,
 };
 
 interface Schema {

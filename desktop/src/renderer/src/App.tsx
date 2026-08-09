@@ -28,7 +28,16 @@ import { api, type InitPayload, type MicDevice } from "./api";
 import { getT, type Translator } from "./i18n";
 import { localizePersona } from "../../shared/personas";
 import { UI_LANGUAGES } from "../../shared/i18n";
-import type { HistoryItem, LocalModelStatus, Persona, Settings, Stats, StatusPayload, VadStatus } from "../../shared/types";
+import type {
+  HistoryItem,
+  LocalModelStatus,
+  Persona,
+  RemoteMicInfo,
+  Settings,
+  Stats,
+  StatusPayload,
+  VadStatus,
+} from "../../shared/types";
 
 type Page = "home" | "history" | "personas" | "dictionary" | "settings";
 
@@ -1104,7 +1113,48 @@ function MicSection(props: { t: Translator; s: Settings; update: (patch: Partial
           </div>
         </div>
       )}
+      <RemoteMicRows t={t} s={s} update={update} />
     </section>
+  );
+}
+
+/** 手机当麦克风：开关 + 扫码二维码 + 连接状态 */
+function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
+  const { t, s, update } = props;
+  const [remote, setRemote] = useState<RemoteMicInfo | null>(null);
+
+  useEffect(() => {
+    void api.remoteMicInfo().then(setRemote);
+    return api.onRemoteMic(setRemote);
+  }, []);
+
+  return (
+    <>
+      <Toggle
+        label={t("settings.remoteMic")}
+        hint={t("settings.remoteMicHint")}
+        value={s.remoteMicEnabled}
+        onChange={(v) => update({ remoteMicEnabled: v })}
+      />
+      {s.remoteMicEnabled && remote?.error && (
+        <div className="ml-4 mt-1 border-l-2 border-red-100 pl-4 text-xs text-red-500">{remote.error}</div>
+      )}
+      {s.remoteMicEnabled && remote?.running && (
+        <div className="ml-4 mt-2 flex items-start gap-4 border-l-2 border-slate-100 pl-4">
+          <img src={remote.qrDataUrl} alt="" className="h-[130px] w-[130px] rounded-lg border border-slate-200" />
+          <div className="text-xs leading-relaxed text-slate-400">
+            <div className="font-medium text-slate-600">{t("settings.remoteMicScan")}</div>
+            <div className="mt-1">{t("settings.remoteMicSteps")}</div>
+            <div className="selectable mt-2 break-all text-slate-500">{remote.url}</div>
+            <div className="mt-1">
+              {remote.clients > 0
+                ? t("settings.remoteMicConnected", { n: String(remote.clients) })
+                : t("settings.remoteMicWaiting")}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

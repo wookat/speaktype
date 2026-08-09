@@ -200,7 +200,8 @@ export class Dictation {
     if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
   }
 
-  async start(mode: "hold" | "toggle" = "hold"): Promise<void> {
+  /** remote=true 时音频由手机端经 remotemic 推流，不开本机麦克风 */
+  async start(mode: "hold" | "toggle" = "hold", remote = false): Promise<void> {
     if (this.busy) return;
     if (this.state === "error" && (await this.retryLast())) return;
     // 全新录音：丢弃上一次失败的重试上下文，成功后不得吞掉历史里的失败条目
@@ -239,7 +240,7 @@ export class Dictation {
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
-      this.deps.recorder()?.webContents.send("recorder:start", { deviceId: settings.micDeviceId });
+      if (!remote) this.deps.recorder()?.webContents.send("recorder:start", { deviceId: settings.micDeviceId });
       this.report("recording");
 
       this.session = await opening;

@@ -114,6 +114,12 @@ export const en: LocaleDict = {
   "settings.micTesting": "Testing…",
   "settings.micStop": "Stop",
   "settings.micTestHint": "Speak into the microphone — the level bar below should react.",
+  "settings.remoteMic": "Phone as microphone",
+  "settings.remoteMicHint": "No mic on this PC? Scan a QR code with your phone, hold to talk, and text lands at the PC cursor (audio stays on your LAN).",
+  "settings.remoteMicScan": "Scan with your phone",
+  "settings.remoteMicSteps": "Phone and PC must be on the same Wi-Fi. On first open the browser warns about an untrusted certificate (LAN self-signed) — choose “Proceed”; then hold the round button to talk, release to type.",
+  "settings.remoteMicWaiting": "Waiting for a phone to connect…",
+  "settings.remoteMicConnected": "{{n}} device(s) connected",
 
   "settings.asr": "Speech recognition service",
   "settings.asrHint":
