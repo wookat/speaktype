@@ -1,0 +1,42 @@
+name: Auto merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Wait for checks then merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          for i in $(seq 1 60); do
+            runs=$(gh api "repos/$REPO/commits/$SHA/check-runs" --paginate \
+              --jq '[.check_runs[] | select(.name != "auto-merge")]')
+            total=$(echo "$runs" | jq 'length')
+            pending=$(echo "$runs" | jq '[.[] | select(.status != "completed")] | length')
+            failed=$(echo "$runs" | jq '[.[] | select(.status == "completed" and (.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped"))] | length')
+            echo "checks: total=$total pending=$pending failed=$failed"
+            if [ "$failed" -gt 0 ]; then
+              echo "A required check failed; not merging."
+              exit 0
+            fi
+            if [ "$pending" -eq 0 ]; then
+              gh pr merge "$PR" --repo "$REPO" --squash --delete-branch || exit 0
+              echo "merged"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "Timed out waiting for checks; not merging."
