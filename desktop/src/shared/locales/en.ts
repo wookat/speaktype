@@ -234,6 +234,7 @@ export const en: LocaleDict = {
     "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
   "error.chatgptNotReady": "The ChatGPT page hasn't finished loading — retry shortly, or click “Sign in to ChatGPT” in Settings first",
   "error.chatgptNotLoggedIn": "Not signed in to ChatGPT: click “Sign in to ChatGPT” in Settings → Speech recognition",
+  "error.chatgptBlocked": "ChatGPT refused this request (403): the endpoint is unavailable for your account or region, or was blocked by abuse protection. Switch to built-in offline recognition or a free SiliconFlow model.",
   "error.noAsrConfig": "Speech recognition not configured: enter the transcription API Base URL and API Key in Settings",
   "error.localModelMissing": "Local model not downloaded yet: open Settings → Speech recognition and click \"Download model\"",
   "error.badUrl": "URL must start with http:// or https://",

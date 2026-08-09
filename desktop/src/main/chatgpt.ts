@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { BrowserWindow } from "electron";
+import { type BrowserWindow, session } from "electron";
 import { t } from "./i18n";
 import { createChatgptWindow } from "./windows";
 
@@ -110,15 +110,15 @@ async function authFromLoginWindow(wait: boolean): Promise<ChatgptAuth | null> {
   }
   if (!loaded) return null;
   try {
-    const session = (await bridge.webContents.executeJavaScript(
+    const data = (await bridge.webContents.executeJavaScript(
       `fetch("/api/auth/session", { credentials: "include" })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)`,
     )) as SessionResponse | null;
-    if (!session?.accessToken) return null;
+    if (!data?.accessToken) return null;
     return {
-      accessToken: session.accessToken,
-      accountId: session.account?.id ?? accountIdFromToken(session.accessToken),
+      accessToken: data.accessToken,
+      accountId: data.account?.id ?? accountIdFromToken(data.accessToken),
       source: "login",
     };
   } catch {
@@ -135,20 +135,47 @@ export async function chatgptLoggedIn(): Promise<boolean> {
   return (await resolveAuth(false)) !== null;
 }
 
+/** 手搓 multipart：Electron 的 net.fetch 不接受 FormData 对象作为 body */
+function multipart(wav: Buffer, language: string): { body: Buffer; contentType: string } {
+  const boundary = `----speaktype${Date.now().toString(16)}`;
+  const parts: Buffer[] = [];
+  if (language) {
+    parts.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\n${language}\r\n`,
+      ),
+    );
+  }
+  parts.push(
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="speech.wav"\r\n` +
+        `Content-Type: audio/wav\r\n\r\n`,
+    ),
+    wav,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  );
+  return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${boundary}` };
+}
+
 async function post(auth: ChatgptAuth, wav: Buffer, language: string): Promise<string> {
-  const form = new FormData();
-  form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
-  if (language) form.append("language", language);
+  const { body, contentType } = multipart(wav, language);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${auth.accessToken}`,
     originator: ORIGINATOR,
     "User-Agent": USER_AGENT,
+    "Content-Type": contentType,
   };
   if (auth.accountId) headers["ChatGPT-Account-Id"] = auth.accountId;
 
-  const res = await fetch(ENDPOINT, { method: "POST", headers, body: form });
-  if (res.status === 401 || res.status === 403) throw new Error(t("error.chatgptNotLoggedIn"));
+  // 走 Chromium 的网络栈而不是 Node fetch：系统代理、Cookie、TLS 指纹都与登录窗口一致
+  const res = await session.defaultSession.fetch(ENDPOINT, {
+    method: "POST",
+    headers,
+    body: new Uint8Array(body),
+  });
+  if (res.status === 401) throw new Error(t("error.chatgptNotLoggedIn"));
+  if (res.status === 403) throw new Error(t("error.chatgptBlocked"));
   if (!res.ok) {
     const body = (await res.text()).slice(0, 160);
     throw new Error(`ChatGPT ASR HTTP ${res.status} ${body}`);
@@ -159,7 +186,7 @@ async function post(auth: ChatgptAuth, wav: Buffer, language: string): Promise<s
 
 /**
  * 用本机已有的 ChatGPT 登录态把 WAV 发给它自带的转写接口。
- * 请求由主进程直发（需要桌面客户端的 originator/User-Agent，页面内 fetch 改不了这两项），
+ * 请求由主进程用 Chromium 网络栈发（需要桌面客户端的 originator/User-Agent，页面内 fetch 改不了这两项），
  * 令牌仅在本次调用的内存里，不写日志、不写配置、不出本机。
  */
 export async function transcribeViaChatgpt(wav: Buffer, language: string): Promise<string> {

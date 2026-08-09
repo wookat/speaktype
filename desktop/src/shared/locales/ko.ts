@@ -234,6 +234,7 @@ export const ko: LocaleDict = {
     "음성 인식이 설정되지 않았습니다: Doubao 에 로그인해 음성 입력을 한 번 사용하거나 설정에서 App Key 를 입력하세요",
   "error.chatgptNotReady": "ChatGPT 페이지가 아직 로드되지 않았습니다: 잠시 후 다시 시도하거나 설정에서 “ChatGPT 로그인”을 누르세요",
   "error.chatgptNotLoggedIn": "ChatGPT 에 로그인되지 않았습니다: 설정 → 음성 인식에서 “ChatGPT 로그인”을 누르세요",
+  "error.chatgptBlocked": "ChatGPT가 이 요청을 거부했습니다(403). 해당 엔드포인트를 계정 또는 지역에서 사용할 수 없거나 보호 정책에 의해 차단되었습니다. 내장 오프라인 인식이나 SiliconFlow 무료 모델을 사용하세요.",
   "error.noAsrConfig": "음성 인식이 설정되지 않았습니다: 설정에서 전사 API 의 Base URL 과 API 키를 입력하세요",
   "error.localModelMissing": "로컬 모델이 아직 다운로드되지 않았습니다: 설정 → 음성 인식 → \"모델 다운로드\" 를 클릭하세요",
   "error.badUrl": "URL 은 http:// 또는 https:// 로 시작해야 합니다",

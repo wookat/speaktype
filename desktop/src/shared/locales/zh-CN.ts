@@ -227,6 +227,7 @@ export const zhCN = {
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
   "error.chatgptNotReady": "ChatGPT 页面还没加载完：请稍后重试，或先在设置里点“登录 ChatGPT”",
   "error.chatgptNotLoggedIn": "未登录 ChatGPT：请在设置 → 语音识别里点“登录 ChatGPT”完成登录",
+  "error.chatgptBlocked": "ChatGPT 拒绝了这次请求（403）：该接口对你的账号或地区不可用，或被风控拦截。可改用内置离线识别或 SiliconFlow 免费模型。",
   "error.noAsrConfig": "尚未配置语音识别：请在设置中填写转写接口的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型还没下载：请在设置 → 语音识别中点“下载模型”",
   "error.badUrl": "URL 需以 http:// 或 https:// 开头",

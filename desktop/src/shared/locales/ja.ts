@@ -234,6 +234,7 @@ export const ja: LocaleDict = {
     "音声認識が未設定です：Doubao にログインして音声入力を一度使うか、設定で App Key を入力してください",
   "error.chatgptNotReady": "ChatGPT ページの読み込みが未完了です：しばらくして再試行するか、設定で「ChatGPT にログイン」を押してください",
   "error.chatgptNotLoggedIn": "ChatGPT に未ログインです：設定 → 音声認識で「ChatGPT にログイン」を押してください",
+  "error.chatgptBlocked": "ChatGPT がこのリクエストを拒否しました（403）。このエンドポイントはお使いのアカウントまたは地域では利用できないか、保護機能によりブロックされました。内蔵オフライン認識や SiliconFlow の無料モデルをお使いください。",
   "error.noAsrConfig": "音声認識が未設定です：設定で文字起こし API の Base URL と API キーを入力してください",
   "error.localModelMissing": "ローカルモデルが未ダウンロードです：設定 → 音声認識 →「モデルをダウンロード」をクリックしてください",
   "error.badUrl": "URL は http:// または https:// で始まる必要があります",

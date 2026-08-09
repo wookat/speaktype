@@ -207,6 +207,7 @@ export const zhTW: LocaleDict = {
   "error.noAppKey": "尚未配置語音識別：請在設定中登入豆包並用一次它自帶的語音輸入，或手動填寫 App Key",
   "error.chatgptNotReady": "ChatGPT 頁面還沒載入完：請稍後重試，或先在設定裡點「登入 ChatGPT」",
   "error.chatgptNotLoggedIn": "未登入 ChatGPT：請在設定 → 語音識別裡點「登入 ChatGPT」完成登入",
+  "error.chatgptBlocked": "ChatGPT 拒絕了這次請求（403）：該介面對你的帳號或地區不可用，或被風控攔截。可改用內建離線識別或 SiliconFlow 免費模型。",
   "error.noAsrConfig": "尚未配置語音識別：請在設定中填寫轉寫介面的 Base URL 和 API Key",
   "error.localModelMissing": "本地模型還沒下載：請在設定 → 語音識別中點“下載模型”",
   "error.badUrl": "URL 需以 http:// 或 https:// 開頭",
