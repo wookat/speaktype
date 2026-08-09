@@ -126,6 +126,7 @@ export const zhTW: LocaleDict = {
   "settings.captionLines": "懸浮條字幕高度",
   "settings.captionLinesHint": "即時字幕最多顯示的行數，超出自動滾動到最新。",
   "settings.captionLinesOption": "{{n}} 行",
+  "settings.captionLinesOption1": "{{n}} 行",
   "settings.keepFailedAudio": "保留失敗錄音",
   "settings.keepFailedAudioHint": "識別失敗時把錄音儲存在本機，可從歷史頁重試（最多 20 段 / 7 天 / 50MB，不會上傳）。",
   "settings.enhancedVad": "增強人聲檢測（Silero VAD）",

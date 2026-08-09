@@ -140,6 +140,7 @@ export const ko: LocaleDict = {
   "settings.captionLines": "자막 높이",
   "settings.captionLinesHint": "플로팅 바 실시간 자막의 최대 줄 수. 초과 시 최신 내용으로 스크롤됩니다.",
   "settings.captionLinesOption": "{{n}} 줄",
+  "settings.captionLinesOption1": "{{n}} 줄",
   "settings.keepFailedAudio": "실패한 녹음 보관",
   "settings.keepFailedAudioHint":
     "인식에 실패한 녹음을 이 PC 에 보관하여 기록에서 재시도할 수 있습니다 (최대 20개 / 7일 / 50MB, 업로드되지 않음).",
