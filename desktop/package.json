@@ -1,9 +1,9 @@
 {
   "name": "speaktype-desktop",
   "productName": "SpeakType",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": true,
-  "description": "æŒ‰ä½å¿«æ·é”®è¯´è¯ï¼Œæ¾æ‰‹æŠŠæ–‡å­—è½åˆ°ä»»æ„ Windows ç¨‹åºçš„å…‰æ ‡å¤„",
+  "description": "按住快捷键说话，松手把文字落到任意 Windows 程序的光标处",
   "author": "SpeakType",
   "main": "out/main/index.js",
   "type": "module",
