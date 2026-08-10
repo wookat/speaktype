@@ -110,6 +110,12 @@ export const zhCN = {
   "settings.micTesting": "测试中…",
   "settings.micStop": "停止",
   "settings.micTestHint": "对着麦克风说话，下面的音量条应有反应。",
+  "settings.remoteMic": "手机当麦克风",
+  "settings.remoteMicHint": "电脑没有麦克风时，用手机扫码按住说话，文字落到电脑光标处（音频仅经局域网）。",
+  "settings.remoteMicScan": "手机扫码连接",
+  "settings.remoteMicSteps": "手机与电脑需在同一 Wi-Fi。首次打开会提示证书不受信任（局域网自签证书），选择“继续访问”即可；页面中按住圆钮说话、松手落字。",
+  "settings.remoteMicWaiting": "等待手机连接…",
+  "settings.remoteMicConnected": "已连接 {{n}} 台设备",
 
   "settings.asr": "语音识别服务",
   "settings.asrHint":

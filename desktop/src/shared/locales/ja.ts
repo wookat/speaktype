@@ -114,6 +114,12 @@ export const ja: LocaleDict = {
   "settings.micTesting": "テスト中…",
   "settings.micStop": "停止",
   "settings.micTestHint": "マイクに向かって話すと、下のレベルバーが反応します。",
+  "settings.remoteMic": "スマホをマイクに",
+  "settings.remoteMicHint": "PC にマイクがないとき、スマホで QR を読み取り長押しで話すと、PC のカーソル位置に文字が入力されます（音声は LAN 内のみ）。",
+  "settings.remoteMicScan": "スマホで QR をスキャン",
+  "settings.remoteMicSteps": "スマホと PC は同じ Wi-Fi に接続してください。初回は証明書の警告（LAN 自己署名）が出ますが「続行」を選択。ページの丸ボタンを長押しで話し、離すと入力されます。",
+  "settings.remoteMicWaiting": "スマホの接続を待っています…",
+  "settings.remoteMicConnected": "{{n}} 台接続中",
 
   "settings.asr": "音声認識サービス",
   "settings.asrHint":

@@ -20,6 +20,13 @@ import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus,
 import { downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
+  broadcastToPhones,
+  configureRemoteMic,
+  remoteMicInfo,
+  startRemoteMic,
+  stopRemoteMic,
+} from "./remotemic";
+import {
   clearHistory,
   deleteHistory,
   getHistory,
@@ -83,6 +90,7 @@ function broadcast(payload: StatusPayload): void {
   for (const win of [mainWin, panelWin]) {
     if (win && !win.isDestroyed()) win.webContents.send("status", payload);
   }
+  broadcastToPhones(payload);
   if (!panelWin || panelWin.isDestroyed()) return;
   if (payload.state === "idle" && !payload.partial) panelWin.hide();
   else if (!panelWin.isVisible()) {
@@ -105,6 +113,34 @@ const dictation = new Dictation({
   broadcast,
   showToast,
 });
+
+configureRemoteMic({
+  start: () => dictation.start("hold", true),
+  stop: () => dictation.stop(),
+  cancel: () => dictation.cancel(),
+  pushPcm: (frame) => dictation.pushPcm(frame),
+  isRecording: () => dictation.isRecording(),
+  onClients: (count) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", { ...remoteMicInfo(), clients: count });
+  },
+});
+
+/** 启停手机麦克风服务，失败时把错误推给设置页 */
+async function syncRemoteMic(enabled: boolean): Promise<void> {
+  try {
+    if (enabled) await startRemoteMic();
+    else await stopRemoteMic();
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", remoteMicInfo());
+  } catch (error) {
+    log.warn("remote mic failed", error);
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send("remotemic:info", {
+        ...remoteMicInfo(),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
 
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
@@ -208,6 +244,7 @@ function registerIpc(): void {
     applyHotkeys(next);
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
     if ("uiLanguage" in patch) refreshTrayMenu();
+    if ("remoteMicEnabled" in patch) await syncRemoteMic(next.remoteMicEnabled);
     pushSettings();
     return next;
   });
@@ -245,6 +282,7 @@ function registerIpc(): void {
   ipcMain.handle("vad:status", () => vadStatus());
   ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
+  ipcMain.handle("remotemic:info", () => remoteMicInfo());
   ipcMain.handle("asr:test", () => testAsr(getSettings()));
   ipcMain.handle("mic:list", async () => {
     const win = recorderWin;
@@ -313,6 +351,7 @@ void app.whenReady().then(() => {
   hotkeys.start();
   void applyLaunchAtLogin(settings.launchAtLogin);
   if (hasAppKey()) ensureBridge();
+  if (settings.remoteMicEnabled) void syncRemoteMic(true);
 
   mainWin.on("close", (ev) => {
     // 关主窗口 = 收进托盘继续待命，从托盘退出才真正退出
@@ -328,6 +367,7 @@ app.on("before-quit", () => {
   quitting = true;
   hotkeys.stop();
   stopLocalServer();
+  void stopRemoteMic();
 });
 
 app.on("window-all-closed", () => {

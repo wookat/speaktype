@@ -61,6 +61,17 @@ export interface Settings {
   keepFailedAudio: boolean;
   /** 悬浮条实时字幕最大行数（1/3/6），超出滚动到最新 */
   captionLines: number;
+  /** 手机当麦克风：局域网 HTTPS+WS 服务，手机扫码按住说话、文字落到电脑光标处 */
+  remoteMicEnabled: boolean;
+}
+
+/** 手机麦克风服务状态，主进程推给设置页 */
+export interface RemoteMicInfo {
+  running: boolean;
+  url: string;
+  qrDataUrl: string;
+  clients: number;
+  error?: string;
 }
 
 /** VAD 增强包下载/就绪状态，主进程推给设置页 */
