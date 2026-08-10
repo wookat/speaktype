@@ -141,7 +141,8 @@ export const zhCN = {
   "settings.remoteMicModeRelay": "公网中转",
   "settings.remoteRelayUrl": "中转服务地址",
   "settings.remoteRelayUrlHint": "默认为官方中转（音频直通不存储），可换成你自部署的 Cloudflare Worker 地址。",
-  "settings.remoteMicStepsRelay": "手机扫码打开页面（任意网络可用），按住圆钮说话、松手落字；链接含随机房间号，仅本次有效。",
+  "settings.remoteMicStepsRelay": "手机扫码打开页面（任意网络可用），按住圆钮说话、松手落字；页面可「添加到主屏幕」当 App 用，也可在 App 里手输下面的配对码。",
+  "settings.remoteMicPairCode": "配对码（手机 App 里手输即可连接）：",
 
   "settings.asr": "语音识别服务",
   "settings.asrHint":

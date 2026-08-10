@@ -23,6 +23,7 @@ import { testPolish } from "./polish";
 import {
   broadcastToPhones,
   configureRemoteMic,
+  newPairCode,
   remoteMicInfo,
   startRemoteMic,
   stopRemoteMic,
@@ -131,8 +132,12 @@ configureRemoteMic({
 async function syncRemoteMic(enabled: boolean): Promise<void> {
   try {
     await stopRemoteMic();
-    const s = getSettings();
-    if (enabled) await startRemoteMic(s.remoteMicMode, s.remoteRelayUrl);
+    let s = getSettings();
+    if (enabled && s.remoteMicMode === "relay" && !s.remoteRelayRoom) {
+      // 首次开启中转时生成固定配对码，之后每次都用同一个，手机 App 才能一直连上
+      s = setSettings({ remoteRelayRoom: newPairCode() });
+    }
+    if (enabled) await startRemoteMic(s.remoteMicMode, s.remoteRelayUrl, s.remoteRelayRoom);
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", remoteMicInfo());
   } catch (error) {
     log.warn("remote mic failed", error);

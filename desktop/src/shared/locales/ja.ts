@@ -145,7 +145,8 @@ export const ja: LocaleDict = {
   "settings.remoteMicModeRelay": "インターネット中継",
   "settings.remoteRelayUrl": "中継サーバー URL",
   "settings.remoteRelayUrlHint": "既定は公式中継（音声は中継のみで保存されません）。自分の Cloudflare Worker に差し替えも可。",
-  "settings.remoteMicStepsRelay": "スマホで QR を読み取り（どのネットワークでも可）、丸ボタンを押しながら話し、離すと入力。リンクのルーム番号は今回限り有効。",
+  "settings.remoteMicStepsRelay": "スマホで QR を読み取り（どのネットワークでも可）、丸ボタンを押しながら話し、離すと入力。ホーム画面に追加すればアプリのように使え、下のペアリングコード入力でも接続できます。",
+  "settings.remoteMicPairCode": "ペアリングコード（スマホアプリに入力）：",
 
   "settings.asr": "音声認識サービス",
   "settings.asrHint":

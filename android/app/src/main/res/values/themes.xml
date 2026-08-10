@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <style name="Theme.SpeakType" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <item name="android:statusBarColor">#17171C</item>
+    <item name="android:navigationBarColor">#17171C</item>
+    <item name="android:windowBackground">#17171C</item>
+  </style>
+</resources>

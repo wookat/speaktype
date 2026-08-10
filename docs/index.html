@@ -52,7 +52,9 @@ kbd{background:#1e2338;border:1px solid var(--border);border-radius:6px;padding:
     <p class="tagline">你说，它写 —— 开源 AI 语音输入法</p>
     <p class="sub">按住 <kbd>RightCtrl</kbd> 说话，松手，文字落到任何程序的光标处。识别引擎、AI 润色、热词纠错全部由你定义，密钥与语音永不离开你的掌控。</p>
     <div class="btns">
-      <a class="btn btn-primary" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.3.0.exe">⬇ 下载 Windows 版 v0.3.0</a>
+      <a class="btn btn-primary" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.9.0.exe">⬇ 下载 Windows 版 v0.9.0</a>
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-0.9.0-portable.exe">绿色免安装版</a>
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-0.9.0.apk">📱 安卓麦克风 App</a>
       <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">GitHub 源码 →</a>
     </div>
     <p class="note">Windows 10/11 x64 · MIT 开源 · macOS 版开发中</p>
@@ -81,6 +83,9 @@ kbd{background:#1e2338;border:1px solid var(--border);border-radius:6px;padding:
       <div class="card"><span class="emoji">📖</span><h3>热词纠错</h3><p>词典加上人名、产品名，同音/近音误字自动替换；历史页手动纠错一键学进词典。</p></div>
       <div class="card"><span class="emoji">🧠</span><h3>增强人声检测</h3><p>可选 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准。</p></div>
       <div class="card"><span class="emoji">🔁</span><h3>失败可重试</h3><p>识别失败的录音保留在本机，历史页一键重试，不用重说。</p></div>
+      <div class="card"><span class="emoji">📱</span><h3>手机当麦克风</h3><p>台式机没麦克风？手机扫码即用；同一 Wi-Fi 走局域网直连，异地走中转。</p></div>
+      <div class="card"><span class="emoji">✍️</span><h3>选中即改写</h3><p>选一段文字按住 <kbd>F8</kbd> 说「翻译成英文」「改得正式一点」，松手直接替换选区。</p></div>
+      <div class="card"><span class="emoji">📈</span><h3>越用越准</h3><p>落字后你手改对的词自动学进词典，同样的错不会再犯第二次。</p></div>
     </div>
   </div>
 </section>
@@ -91,7 +96,7 @@ kbd{background:#1e2338;border:1px solid var(--border);border-radius:6px;padding:
     <div class="engines">
       <div class="engine"><span class="tag">零密钥</span><h3>豆包语音</h3><p style="color:var(--muted)">复用你自己登录的 doubao.com 会话做流式识别，App Key 自动获取，装完即用。</p></div>
       <div class="engine"><span class="tag">自带 Key</span><h3>OpenAI 兼容接口</h3><p style="color:var(--muted)">填 Base URL + Key 即可，内置 Whisper / SiliconFlow / Groq / Fireworks / Mistral / 阿里云百炼预设。</p></div>
-      <div class="engine"><span class="tag">完全离线</span><h3>whisper.cpp 本地识别</h3><p style="color:var(--muted)">应用内一键下载模型，完全本机识别——不联网、不注册、零密钥。</p></div>
+      <div class="engine"><span class="tag">完全离线</span><h3>本地识别（SenseVoice / whisper.cpp）</h3><p style="color:var(--muted)">应用内一键下载模型，完全本机识别——不联网、不注册、零密钥；SenseVoice 中文实测每句 0.27 秒、自带标点。</p></div>
     </div>
   </div>
 </section>
@@ -112,12 +117,23 @@ kbd{background:#1e2338;border:1px solid var(--border);border-radius:6px;padding:
 </section>
 
 <section>
+  <div class="container">
+    <h2>手机当麦克风（别家都没有）</h2>
+    <div class="grid">
+      <div class="card"><span class="emoji">📷</span><h3>扫码即用</h3><p>桌面端设置里开「手机当麦克风」，手机扫二维码打开页面，按住圆钮说话，文字落到电脑光标处。零安装，iPhone / Android 通用。</p></div>
+      <div class="card"><span class="emoji">🏠</span><h3>装到主屏幕 / 安卓 App</h3><p>手机页面是可安装 PWA：点「添加到主屏幕」就有图标、全屏、无地址栏；安卓另提供 APK 直装。下次打开自动连回上次配对的电脑。</p></div>
+      <div class="card"><span class="emoji">🌐</span><h3>局域网 / 公网都行</h3><p>同一 Wi-Fi 走局域网直连（更快更私密），不在一起时走中转（音频直通不落盘，中转服务开源可自部署）。</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
   <div class="container two">
     <img src="assets/screenshot-personas.png" alt="人设风格" />
     <div>
       <h2 style="text-align:left">5 种界面语言</h2>
       <p style="color:var(--muted)">简体中文、繁體中文、English、日本語、한국어——跟随系统或手动切换，即时生效。语言包架构支持社区继续添加。</p>
-      <p style="margin-top:24px"><a class="btn btn-primary" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.3.0.exe">立即下载</a></p>
+      <p style="margin-top:24px"><a class="btn btn-primary" href="https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.9.0.exe">立即下载</a></p>
     </div>
   </div>
 </section>

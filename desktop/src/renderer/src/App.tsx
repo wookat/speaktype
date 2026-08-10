@@ -1363,6 +1363,12 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
               {s.remoteMicMode === "relay" ? t("settings.remoteMicStepsRelay") : t("settings.remoteMicSteps")}
             </div>
             <div className="selectable mt-2 break-all text-slate-500">{remote.url}</div>
+            {remote.pairCode && (
+              <div className="mt-1">
+                {t("settings.remoteMicPairCode")}
+                <span className="selectable ml-1 font-mono tracking-widest text-slate-600">{remote.pairCode}</span>
+              </div>
+            )}
             <div className="mt-1">
               {remote.clients > 0
                 ? t("settings.remoteMicConnected", { n: String(remote.clients) })
