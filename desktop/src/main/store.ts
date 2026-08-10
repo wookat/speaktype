@@ -35,6 +35,8 @@ export const DEFAULT_SETTINGS: Settings = {
   keepFailedAudio: true,
   captionLines: 3,
   remoteMicEnabled: false,
+  remoteMicMode: "lan",
+  remoteRelayUrl: "",
 };
 
 interface Schema {

@@ -116,6 +116,13 @@ export const zhCN = {
   "settings.remoteMicSteps": "手机与电脑需在同一 Wi-Fi。首次打开会提示证书不受信任（局域网自签证书），选择“继续访问”即可；页面中按住圆钮说话、松手落字。",
   "settings.remoteMicWaiting": "等待手机连接…",
   "settings.remoteMicConnected": "已连接 {{n}} 台设备",
+  "settings.remoteMicMode": "连接方式",
+  "settings.remoteMicModeHint": "同一 Wi-Fi 选局域网直连；不同网络选公网中转（需自部署中转服务，见仓库 relay/ 一键部署）。",
+  "settings.remoteMicModeLan": "局域网直连",
+  "settings.remoteMicModeRelay": "公网中转",
+  "settings.remoteRelayUrl": "中转服务地址",
+  "settings.remoteRelayUrlHint": "你自己部署的 Cloudflare Worker 地址，音频直通不存储。",
+  "settings.remoteMicStepsRelay": "手机扫码打开页面（任意网络可用），按住圆钮说话、松手落字；链接含随机房间号，仅本次有效。",
 
   "settings.asr": "语音识别服务",
   "settings.asrHint":

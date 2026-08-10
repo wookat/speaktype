@@ -120,6 +120,13 @@ export const ja: LocaleDict = {
   "settings.remoteMicSteps": "スマホと PC は同じ Wi-Fi に接続してください。初回は証明書の警告（LAN 自己署名）が出ますが「続行」を選択。ページの丸ボタンを長押しで話し、離すと入力されます。",
   "settings.remoteMicWaiting": "スマホの接続を待っています…",
   "settings.remoteMicConnected": "{{n}} 台接続中",
+  "settings.remoteMicMode": "接続方式",
+  "settings.remoteMicModeHint": "同じ Wi-Fi なら LAN 直接接続、別ネットワークならインターネット中継（リポジトリの relay/ でセルフデプロイ）。",
+  "settings.remoteMicModeLan": "LAN 直接接続",
+  "settings.remoteMicModeRelay": "インターネット中継",
+  "settings.remoteRelayUrl": "中継サーバー URL",
+  "settings.remoteRelayUrlHint": "自分でデプロイした Cloudflare Worker。音声は中継のみで保存されません。",
+  "settings.remoteMicStepsRelay": "スマホで QR を読み取り（どのネットワークでも可）、丸ボタンを押しながら話し、離すと入力。リンクのルーム番号は今回限り有効。",
 
   "settings.asr": "音声認識サービス",
   "settings.asrHint":

@@ -47,3 +47,12 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - `C:\Users\Administrator\tts\mock_whisper.mjs` now matches the exact path `/v1/audio/transcriptions` (404 otherwise) — usable for both the success path and the HTTP-404 error branch of the ASR test-connection button. It can also return arbitrary text from `C:\Users\Administrator\tts\mock_text.txt` (useful for long/punctuation test cases).
 - Clicking buttons on the floating panel: always `mouse_move` to the target first, then `click` — a direct click sometimes doesn't land in the panel window at all. To verify a click actually hit, inject a CDP click probe into panel.html and check for events.
 - In hands-free/hold modes, VAD auto-ends ~2s after sample.wav's speech finishes (history items ~10s). When testing cancel/long-hold behaviors, separate the auto-stop timing from your own action, or a working cancel will look broken.
+
+## Remote mic relay (relay/ Cloudflare Worker) local testing
+
+- `npx wrangler dev` in `relay/` needs Node >= 22 (VM default 20.19 fails). Prepend `C:\hostedtoolcache\node\24.0.1\x64` to PATH first. Serves http://localhost:8787.
+- The desktop app connects with `wss://` only. Local wrangler has no TLS: run the TLS-terminating proxy `C:\Users\Administrator\tts\wss_proxy.mjs` (8443 -> 8787, reuses the app's self-signed cert) and launch Electron with `NODE_TLS_REJECT_UNAUTHORIZED=0`; point the relay URL setting at `https://127.0.0.1:8443`.
+- `C:\Users\Administrator\tts\relay_pipe_test.mjs` objectively verifies Worker pass-through (binary fidelity, start/stop/status/peer, room-occupied close 1008) against ws://localhost:8787 without the desktop app.
+- CDP `Runtime.evaluate` with top-level `const` fails on re-run — wrap injected snippets in an IIFE.
+- Real phone mousedown on the Chrome phone page steals foreground; use CDP `Input.dispatchMouseEvent` for hold/release so pasted text lands in the target window.
+- A real relay deployment exists at `https://speaktype-relay.wookat520.workers.dev` — use it directly for production-path relay tests (no local wrangler/TLS proxy needed). Do NOT pass `--ignore-certificate-errors` to the fake-phone Chrome when targeting workers.dev, so the real TLS chain is verified too.
