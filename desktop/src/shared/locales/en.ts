@@ -95,6 +95,8 @@ export const en: LocaleDict = {
   "settings.mouseForward": "Mouse side button (forward)",
   "settings.mouseMiddle": "Middle mouse button",
   "settings.holdMouseHint": "Hold the mouse button to talk, release to insert. The button still triggers its normal browser back/forward action; pick a keyboard key if that bothers you.",
+  "settings.holdCapture": "Record a key",
+  "settings.holdCapturing": "Press any key… (Esc to cancel)",
   "settings.toggle": "Hands-free mode",
   "settings.toggleHint": "Press {{key}} to start, press again to finish.",
   "settings.holdDelay": "Hold threshold",

@@ -95,6 +95,8 @@ export const ja: LocaleDict = {
   "settings.mouseForward": "マウスサイドボタン（進む）",
   "settings.mouseMiddle": "マウス中ボタン",
   "settings.holdMouseHint": "マウスボタンを押している間だけ話し、離すと入力されます。ボタン本来の「戻る／進む」動作も同時に発生します。気になる場合はキーボードのキーを選んでください。",
+  "settings.holdCapture": "キーを記録",
+  "settings.holdCapturing": "任意のキーを押してください…（Escで取消）",
   "settings.toggle": "ハンズフリーモード",
   "settings.toggleHint": "{{key}} で開始、もう一度押すと終了。",
   "settings.holdDelay": "長押し判定時間",

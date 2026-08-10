@@ -258,6 +258,7 @@ function registerIpc(): void {
     pushSettings();
     return next;
   });
+  ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
     setCustomPersonas(list);
     pushSettings();

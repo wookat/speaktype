@@ -95,6 +95,8 @@ export const ko: LocaleDict = {
   "settings.mouseForward": "마우스 측면 버튼(앞으로)",
   "settings.mouseMiddle": "마우스 가운데 버튼",
   "settings.holdMouseHint": "마우스 버튼을 누르고 있는 동안 말하고, 떼면 입력됩니다. 버튼 본래의 뒤로/앞으로 동작도 함께 실행되므로 신경 쓰이면 키보드 키를 사용하세요.",
+  "settings.holdCapture": "키 녹화",
+  "settings.holdCapturing": "아무 키나 누르세요… (Esc 취소)",
   "settings.toggle": "핸즈프리 모드",
   "settings.toggleHint": "{{key}} 로 시작, 다시 누르면 종료.",
   "settings.holdDelay": "길게 누름 판정 시간",

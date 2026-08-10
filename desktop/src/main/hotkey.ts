@@ -25,22 +25,21 @@ const KEY_NAMES: Record<string, number> = {
   RightShift: UiohookKey.ShiftRight,
   LeftShift: UiohookKey.Shift,
   Space: UiohookKey.Space,
-  Q: UiohookKey.Q,
-  W: UiohookKey.W,
-  Z: UiohookKey.Z,
-  X: UiohookKey.X,
-  F1: UiohookKey.F1,
-  F2: UiohookKey.F2,
-  F3: UiohookKey.F3,
-  F4: UiohookKey.F4,
-  F6: UiohookKey.F6,
-  F7: UiohookKey.F7,
-  F8: UiohookKey.F8,
-  F9: UiohookKey.F9,
-  F10: UiohookKey.F10,
   CapsLock: UiohookKey.CapsLock,
   Tab: UiohookKey.Tab,
+  Backquote: UiohookKey.Backquote,
+  ...Object.fromEntries(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((c) => [c, UiohookKey[c as "A"]]),
+  ),
+  ...Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [`F${i + 1}`, UiohookKey[`F${i + 1}` as "F1"]]),
+  ),
 };
+
+const KEYCODE_NAMES: Record<number, string> = Object.fromEntries(
+  Object.entries(KEY_NAMES).map(([name, code]) => [code, name]),
+);
+const MOUSE_BUTTON_NAMES: Record<number, string> = { 4: "MouseBack", 5: "MouseForward", 3: "MouseMiddle" };
 
 /** uiohook 的鼠标按键编号：4/5 是大多数鼠标拇指位的后退/前进键 */
 const MOUSE_BUTTONS: Record<string, number> = { MouseBack: 4, MouseForward: 5, MouseMiddle: 3 };
@@ -88,6 +87,7 @@ export class HotkeyManager {
   private holdActive = false;
   private holdPressed = false;
   private started = false;
+  private capture: ((name: string | null) => void) | null = null;
 
   constructor(private handlers: HotkeyHandlers) {}
 
@@ -117,7 +117,29 @@ export class HotkeyManager {
     uIOhook.stop();
   }
 
+  /** 录制下一次按键/鼠标侧键作为长按位；Esc 或超时取消，录制期间不触发热键 */
+  captureNext(timeoutMs = 10000): Promise<string | null> {
+    this.capture?.(null);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.capture === done) this.capture = null;
+        resolve(null);
+      }, timeoutMs);
+      const done = (name: string | null): void => {
+        clearTimeout(timer);
+        this.capture = null;
+        resolve(name);
+      };
+      this.capture = done;
+    });
+  }
+
   private onMouseDown(ev: UiohookMouseEvent): void {
+    if (this.capture) {
+      const name = MOUSE_BUTTON_NAMES[ev.button as number];
+      if (name) this.capture(name);
+      return;
+    }
     if (this.holdMouseButton && ev.button === this.holdMouseButton) this.pressHold();
   }
 
@@ -151,6 +173,14 @@ export class HotkeyManager {
   }
 
   private onKeyDown(ev: UiohookKeyboardEvent): void {
+    if (this.capture) {
+      if (ev.keycode === UiohookKey.Escape) this.capture(null);
+      else {
+        const name = KEYCODE_NAMES[ev.keycode];
+        if (name) this.capture(name);
+      }
+      return;
+    }
     if (ev.keycode === this.holdKeycode) {
       this.pressHold();
       return;

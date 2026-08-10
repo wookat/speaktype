@@ -86,6 +86,8 @@ export const zhTW: LocaleDict = {
   "settings.mouseForward": "滑鼠側鍵（下一頁）",
   "settings.mouseMiddle": "滑鼠中鍵",
   "settings.holdMouseHint": "按住滑鼠側鍵說話，放開落字。側鍵原本的網頁上一頁/下一頁仍會觸發，介意可改用鍵盤按鍵。",
+  "settings.holdCapture": "錄一個鍵",
+  "settings.holdCapturing": "請按任意鍵…（Esc 取消）",
   "settings.toggle": "免按模式",
   "settings.toggleHint": "按下 {{key}} 即進入免按模式，再按一下結束說話。",
   "settings.holdDelay": "長按判定時長",

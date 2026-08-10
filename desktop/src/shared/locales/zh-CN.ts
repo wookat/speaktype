@@ -91,6 +91,8 @@ export const zhCN = {
   "settings.mouseForward": "鼠标侧键（前进）",
   "settings.mouseMiddle": "鼠标中键",
   "settings.holdMouseHint": "按住鼠标侧键说话，松开落字。侧键原本的网页前进/后退仍会触发，介意可改用键盘键位。",
+  "settings.holdCapture": "录一个键",
+  "settings.holdCapturing": "请按任意键…（Esc 取消）",
   "settings.toggle": "免按模式",
   "settings.toggleHint": "按下 {{key}} 即进入免按模式，再按一下结束说话。",
   "settings.holdDelay": "长按判定时长",

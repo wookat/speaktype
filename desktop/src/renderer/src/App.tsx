@@ -1025,6 +1025,18 @@ function GeneralTab(props: {
   toggleKeyChoices: string[];
 }) {
   const { t, s, update } = props;
+  const [capturing, setCapturing] = useState(false);
+  const recordKey = (): void => {
+    if (capturing) return;
+    setCapturing(true);
+    void api.captureHotkey().then((key) => {
+      setCapturing(false);
+      if (key) update({ hotkeyHold: key });
+    });
+  };
+  const holdChoices = props.holdKeyChoices.includes(s.hotkeyHold)
+    ? props.holdKeyChoices
+    : [s.hotkeyHold, ...props.holdKeyChoices];
   return (
     <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -1037,23 +1049,35 @@ function GeneralTab(props: {
               : t("settings.holdHint", { key: s.hotkeyHold })
           }
         >
-          <select
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-            value={s.hotkeyHold}
-            onChange={(e) => update({ hotkeyHold: e.target.value })}
-          >
-            {props.holdKeyChoices.map((key) => (
-              <option key={key} value={key}>
-                {key === "MouseBack"
-                  ? t("settings.mouseBack")
-                  : key === "MouseForward"
-                    ? t("settings.mouseForward")
-                    : key === "MouseMiddle"
-                      ? t("settings.mouseMiddle")
-                      : key}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={s.hotkeyHold}
+              onChange={(e) => update({ hotkeyHold: e.target.value })}
+            >
+              {holdChoices.map((key) => (
+                <option key={key} value={key}>
+                  {key === "MouseBack"
+                    ? t("settings.mouseBack")
+                    : key === "MouseForward"
+                      ? t("settings.mouseForward")
+                      : key === "MouseMiddle"
+                        ? t("settings.mouseMiddle")
+                        : key}
+                </option>
+              ))}
+            </select>
+            <button
+              className={`rounded-xl border px-3 py-1.5 text-sm ${
+                capturing
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-600"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={recordKey}
+            >
+              {capturing ? t("settings.holdCapturing") : t("settings.holdCapture")}
+            </button>
+          </div>
         </Row>
         <Row label={t("settings.toggle")} hint={t("settings.toggleHint", { key: s.hotkeyToggle })}>
           <select
