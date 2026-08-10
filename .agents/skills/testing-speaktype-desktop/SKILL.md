@@ -50,7 +50,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 
 ## Synthetic hotkeys (uiohook sees SendInput)
 
-- Use `C:\Users\Administrator\tts\rkey.ps1 -Seq "down:rctrl,sleep:8000,up:rctrl"` (scancode SendInput). Works for RightCtrl hold, Alt+Space, Alt+digits (d1..d9), Alt+Q (`q` key added for PR #16). If a key is missing from the script's `$map`, the script silently no-ops — add the VK/scancode pair before concluding a hotkey is broken.
+- Use `C:\Users\Administrator\tts\rkey.ps1 -Seq "down:rctrl,sleep:8000,up:rctrl"` (scancode SendInput). Works for RightCtrl hold, Alt+Space, Alt+digits (d1..d9), Alt+Q (`q` key added for PR #16), `f6`, `esc` (added for 0.8.6 hotkey-capture tests). If a key is missing from the script's `$map`, the script silently no-ops — add the VK/scancode pair before concluding a hotkey is broken.
+- Hotkey capture (0.8.6 「录一个键」): the 10s capture window is easily missed if you press the key via a fresh `exec` shell (PowerShell startup can exceed 10s) — the button silently reverts and it looks like capture is broken. Press within the window via the computer-use `key` action (F6/Escape work) or a pre-warmed shell. Middle mouse: computer-use `middle_click` on any blank area is seen by uiohook. Auto-repeat bug found in 509ba94 (holding the OLD hotkey during capture triggered a real dictation via key-repeat keydowns) was fixed in c025093 (captureSwallowKeycode swallows that key until its keyup) — re-verified: hold 1.8s captures cleanly with no finalize, and normal dictation works right after.
 - Persona toast lasts 2.6s — screenshot immediately, or verify via store `settings.personaId` change.
 - Home page stats/activation card do NOT live-refresh in all cases; stats refresh on app restart.
 
