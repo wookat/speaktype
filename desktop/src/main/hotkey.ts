@@ -88,6 +88,8 @@ export class HotkeyManager {
   private holdPressed = false;
   private started = false;
   private capture: ((name: string | null) => void) | null = null;
+  /** 刚被录制的键：松开前吃掉系统 key repeat 的 keydown，避免误触发录音 */
+  private captureSwallowKeycode = -1;
 
   constructor(private handlers: HotkeyHandlers) {}
 
@@ -177,10 +179,14 @@ export class HotkeyManager {
       if (ev.keycode === UiohookKey.Escape) this.capture(null);
       else {
         const name = KEYCODE_NAMES[ev.keycode];
-        if (name) this.capture(name);
+        if (name) {
+          this.captureSwallowKeycode = ev.keycode;
+          this.capture(name);
+        }
       }
       return;
     }
+    if (ev.keycode === this.captureSwallowKeycode) return;
     if (ev.keycode === this.holdKeycode) {
       this.pressHold();
       return;
@@ -200,6 +206,10 @@ export class HotkeyManager {
   }
 
   private onKeyUp(ev: UiohookKeyboardEvent): void {
+    if (ev.keycode === this.captureSwallowKeycode) {
+      this.captureSwallowKeycode = -1;
+      return;
+    }
     if (ev.keycode === this.holdKeycode) this.releaseHold();
   }
 }
