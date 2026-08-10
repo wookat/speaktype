@@ -10,11 +10,12 @@ import log from "electron-log/main.js";
  * Name 属性兜底 Win32 经典 Edit（如记事本）。只读文本、只在本机比对，用完即弃。
  *
  * 学习是持续增量的：每次编辑停顿（约 1.5 秒无变化）就把这一轮改动学掉并滚动基线，
- * 一次落字里改多个地方、每个都能学到；只要还在改，观察窗口自动延长。
+ * 一次落字里改多个地方、每个都能学到。只要光标还停在同一个输入框（即使在发呆）
+ * 观察就一直续期，看完一段再回头改也能学到；离开输入框后倒计时才开始跑。
  */
 
-const WATCH_SECONDS = 20;
-const MAX_WATCH_SECONDS = 120;
+const WATCH_SECONDS = 45;
+const MAX_WATCH_SECONDS = 300;
 const POLL_MS = 700;
 /** 编辑停顿判定：这么久没有新变化就认为一轮修改结束 */
 const SETTLE_MS = 1500;
@@ -29,6 +30,7 @@ Add-Type -AssemblyName UIAutomationTypes
 $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
 $hardStop = (Get-Date).AddSeconds(${MAX_WATCH_SECONDS})
 $last = $null
+$anchorId = $null
 while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
   $txt = $null
   $id = ''
@@ -49,11 +51,14 @@ while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
       }
     }
   } catch { $txt = $null }
+  if ($txt -ne $null -and $anchorId -eq $null) { $anchorId = $id }
+  # 光标还在落字那个输入框里就续期（即使什么都没改），离开才开始倒计时
+  if ($txt -ne $null -and $id -eq $anchorId) {
+    $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
+  }
   $line = $id + '|' + $txt
   if ($txt -ne $null -and $line -ne $last) {
     $last = $line
-    # 还在改就延长观察窗口，改完停手才开始倒计时
-    $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
     [Console]::Out.WriteLine($id + '|' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($txt)))
   }
   Start-Sleep -Milliseconds ${POLL_MS}
