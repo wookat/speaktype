@@ -34,6 +34,15 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Offline live captions are approximated by re-decoding the buffered audio every ~1s (`asr.ts` PARTIAL_* consts): preview starts after 1s of audio and **stops once the buffer exceeds 20s**; the final result is still decoded on release. To prove it, zoom on the floating panel at ~8s and ~16s (text must grow) and again at ~25s (frozen/shorter than the final pasted text) during a >27s hold.
 - Decoding is synchronous in the main process; during long re-decodes the whole UI (and CDP) can stall briefly. If the window stays white and all CDP targets time out, the main process is wedged — kill and relaunch (seen once on 0.8.3).
 
+## Auto-learn corrections (0.8.5 watchedit.ts)
+
+- Trigger conditions: `autoLearn && autoPaste && !failed && text contains Chinese` (dictation.ts finalize). Watcher = hidden `powershell.exe -NonInteractive` child of SpeakType polling the UIA focused element every 700ms for 15s (deadline starts inside PS, so add ~2-3s startup slack).
+- Notepad classic Edit works via the Name-property fallback (full text incl. Chinese; verified with a standalone probe replaying the same UIA script).
+- To make a correction that actually learns: the changed segment after common-prefix/suffix trimming must be a 2-6 char pure-Chinese word on the "right" side. Replacing 方案→草案 does NOT learn (shared 案 → diff becomes 方→草, 1 char). Use replacements sharing no boundary chars (答复→回执). Make the edit within ~3-13s after paste (before 15s deadline, after PS's first sample).
+- Learning evidence: main.log `auto-learn: "X" -> "Y"` (mojibake in console is normal — read speaktype.json as UTF-8/base64), settings.hotwords appended, history text replaced. Since 6eaa42a the renderer refreshes immediately after a learn (learnCorrection calls pushSettings); Dictionary/History should show the new state without touching settings.
+- When counting watcher processes, exclude your own shell: filter `Win32_Process powershell.exe` by `ParentProcessId ∈ SpeakType PIDs`, and never put match-strings like 'FocusedElement' in your own command line (it self-matches).
+- Cross-window false positive (found in 0.8.5 first cut): typing Chinese in ANOTHER focused control during the 15s window could be mislearned. Fixed in 6eaa42a — the observer binds to the baseline control's UIA RuntimeId; re-verified that typing in SpeakType's search box after paste no longer learns.
+
 ## App-based persona rules
 
 - Personas page → 「按应用自动切人设」→ 添加规则 → match text (matches process name OR window title, case-insensitive) + persona dropdown. The rule is evaluated **at record start** from the foreground window, and with no LLM configured it only shows up as the `personaName` on the history item (History list shows `HH:MM · <persona> · <secs> · Local offline`).
