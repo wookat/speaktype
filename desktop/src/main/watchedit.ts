@@ -22,9 +22,11 @@ $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
 $last = $null
 while ((Get-Date) -lt $deadline) {
   $txt = $null
+  $id = ''
   try {
     $el = [System.Windows.Automation.AutomationElement]::FocusedElement
     if ($el) {
+      $id = ($el.GetRuntimeId() -join '.')
       $p = $null
       if ($el.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) {
         $txt = $p.Current.Value
@@ -38,9 +40,10 @@ while ((Get-Date) -lt $deadline) {
       }
     }
   } catch { $txt = $null }
-  if ($txt -ne $null -and $txt -ne $last) {
-    $last = $txt
-    [Console]::Out.WriteLine([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($txt)))
+  $line = $id + '|' + $txt
+  if ($txt -ne $null -and $line -ne $last) {
+    $last = $line
+    [Console]::Out.WriteLine($id + '|' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($txt)))
   }
   Start-Sleep -Milliseconds ${POLL_MS}
 }
@@ -97,6 +100,7 @@ export function watchPastedText(
   current = child;
 
   let baseline: string | null = null;
+  let baselineId = "";
   let latest: string | null = null;
   let buf = "";
   child.stdout!.on("data", (chunk: Buffer) => {
@@ -104,19 +108,25 @@ export function watchPastedText(
     const lines = buf.split(/\r?\n/);
     buf = lines.pop() ?? "";
     for (const line of lines) {
-      if (!line.trim()) continue;
+      const sep = line.indexOf("|");
+      if (sep < 0) continue;
+      const id = line.slice(0, sep);
       let text: string;
       try {
-        text = Buffer.from(line.trim(), "base64").toString("utf8");
+        text = Buffer.from(line.slice(sep + 1).trim(), "base64").toString("utf8");
       } catch {
         continue;
       }
-      // 第一份包含插入文本的采样作为基线；焦点在别的控件上时读到什么都不算数
+      // 第一份包含插入文本的采样作为基线，并记住控件身份；
+      // 后续只比对同一个控件，用户切去别的窗口打字不能被误学
       if (baseline === null) {
-        if (text.includes(inserted)) baseline = text;
+        if (text.includes(inserted)) {
+          baseline = text;
+          baselineId = id;
+        }
         continue;
       }
-      if (text !== baseline) latest = text;
+      if (id && id === baselineId && text !== baseline) latest = text;
     }
   });
 

@@ -94,6 +94,8 @@ export interface DictationDeps {
   recorder: () => BrowserWindow | null;
   broadcast: (payload: StatusPayload) => void;
   showToast: (title: string, body: string) => void;
+  /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
+  pushSettings: () => void;
 }
 
 export class Dictation {
@@ -404,6 +406,7 @@ export class Dictation {
     if (entry && entry.text.includes(wrong)) {
       updateHistoryItem(historyId, { text: entry.text.replace(wrong, right) });
     }
+    this.deps.pushSettings();
     this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }));
   }
 

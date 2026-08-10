@@ -112,6 +112,7 @@ function showToast(title: string, body: string): void {
 const dictation = new Dictation({
   recorder: () => recorderWin,
   broadcast,
+  pushSettings: () => pushSettings(),
   showToast,
 });
 
