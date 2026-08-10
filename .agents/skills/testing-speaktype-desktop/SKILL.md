@@ -25,12 +25,33 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 ## Store / userData locations
 
 - Dev: `%APPDATA%\Electron\speaktype.json`.
-- Installed: `%APPDATA%\SpeakType 语音输入法\speaktype.json` (unicode dir name — `findstr` chokes on it; use PowerShell/.NET IO).
+- Installed/packaged since 0.8.x: `%APPDATA%\SpeakType\speaktype.json` (older builds used `%APPDATA%\SpeakType 语音输入法\` — the app auto-migrates from it on first launch, so when testing a "fresh config" you must rename **both** dirs away, otherwise the legacy config is migrated back in and the test is invalid: look for `migrated legacy userData from …` in main.log).
+- Offline model lives in `%APPDATA%\SpeakType\models\sensevoice-small\{model.int8.onnx (239MB), tokens.txt}`; keep a copy outside the config dir so a fresh-config run can restore it instead of re-downloading. `downloadLocalModel` skips files that already exist, so copying them in before clicking 下载 makes the card finish instantly (still logs `local model … downloaded`).
 - To simulate "not activated": quit app, set `doubaoAppKeyCache` to `""`, relaunch → hold RightCtrl shows Chinese toast 「还没拿到豆包语音入口…」. Back up the file first.
+
+## Offline (SenseVoice) live captions
+
+- Offline live captions are approximated by re-decoding the buffered audio every ~1s (`asr.ts` PARTIAL_* consts): preview starts after 1s of audio and **stops once the buffer exceeds 20s**; the final result is still decoded on release. To prove it, zoom on the floating panel at ~8s and ~16s (text must grow) and again at ~25s (frozen/shorter than the final pasted text) during a >27s hold.
+- Decoding is synchronous in the main process; during long re-decodes the whole UI (and CDP) can stall briefly. If the window stays white and all CDP targets time out, the main process is wedged — kill and relaunch (seen once on 0.8.3).
+
+## Auto-learn corrections (0.8.5 watchedit.ts)
+
+- Trigger conditions: `autoLearn && autoPaste && !failed && text contains Chinese` (dictation.ts finalize). Watcher = hidden `powershell.exe -NonInteractive` child of SpeakType polling the UIA focused element every 700ms for 15s (deadline starts inside PS, so add ~2-3s startup slack).
+- Notepad classic Edit works via the Name-property fallback (full text incl. Chinese; verified with a standalone probe replaying the same UIA script).
+- To make a correction that actually learns: the changed segment after common-prefix/suffix trimming must be a 2-6 char pure-Chinese word on the "right" side. Replacing 方案→草案 does NOT learn (shared 案 → diff becomes 方→草, 1 char). Use replacements sharing no boundary chars (答复→回执). Make the edit within ~3-13s after paste (before 15s deadline, after PS's first sample).
+- Learning evidence: main.log `auto-learn: "X" -> "Y"` (mojibake in console is normal — read speaktype.json as UTF-8/base64), settings.hotwords appended, history text replaced. Since 6eaa42a the renderer refreshes immediately after a learn (learnCorrection calls pushSettings); Dictionary/History should show the new state without touching settings.
+- When counting watcher processes, exclude your own shell: filter `Win32_Process powershell.exe` by `ParentProcessId ∈ SpeakType PIDs`, and never put match-strings like 'FocusedElement' in your own command line (it self-matches).
+- Cross-window false positive (found in 0.8.5 first cut): typing Chinese in ANOTHER focused control during the 15s window could be mislearned. Fixed in 6eaa42a — the observer binds to the baseline control's UIA RuntimeId; re-verified that typing in SpeakType's search box after paste no longer learns.
+
+## App-based persona rules
+
+- Personas page → 「按应用自动切人设」→ 添加规则 → match text (matches process name OR window title, case-insensitive) + persona dropdown. The rule is evaluated **at record start** from the foreground window, and with no LLM configured it only shows up as the `personaName` on the history item (History list shows `HH:MM · <persona> · <secs> · Local offline`).
+- Always run the counter-test (foreground = a non-matching window, e.g. the SpeakType window itself) — it must record the global persona instead, otherwise a hardcoded persona would look like a pass.
 
 ## Synthetic hotkeys (uiohook sees SendInput)
 
-- Use `C:\Users\Administrator\tts\rkey.ps1 -Seq "down:rctrl,sleep:8000,up:rctrl"` (scancode SendInput). Works for RightCtrl hold, Alt+Space, Alt+digits (d1..d9), Alt+Q (`q` key added for PR #16). If a key is missing from the script's `$map`, the script silently no-ops — add the VK/scancode pair before concluding a hotkey is broken.
+- Use `C:\Users\Administrator\tts\rkey.ps1 -Seq "down:rctrl,sleep:8000,up:rctrl"` (scancode SendInput). Works for RightCtrl hold, Alt+Space, Alt+digits (d1..d9), Alt+Q (`q` key added for PR #16), `f6`, `esc` (added for 0.8.6 hotkey-capture tests). If a key is missing from the script's `$map`, the script silently no-ops — add the VK/scancode pair before concluding a hotkey is broken.
+- Hotkey capture (0.8.6 「录一个键」): the 10s capture window is easily missed if you press the key via a fresh `exec` shell (PowerShell startup can exceed 10s) — the button silently reverts and it looks like capture is broken. Press within the window via the computer-use `key` action (F6/Escape work) or a pre-warmed shell. Middle mouse: computer-use `middle_click` on any blank area is seen by uiohook. Auto-repeat bug found in 509ba94 (holding the OLD hotkey during capture triggered a real dictation via key-repeat keydowns) was fixed in c025093 (captureSwallowKeycode swallows that key until its keyup) — re-verified: hold 1.8s captures cleanly with no finalize, and normal dictation works right after.
 - Persona toast lasts 2.6s — screenshot immediately, or verify via store `settings.personaId` change.
 - Home page stats/activation card do NOT live-refresh in all cases; stats refresh on app restart.
 
@@ -44,6 +65,7 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Dev runs show the Electron version (e.g. 43.3.0) as the app version in sidebar/About (`app.getVersion()`); only the packaged app shows the real product version.
 - Computer-use `type` action into the app sometimes drops shifted/capital letters (e.g. "SpeakType" → "peakype") — an input-injection artifact, not an app bug; verify chip text before reporting.
 - Launching `rkey.ps1` via `Start-Process -WindowStyle Hidden` can steal the foreground window: the release-Ctrl+V then pastes into the hidden PowerShell instead of the target (looks like "paste failed" while transcription/history are fine). Workaround: re-click the target window during the hold, or diagnose with `C:\Users\Administrator\tts\fg_watch.ps1`.
+- Rewrite-selection (0.8.7): `C:\Users\Administrator\tts\mock_chat.mjs` is a local OpenAI-compatible chat-completions mock (http://127.0.0.1:8975/v1, logs each prompt, returns fixed "[REWRITTEN-BY-MOCK]" text) — use it for the rewrite E2E when no real LLM key works. secret:personal:DEEPSEEK_API_KEY was Insufficient Balance (HTTP 402) as of 2026-08-10; verify with the settings-page Test connection button before relying on it. The computer-use `type` action drops `:` in URLs (https// bug) — paste base URLs from clipboard instead. Rewrite toasts last ~2.6s: time the screenshot ~1s after F8 release (fail path) or during the hold (no-model/no-selection paths).
 - `C:\Users\Administrator\tts\mock_whisper.mjs` now matches the exact path `/v1/audio/transcriptions` (404 otherwise) — usable for both the success path and the HTTP-404 error branch of the ASR test-connection button. It can also return arbitrary text from `C:\Users\Administrator\tts\mock_text.txt` (useful for long/punctuation test cases).
 - Clicking buttons on the floating panel: always `mouse_move` to the target first, then `click` — a direct click sometimes doesn't land in the panel window at all. To verify a click actually hit, inject a CDP click probe into panel.html and check for events.
 - In hands-free/hold modes, VAD auto-ends ~2s after sample.wav's speech finishes (history items ~10s). When testing cancel/long-hold behaviors, separate the auto-stop timing from your own action, or a working cancel will look broken.

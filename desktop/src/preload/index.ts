@@ -18,6 +18,7 @@ export interface InitPayload {
   onboarded: boolean;
   doubaoReady: boolean;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
   status: StatusPayload;
   version: string;
@@ -35,6 +36,7 @@ const api = {
   updateSettings: (patch: Partial<Settings>): Promise<Settings> =>
     ipcRenderer.invoke("settings:update", patch),
   savePersonas: (list: Persona[]): Promise<Persona[]> => ipcRenderer.invoke("personas:save", list),
+  captureHotkey: (): Promise<string | null> => ipcRenderer.invoke("hotkey:capture"),
   history: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:list"),
   clearHistory: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:clear"),
   deleteHistory: (ids: string[]): Promise<HistoryItem[]> => ipcRenderer.invoke("history:delete", ids),
@@ -44,6 +46,9 @@ const api = {
   stats: (): Promise<Stats> => ipcRenderer.invoke("stats:get"),
   doubaoReady: (): Promise<boolean> => ipcRenderer.invoke("doubao:ready"),
   activateDoubao: (): Promise<void> => ipcRenderer.invoke("doubao:activate"),
+  chatgptReady: (): Promise<boolean> => ipcRenderer.invoke("chatgpt:ready"),
+  loginChatgpt: (): Promise<void> => ipcRenderer.invoke("chatgpt:login"),
+  testChatgpt: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("chatgpt:test"),
   onboardingDone: (): Promise<void> => ipcRenderer.invoke("onboarding:done"),
   toggleRecord: (): Promise<void> => ipcRenderer.invoke("record:toggle"),
   cancelRecord: (): Promise<void> => ipcRenderer.invoke("record:cancel"),

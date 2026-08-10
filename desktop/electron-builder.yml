@@ -31,6 +31,9 @@ extraResources:
 asarUnpack:
   - "**/*.node"
   - node_modules/koffi/**
+  # sherpa-onnx（SenseVoice 离线引擎）的 .node 会去同级目录 require 依赖 DLL
+  - node_modules/sherpa-onnx-node/**
+  - node_modules/sherpa-onnx-win-x64/**
 win:
   target:
     - target: nsis
@@ -49,6 +52,10 @@ mac:
     NSMicrophoneUsageDescription: SpeakType uses the microphone for voice typing.
 dmg:
   artifactName: SpeakType-${version}-${arch}.dmg
+portable:
+  artifactName: SpeakType-${version}-portable.exe
+  unpackDirName: SpeakType
+  requestExecutionLevel: user
 nsis:
   oneClick: false
   perMachine: false

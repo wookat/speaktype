@@ -8,6 +8,9 @@
  * 一键部署：https://deploy.workers.cloudflare.com/?url=https://github.com/wookat/speaktype/tree/main/relay
  */
 
+import { ICON_192_B64, ICON_512_B64 } from "./icons";
+import { MANIFEST, SW_JS, phonePage } from "./phone";
+
 export interface Env {
   ROOM: DurableObjectNamespace;
 }
@@ -77,117 +80,15 @@ export class Room {
   }
 }
 
-function phonePage(room: string): string {
-  return `<!doctype html>
-<html lang="zh">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>SpeakType</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { font-family: system-ui, sans-serif; background: #17171c; color: #e2e8f0; height: 100dvh;
-         display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-         padding: 24px; user-select: none; }
-  header { text-align: center; }
-  h1 { font-size: 18px; font-weight: 600; }
-  #state { margin-top: 6px; font-size: 13px; color: #94a3b8; min-height: 18px; }
-  #partial { flex: 1; width: 100%; max-width: 460px; margin: 16px 0; padding: 14px; overflow-y: auto;
-             border-radius: 16px; background: #232329; font-size: 15px; line-height: 1.6; color: #cbd5e1; }
-  #talk { width: 132px; height: 132px; border-radius: 50%; border: none; background: #6d5ae0; color: #fff;
-          font-size: 16px; font-weight: 600; touch-action: none; transition: transform .1s, background .2s; }
-  #talk:disabled { background: #3f3f46; }
-  #talk.rec { background: #ef4444; transform: scale(1.08); }
-  footer { margin-top: 18px; font-size: 12px; color: #64748b; text-align: center; }
-</style>
-</head>
-<body>
-<header><h1>SpeakType</h1><div id="state">连接中…</div></header>
-<div id="partial"></div>
-<button id="talk" disabled>按住说话</button>
-<footer>松手后文字会落到电脑光标处 · 音频经中转服务器直通，不存储</footer>
-<script>
-const stateEl = document.getElementById("state");
-const partialEl = document.getElementById("partial");
-const talk = document.getElementById("talk");
-let ws = null, ctx = null, stream = null, node = null, holding = false;
+const HTML_HEADERS = { "content-type": "text/html; charset=utf-8" };
 
-function connect() {
-  ws = new WebSocket("wss://" + location.host + "/ws/${room}?role=phone");
-  ws.binaryType = "arraybuffer";
-  ws.onopen = () => { stateEl.textContent = "已连接中转，等待电脑…"; talk.disabled = false; };
-  ws.onclose = (ev) => {
-    stateEl.textContent = ev.reason === "room occupied" ? "该房间已有手机连接" : "连接断开，正在重连…";
-    talk.disabled = true;
-    if (ev.reason !== "room occupied") setTimeout(connect, 1500);
-  };
-  ws.onmessage = (ev) => {
-    if (typeof ev.data !== "string") return;
-    const m = JSON.parse(ev.data);
-    if (m.type === "status") {
-      partialEl.textContent = m.partial || partialEl.textContent;
-      if (m.state === "transcribing") stateEl.textContent = "转写中…";
-      else if (m.state === "polishing") stateEl.textContent = "润色中…";
-      else if (m.state === "error") stateEl.textContent = m.message || "出错了";
-      else if (m.state === "idle" && !holding) stateEl.textContent = "已连接电脑";
-    }
-    if (m.type === "peer") stateEl.textContent = m.connected ? "已连接电脑" : "电脑端已离线";
-    if (m.type === "busy") { stateEl.textContent = "电脑端正在录音，请稍候"; endHold(true); }
-  };
-}
-connect();
-
-async function openMic() {
-  if (stream) return true;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-  } catch (e) { stateEl.textContent = "麦克风权限被拒绝"; return false; }
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const src = ctx.createMediaStreamSource(stream);
-  node = ctx.createScriptProcessor(4096, 1, 1);
-  const ratio = ctx.sampleRate / 16000;
-  node.onaudioprocess = (e) => {
-    if (!holding || !ws || ws.readyState !== 1) return;
-    const input = e.inputBuffer.getChannelData(0);
-    const out = new Int16Array(Math.floor(input.length / ratio));
-    for (let i = 0; i < out.length; i++) {
-      const v = input[Math.floor(i * ratio)];
-      out[i] = Math.max(-32768, Math.min(32767, v * 32767));
-    }
-    ws.send(out.buffer);
-  };
-  src.connect(node);
-  node.connect(ctx.destination);
-  return true;
-}
-
-async function startHold(ev) {
-  ev.preventDefault();
-  if (holding || talk.disabled) return;
-  if (!(await openMic())) return;
-  if (ctx.state === "suspended") await ctx.resume();
-  holding = true;
-  talk.classList.add("rec");
-  talk.textContent = "松手结束";
-  stateEl.textContent = "录音中…";
-  partialEl.textContent = "";
-  ws.send(JSON.stringify({ type: "start" }));
-}
-function endHold(cancel) {
-  if (!holding) return;
-  holding = false;
-  talk.classList.remove("rec");
-  talk.textContent = "按住说话";
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: cancel ? "cancel" : "stop" }));
-}
-talk.addEventListener("touchstart", startHold, { passive: false });
-talk.addEventListener("touchend", (e) => { e.preventDefault(); endHold(false); }, { passive: false });
-talk.addEventListener("touchcancel", () => endHold(true));
-talk.addEventListener("mousedown", startHold);
-talk.addEventListener("mouseup", () => endHold(false));
-</script>
-</body>
-</html>`;
+function png(base64: string): Response {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Response(bytes, {
+    headers: { "content-type": "image/png", "cache-control": "public, max-age=604800" },
+  });
 }
 
 export default {
@@ -195,11 +96,20 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health") return new Response("ok");
 
+    // PWA 资源：装到主屏幕后从 /app 启动，房间号取 localStorage 里上次配对的电脑
+    if (url.pathname === "/app") return new Response(phonePage(null), { headers: HTML_HEADERS });
+    if (url.pathname === "/manifest.webmanifest") {
+      return new Response(MANIFEST, { headers: { "content-type": "application/manifest+json" } });
+    }
+    if (url.pathname === "/sw.js") {
+      return new Response(SW_JS, { headers: { "content-type": "text/javascript; charset=utf-8" } });
+    }
+    if (url.pathname === "/icon-192.png") return png(ICON_192_B64);
+    if (url.pathname === "/icon-512.png") return png(ICON_512_B64);
+
     const page = url.pathname.match(/^\/m\/([0-9a-f]+)$/);
     if (page && ROOM_RE.test(page[1]!)) {
-      return new Response(phonePage(page[1]!), {
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return new Response(phonePage(page[1]!), { headers: HTML_HEADERS });
     }
 
     const ws = url.pathname.match(/^\/ws\/([0-9a-f]+)$/);

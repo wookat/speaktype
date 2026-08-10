@@ -64,11 +64,11 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
   { id: "openai", label: "OpenAI Whisper", baseUrl: "https://api.openai.com/v1", model: "whisper-1" },
   {
     id: "siliconflow",
-    label: "SiliconFlow 硅基流动",
+    label: "（免费模型）SiliconFlow 硅基流动",
     baseUrl: "https://api.siliconflow.cn/v1",
     model: "FunAudioLLM/SenseVoiceSmall",
   },
-  { id: "groq", label: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
+  { id: "groq", label: "（免费额度）Groq Whisper", baseUrl: "https://api.groq.com/openai/v1", model: "whisper-large-v3-turbo" },
   { id: "fireworks", label: "Fireworks", baseUrl: "https://api.fireworks.ai/inference/v1", model: "whisper-v3-turbo" },
   { id: "mistral", label: "Mistral Voxtral", baseUrl: "https://api.mistral.ai/v1", model: "voxtral-mini-latest" },
   {
@@ -82,7 +82,19 @@ const ASR_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: st
 
 const MODEL_PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
-  { id: "zhipu", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  { id: "zhipu", label: "（免费）智谱 GLM-4-Flash", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash" },
+  {
+    id: "siliconflow",
+    label: "（免费模型）SiliconFlow 硅基流动",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "Qwen/Qwen2.5-7B-Instruct",
+  },
+  {
+    id: "openrouter",
+    label: "（免费模型）OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "meta-llama/llama-3.3-70b-instruct:free",
+  },
   { id: "kimi", label: "Kimi (Moonshot)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
   { id: "qwen", label: "通义千问", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
@@ -255,6 +267,7 @@ export default function App() {
             settings={settings}
             update={update}
             holdKeyChoices={init.holdKeyChoices}
+            rewriteKeyChoices={init.rewriteKeyChoices}
             toggleKeyChoices={init.toggleKeyChoices}
             doubaoReady={doubaoReady}
             version={init.version}
@@ -279,6 +292,16 @@ function Home(props: {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
   const saved = Math.max(0, Math.round(props.statsWords / 40) * 60000 - props.statsDuration);
+
+  // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const localModel = props.settings.localModel || "sensevoice-small";
+  useEffect(() => {
+    if (props.settings.asrProvider !== "local") return;
+    void api.localModelStatus(localModel).then(setLocal);
+    return api.onLocalModel(setLocal);
+  }, [props.settings.asrProvider, localModel]);
+  const needsModel = props.settings.asrProvider === "local" && local !== null && !local.downloaded;
   // 标题里的热键要渲染成键帽样式，按占位符拆开
   const [titleBefore, titleAfter = ""] = t("home.title").split("{{key}}");
   return (
@@ -292,7 +315,26 @@ function Home(props: {
       </h1>
       <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
 
+      {needsModel && (
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+          <div>
+            <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
+            <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc")}</div>
+          </div>
+          <button
+            className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
+            disabled={local?.downloading}
+            onClick={() => void api.localModelDownload(localModel)}
+          >
+            {local?.downloading
+              ? `${Math.round(local.progress)}%`
+              : t("home.model.button")}
+          </button>
+        </div>
+      )}
+
       {props.settings.asrProvider !== "local" &&
+        props.settings.asrProvider !== "chatgpt" &&
         !(props.settings.asrProvider === "openai"
           ? Boolean(props.settings.asrBaseUrl && props.settings.asrApiKey)
           : props.doubaoReady) && (
@@ -644,6 +686,72 @@ function Personas(props: {
         </button>
       </div>
 
+      {/* 按应用自动切人设：录音起手时读前台进程名/窗口标题，命中即用该人设润色 */}
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium">{t("personas.appRules")}</div>
+            <div className="mt-1 text-xs text-slate-500">{t("personas.appRulesHint")}</div>
+          </div>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-50"
+            onClick={() =>
+              props.update({
+                appPersonas: [
+                  ...props.settings.appPersonas,
+                  { match: "", personaId: props.localized[0]?.id ?? "default" },
+                ],
+              })
+            }
+          >
+            {t("personas.appRuleAdd")}
+          </button>
+        </div>
+        {props.settings.appPersonas.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {props.settings.appPersonas.map((rule, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                  placeholder={t("personas.appRulePlaceholder")}
+                  value={rule.match}
+                  onChange={(e) => {
+                    const next = props.settings.appPersonas.map((r, j) =>
+                      j === i ? { ...r, match: e.target.value } : r,
+                    );
+                    props.update({ appPersonas: next });
+                  }}
+                />
+                <select
+                  className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                  value={rule.personaId}
+                  onChange={(e) => {
+                    const next = props.settings.appPersonas.map((r, j) =>
+                      j === i ? { ...r, personaId: e.target.value } : r,
+                    );
+                    props.update({ appPersonas: next });
+                  }}
+                >
+                  {props.localized.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="text-xs text-slate-400 hover:text-red-500"
+                  onClick={() =>
+                    props.update({ appPersonas: props.settings.appPersonas.filter((_, j) => j !== i) })
+                  }
+                >
+                  {t("personas.delete")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="mt-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">{t("personas.mine")}</h1>
         <div className="text-xs text-slate-400">{t("personas.subtitle")}</div>
@@ -815,6 +923,15 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
         </button>
       </div>
 
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-5 py-1">
+        <Toggle
+          label={t("dict.autoLearn")}
+          hint={t("dict.autoLearnHint")}
+          value={props.settings.autoLearn}
+          onChange={(v) => props.update({ autoLearn: v })}
+        />
+      </div>
+
       <div className="mt-6 flex items-center justify-between">
         <div className="text-sm font-medium">{t("dict.manage")}</div>
         {words.length > 0 && (
@@ -857,6 +974,7 @@ function SettingsPage(props: {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
   doubaoReady: boolean;
   version: string;
@@ -891,7 +1009,14 @@ function SettingsPage(props: {
 
       <div className="mt-4 space-y-6">
         {tab === "general" && (
-          <GeneralTab t={t} s={s} update={props.update} holdKeyChoices={props.holdKeyChoices} toggleKeyChoices={props.toggleKeyChoices} />
+          <GeneralTab
+            t={t}
+            s={s}
+            update={props.update}
+            holdKeyChoices={props.holdKeyChoices}
+            rewriteKeyChoices={props.rewriteKeyChoices}
+            toggleKeyChoices={props.toggleKeyChoices}
+          />
         )}
         {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
         {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
@@ -906,21 +1031,89 @@ function GeneralTab(props: {
   s: Settings;
   update: (patch: Partial<Settings>) => void;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
 }) {
   const { t, s, update } = props;
+  const [capturing, setCapturing] = useState(false);
+  const recordKey = (): void => {
+    if (capturing) return;
+    setCapturing(true);
+    void api.captureHotkey().then((key) => {
+      setCapturing(false);
+      if (key) update({ hotkeyHold: key });
+    });
+  };
+  const holdChoices = props.holdKeyChoices.includes(s.hotkeyHold)
+    ? props.holdKeyChoices
+    : [s.hotkeyHold, ...props.holdKeyChoices];
   return (
     <>
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="font-medium">{t("settings.hotkeys")}</div>
-        <Row label={t("settings.hold")} hint={t("settings.holdHint", { key: s.hotkeyHold })}>
+        <Row
+          label={t("settings.hold")}
+          hint={
+            s.hotkeyHold.startsWith("Mouse")
+              ? t("settings.holdMouseHint")
+              : t("settings.holdHint", { key: s.hotkeyHold })
+          }
+        >
+          <div className="flex items-center gap-2">
+            <select
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              value={s.hotkeyHold}
+              onChange={(e) => update({ hotkeyHold: e.target.value })}
+            >
+              {holdChoices.map((key) => (
+                <option key={key} value={key}>
+                  {key === "MouseBack"
+                    ? t("settings.mouseBack")
+                    : key === "MouseForward"
+                      ? t("settings.mouseForward")
+                      : key === "MouseMiddle"
+                        ? t("settings.mouseMiddle")
+                        : key}
+                </option>
+              ))}
+            </select>
+            <button
+              className={`rounded-xl border px-3 py-1.5 text-sm ${
+                capturing
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-600"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={recordKey}
+            >
+              {capturing ? t("settings.holdCapturing") : t("settings.holdCapture")}
+            </button>
+          </div>
+        </Row>
+        <Row
+          label={t("settings.rewriteKey")}
+          hint={
+            s.hotkeyRewrite === "Off"
+              ? t("settings.rewriteKeyOffHint")
+              : t("settings.rewriteKeyHint", { key: s.hotkeyRewrite })
+          }
+        >
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-            value={s.hotkeyHold}
-            onChange={(e) => update({ hotkeyHold: e.target.value })}
+            value={s.hotkeyRewrite}
+            onChange={(e) => update({ hotkeyRewrite: e.target.value })}
           >
-            {props.holdKeyChoices.map((key) => (
-              <option key={key}>{key}</option>
+            {props.rewriteKeyChoices.map((key) => (
+              <option key={key} value={key}>
+                {key === "Off"
+                  ? t("settings.rewriteKeyOff")
+                  : key === "MouseBack"
+                    ? t("settings.mouseBack")
+                    : key === "MouseForward"
+                      ? t("settings.mouseForward")
+                      : key === "MouseMiddle"
+                        ? t("settings.mouseMiddle")
+                        : key}
+              </option>
             ))}
           </select>
         </Row>
@@ -1170,6 +1363,12 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
               {s.remoteMicMode === "relay" ? t("settings.remoteMicStepsRelay") : t("settings.remoteMicSteps")}
             </div>
             <div className="selectable mt-2 break-all text-slate-500">{remote.url}</div>
+            {remote.pairCode && (
+              <div className="mt-1">
+                {t("settings.remoteMicPairCode")}
+                <span className="selectable ml-1 font-mono tracking-widest text-slate-600">{remote.pairCode}</span>
+              </div>
+            )}
             <div className="mt-1">
               {remote.clients > 0
                 ? t("settings.remoteMicConnected", { n: String(remote.clients) })
@@ -1202,12 +1401,20 @@ function VoiceTab(props: {
     void api.localModelStatus(localModel).then(setLocal);
   }, [localModel]);
 
+  const [chatgptReady, setChatgptReady] = useState(false);
+  const [chatgptDetail, setChatgptDetail] = useState("");
+  useEffect(() => {
+    if (s.asrProvider === "chatgpt") void api.chatgptReady().then(setChatgptReady);
+  }, [s.asrProvider]);
+
   const configured =
     s.asrProvider === "openai"
       ? Boolean(s.asrBaseUrl && s.asrApiKey)
       : s.asrProvider === "local"
         ? Boolean(local?.downloaded)
-        : props.doubaoReady;
+        : s.asrProvider === "chatgpt"
+          ? chatgptReady
+          : props.doubaoReady;
   // OpenAI 兼容通道要测试连接成功才算 Ready；仅填完字段属"已配置未验证"
   const ready = s.asrProvider === "openai" ? configured && testState === "ok" : configured;
   const [testDetail, setTestDetail] = useState("");
@@ -1231,8 +1438,15 @@ function VoiceTab(props: {
           ? t("settings.asrOpenaiHint")
           : s.asrProvider === "local"
             ? t("settings.asrLocalHint")
-            : t("settings.asrHint")}
+            : s.asrProvider === "chatgpt"
+              ? t("settings.asrChatgptHint")
+              : t("settings.asrHint")}
       </div>
+      {(s.asrProvider === "chatgpt" || s.asrProvider === "doubao") && (
+        <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {t("settings.thirdPartyRisk")}
+        </div>
+      )}
       <Row label={t("settings.asrProvider")}>
         <select
           className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
@@ -1241,6 +1455,7 @@ function VoiceTab(props: {
         >
           <option value="doubao">{t("settings.asrProviderDoubao")}</option>
           <option value="openai">{t("settings.asrProviderOpenai")}</option>
+          <option value="chatgpt">{t("settings.asrProviderChatgpt")}</option>
           <option value="local">{t("settings.asrProviderLocal")}</option>
         </select>
       </Row>
@@ -1295,6 +1510,34 @@ function VoiceTab(props: {
             onChange={(v) => update({ localSimplified: v })}
           />
         </div>
+      ) : s.asrProvider === "chatgpt" ? (
+        <>
+          <Row
+            label={t("settings.chatgptLogin")}
+            hint={`${t("settings.chatgptLoginHint")} ${t("settings.chatgptCodexHint")}`}
+          >
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => void api.loginChatgpt().then(() => api.chatgptReady().then(setChatgptReady))}
+            >
+              {t("settings.chatgptLogin")}
+            </button>
+          </Row>
+          <Row label={t("settings.chatgptTest")} hint={chatgptDetail || t("settings.chatgptTestHint")}>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => {
+                setChatgptDetail(t("settings.modelTesting"));
+                void api.testChatgpt().then(({ ok, detail }) => {
+                  setChatgptDetail(`${ok ? "OK" : "FAIL"} · ${detail.slice(0, 160)}`);
+                  void api.chatgptReady().then(setChatgptReady);
+                });
+              }}
+            >
+              {t("settings.chatgptTest")}
+            </button>
+          </Row>
+        </>
       ) : s.asrProvider === "doubao" ? (
         <>
           <Row label={t("settings.asrOpenLogin")}>

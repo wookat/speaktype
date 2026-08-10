@@ -9,6 +9,7 @@ const rendererDir = join(dir, "../renderer");
 const devServer = process.env["ELECTRON_RENDERER_URL"];
 
 export const DOUBAO_URL = "https://www.doubao.com/chat";
+export const CHATGPT_URL = "https://chatgpt.com/";
 
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 150;
@@ -24,8 +25,8 @@ export function createMainWindow(visible = true): BrowserWindow {
   const win = new BrowserWindow({
     width: 1100,
     height: 740,
-    minWidth: 940,
-    minHeight: 600,
+    minWidth: 820,
+    minHeight: 560,
     frame: false,
     show: false,
     center: true,
@@ -112,6 +113,27 @@ export function createBridgeWindow(): BrowserWindow {
     webPreferences: { preload: doubaoPreload, sandbox: false, backgroundThrottling: false },
   });
   void win.loadURL(DOUBAO_URL);
+  return win;
+}
+
+/**
+ * ChatGPT 桥接窗口：转写走 chatgpt.com 自己的 /backend-api/transcribe，
+ * 依赖该站点的登录态与 Cloudflare 校验，必须在站内页面发起请求。
+ */
+export function createChatgptWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    show: false,
+    width: 1080,
+    height: 760,
+    title: "ChatGPT（SpeakType 桥接）",
+    webPreferences: { sandbox: true, backgroundThrottling: false },
+  });
+  // Google OAuth 拒绝内嵌浏览器（"此浏览器或应用可能不安全"）：UA 里去掉
+  // Electron/应用名标记，伪装成普通 Chrome 才能在窗口内完成谷歌登录
+  win.webContents.userAgent = win.webContents.userAgent
+    .replace(/\sSpeakType\/[\d.]+/i, "")
+    .replace(/\sElectron\/[\d.]+/i, "");
+  void win.loadURL(CHATGPT_URL);
   return win;
 }
 

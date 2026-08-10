@@ -106,4 +106,4 @@ Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [MIT](LICENSE) © wookat & SpeakType contributors
 
-> SpeakType is an independent open-source project, unaffiliated with Zhipu, ByteDance or others; "Doubao" is a ByteDance trademark and refers here only to the user's own account session.
+> SpeakType is an independent open-source project, unaffiliated with OpenAI, ByteDance, Zhipu or others. The "Doubao" and "ChatGPT web transcription" providers reuse your own local login session against undocumented endpoints of those services, which may not comply with their terms; the account risk is yours to judge. Prefer the built-in offline engine or a service with your own API key if unsure. See [DISCLAIMER.md](DISCLAIMER.md).

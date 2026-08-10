@@ -1,5 +1,6 @@
 import { clipboard } from "electron";
 import { execFile } from "child_process";
+import { randomUUID } from "crypto";
 import koffi from "koffi";
 
 /**
@@ -18,6 +19,7 @@ const INPUT_KEYBOARD = 1;
 const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
+const VK_C = 0x43;
 const VK_VOLUME_MUTE = 0xad;
 
 function loadWin32(): Win32Api {
@@ -66,27 +68,44 @@ export function toggleSystemMute(): void {
   ]);
 }
 
-async function sendPasteShortcut(): Promise<void> {
+async function sendShortcut(vk: number, macKey: string): Promise<void> {
   if (isMac) {
-    // key code 9 = V；需要「系统设置 → 隐私与安全性 → 辅助功能」授权
-    await osascript('tell application "System Events" to keystroke "v" using command down');
+    // 需要「系统设置 → 隐私与安全性 → 辅助功能」授权
+    await osascript(`tell application "System Events" to keystroke "${macKey}" using command down`);
     return;
   }
   win32?.sendInputs([
     { vk: VK_CONTROL, up: false },
-    { vk: VK_V, up: false },
-    { vk: VK_V, up: true },
+    { vk, up: false },
+    { vk, up: true },
     { vk: VK_CONTROL, up: true },
   ]);
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * 读取当前前台窗口的选中文字：清空剪贴板 → 发 Ctrl/Cmd+C → 读回。
+ * 没有选中时剪贴板不会被写入，返回空串；原剪贴板内容会还原。
+ */
+export async function copySelection(): Promise<string> {
+  const previous = clipboard.readText();
+  const probe = `\u200b speaktype-probe ${randomUUID()}`;
+  clipboard.writeText(probe);
+  await sleep(60);
+  await sendShortcut(VK_C, "c");
+  await sleep(250);
+  const copied = clipboard.readText();
+  const selection = copied === probe ? "" : copied;
+  clipboard.writeText(previous);
+  return selection;
+}
+
 export async function pasteText(text: string): Promise<void> {
   const previous = clipboard.readText();
   clipboard.writeText(text);
   await sleep(60);
-  await sendPasteShortcut();
+  await sendShortcut(VK_V, "v");
   // 等目标程序完成粘贴再还原，太快还原会粘到旧内容
   await sleep(350);
   if (previous) clipboard.writeText(previous);

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">SpeakType</string>
+  <string name="server_title">中转服务地址</string>
+  <string name="server_hint">默认使用官方中转；自部署了 Cloudflare Worker 就填自己的地址。</string>
+  <string name="load_failed">连接不上中转服务</string>
+</resources>

@@ -5,14 +5,23 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { pcmToWav, preconnectAsr, startLocalAsrSession, startOpenAiAsrSession } from "./asr";
+import { personaForActiveApp } from "./activeapp";
+import {
+  pcmToWav,
+  preconnectAsr,
+  startChatgptAsrSession,
+  startLocalAsrSession,
+  startOpenAiAsrSession,
+} from "./asr";
+import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
-import { pasteText, toggleSystemMute } from "./paste";
-import { polishText } from "./polish";
+import { copySelection, pasteText, toggleSystemMute } from "./paste";
+import { polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
-import { addHistory, addStats, findPersona, getHistory, getSettings, updateHistoryItem } from "./store";
+import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
+import { watchPastedText } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
@@ -85,6 +94,8 @@ export interface DictationDeps {
   recorder: () => BrowserWindow | null;
   broadcast: (payload: StatusPayload) => void;
   showToast: (title: string, body: string) => void;
+  /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
+  pushSettings: () => void;
 }
 
 export class Dictation {
@@ -96,6 +107,8 @@ export class Dictation {
   private busy = false;
   private pendingEnd: "stop" | "cancel" | null = null;
   private startedAt = 0;
+  /** 本次录音起手时前台应用命中的人设；录完再读窗口就已经切走了，必须在按下时取 */
+  private appPersonaId: string | null = null;
   private lastWarmUp = 0;
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
@@ -103,6 +116,8 @@ export class Dictation {
   private maxPeak = 0;
   private voicedMs = 0;
   private silero: SileroVad | null = null;
+  /** 改写模式：按下改写键时抓到的选区文字，本次口述当作改写指令 */
+  private rewriteTarget: string | null = null;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -137,6 +152,7 @@ export class Dictation {
     const settings = getSettings();
     if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
     if (settings.asrProvider === "openai") preconnectAsr(settings);
+    if (settings.asrProvider === "chatgpt") warmChatgpt();
   }
 
   private report(state: RecordState, message = ""): void {
@@ -200,6 +216,26 @@ export class Dictation {
     if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
   }
 
+  /**
+   * 改写模式：先抓当前选中的文字，再开录；本次说的话当作改写/翻译指令。
+   * 没选中文字或没配润色模型时直接提示，不进入录音。
+   */
+  async startRewrite(): Promise<void> {
+    if (this.busy) return;
+    const settings = getSettings();
+    if (!settings.polishBaseUrl || !settings.polishApiKey) {
+      this.deps.showToast(t("toast.rewriteNoModel"), t("toast.rewriteNoModelBody"));
+      return;
+    }
+    const selection = await copySelection();
+    if (!selection.trim()) {
+      this.deps.showToast(t("toast.rewriteNoSelection"), t("toast.rewriteNoSelectionBody"));
+      return;
+    }
+    this.rewriteTarget = selection;
+    await this.start("hold");
+  }
+
   /** remote=true 时音频由手机端经 remotemic 推流，不开本机麦克风 */
   async start(mode: "hold" | "toggle" = "hold", remote = false): Promise<void> {
     if (this.busy) return;
@@ -214,6 +250,7 @@ export class Dictation {
     this.allFrames = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
+    this.appPersonaId = personaForActiveApp(getSettings().appPersonas);
     this.maxPeak = 0;
     this.voicedMs = 0;
     const settings = getSettings();
@@ -234,9 +271,11 @@ export class Dictation {
       const opening: Promise<DoubaoSession> =
         settings.asrProvider === "openai"
           ? Promise.resolve(startOpenAiAsrSession(settings))
-          : settings.asrProvider === "local"
-            ? Promise.resolve(startLocalAsrSession(settings))
-            : startDoubaoSession(settings.language, (text) => this.setPartial(text));
+          : settings.asrProvider === "chatgpt"
+            ? Promise.resolve(startChatgptAsrSession(settings))
+            : settings.asrProvider === "local"
+              ? Promise.resolve(startLocalAsrSession(settings, (text) => this.setPartial(text)))
+              : startDoubaoSession(settings.language, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
@@ -274,6 +313,7 @@ export class Dictation {
   }
 
   cancel(): void {
+    this.rewriteTarget = null;
     if (!this.busy) return;
     if (!this.session) {
       this.pendingEnd = "cancel";
@@ -316,9 +356,11 @@ export class Dictation {
       const session =
         settings.asrProvider === "openai"
           ? startOpenAiAsrSession(settings)
-          : settings.asrProvider === "local"
-            ? startLocalAsrSession(settings)
-            : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
+          : settings.asrProvider === "chatgpt"
+            ? startChatgptAsrSession(settings)
+            : settings.asrProvider === "local"
+              ? startLocalAsrSession(settings)
+              : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
       for (const frame of failed.frames) session.pushPcm(frame);
       this.session = session;
       this.startedAt = Date.now() - failed.durationMs;
@@ -378,12 +420,28 @@ export class Dictation {
     }
   }
 
+  /** 用户在目标输入框里手动改对了词：学进词典 + 同步修正历史条目 + 提示 */
+  private learnCorrection(historyId: string, wrong: string, right: string): void {
+    const settings = getSettings();
+    if (settings.hotwords.includes(right) || settings.hotwords.length >= 300) return;
+    setSettings({ hotwords: [...settings.hotwords, right] });
+    const entry = getHistory().find((h) => h.id === historyId);
+    if (entry && entry.text.includes(wrong)) {
+      updateHistoryItem(historyId, { text: entry.text.replace(wrong, right) });
+    }
+    this.deps.pushSettings();
+    this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }));
+  }
+
   private async finalize(): Promise<void> {
     const session = this.session;
     if (!session) return;
     this.session = null;
     const settings = getSettings();
-    const persona = localizePersona(findPersona(settings.personaId), translator());
+    const persona = localizePersona(
+      findPersona(this.appPersonaId ?? settings.personaId),
+      translator(),
+    );
     const durationMs = Date.now() - this.startedAt;
 
     this.deps.recorder()?.webContents.send("recorder:stop");
@@ -441,11 +499,27 @@ export class Dictation {
     }
 
     this.report("polishing");
-    const text = await polishText(settings, persona, raw);
+    const rewriteTarget = this.rewriteTarget;
+    this.rewriteTarget = null;
+    let text: string;
+    if (rewriteTarget) {
+      const rewritten = await rewriteSelection(settings, rewriteTarget, raw);
+      if (!rewritten) {
+        this.busy = false;
+        this.partial = "";
+        this.report("idle");
+        this.deps.showToast(t("toast.rewriteFailed"), t("toast.rewriteFailedBody"));
+        return;
+      }
+      text = rewritten;
+    } else {
+      text = await polishText(settings, persona, raw);
+    }
 
     let failed: string | undefined;
-    if (settings.autoPaste) {
+    if (settings.autoPaste || rewriteTarget) {
       try {
+        // 改写模式：选区还选着，直接粘贴就是替换
         await pasteText(text);
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
@@ -453,10 +527,11 @@ export class Dictation {
       }
     }
 
+    const historyId = retriedId ?? randomUUID();
     if (retriedId) this.resolveFailedEntry(retriedId, text, raw);
     else
       addHistory({
-        id: randomUUID(),
+        id: historyId,
         at: Date.now(),
         text,
         raw,
@@ -466,6 +541,11 @@ export class Dictation {
         provider: settings.asrProvider,
       });
     addStats(text.length, durationMs);
+
+    // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
+    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]/.test(text)) {
+      watchPastedText(text, (wrong, right) => this.learnCorrection(historyId, wrong, right));
+    }
 
     this.busy = false;
     this.setPartial(text);

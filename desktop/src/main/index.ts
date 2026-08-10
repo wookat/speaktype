@@ -12,8 +12,9 @@ declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
+import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
-import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
+import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
@@ -22,6 +23,7 @@ import { testPolish } from "./polish";
 import {
   broadcastToPhones,
   configureRemoteMic,
+  newPairCode,
   remoteMicInfo,
   startRemoteMic,
   stopRemoteMic,
@@ -111,6 +113,7 @@ function showToast(title: string, body: string): void {
 const dictation = new Dictation({
   recorder: () => recorderWin,
   broadcast,
+  pushSettings: () => pushSettings(),
   showToast,
 });
 
@@ -129,8 +132,12 @@ configureRemoteMic({
 async function syncRemoteMic(enabled: boolean): Promise<void> {
   try {
     await stopRemoteMic();
-    const s = getSettings();
-    if (enabled) await startRemoteMic(s.remoteMicMode, s.remoteRelayUrl);
+    let s = getSettings();
+    if (enabled && s.remoteMicMode === "relay" && !s.remoteRelayRoom) {
+      // 首次开启中转时生成固定配对码，之后每次都用同一个，手机 App 才能一直连上
+      s = setSettings({ remoteRelayRoom: newPairCode() });
+    }
+    if (enabled) await startRemoteMic(s.remoteMicMode, s.remoteRelayUrl, s.remoteRelayRoom);
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", remoteMicInfo());
   } catch (error) {
     log.warn("remote mic failed", error);
@@ -145,7 +152,7 @@ async function syncRemoteMic(enabled: boolean): Promise<void> {
 
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
-  onHoldStart: () => void dictation.start("hold"),
+  onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => {
     if (dictation.isRecording()) void dictation.stop();
@@ -163,7 +170,13 @@ const hotkeys = new HotkeyManager({
 });
 
 function applyHotkeys(settings: Settings): void {
-  hotkeys.configure(settings.hotkeyHold, settings.hotkeyToggle, settings.holdDelayMs, settings.personaHotkeysEnabled);
+  hotkeys.configure(
+    settings.hotkeyHold,
+    settings.hotkeyToggle,
+    settings.holdDelayMs,
+    settings.personaHotkeysEnabled,
+    settings.hotkeyRewrite,
+  );
 }
 
 function pushSettings(): void {
@@ -175,7 +188,12 @@ function pushSettings(): void {
 }
 
 // isHidden 会给自启命令行追加 --hidden，配合“开机时不展示应用窗口”判断静默启动
-const autoLaunch = new AutoLaunch({ name: "SpeakType", isHidden: true });
+// 绿色版解压在临时目录运行，自启必须指向 exe 本体（PORTABLE_EXECUTABLE_FILE）
+const autoLaunch = new AutoLaunch({
+  name: "SpeakType",
+  path: process.env["PORTABLE_EXECUTABLE_FILE"] || undefined,
+  isHidden: true,
+});
 
 async function applyLaunchAtLogin(enabled: boolean): Promise<void> {
   try {
@@ -234,6 +252,7 @@ function registerIpc(): void {
     onboarded: isOnboarded(),
     doubaoReady: hasAppKey(),
     holdKeyChoices: HOLD_KEY_CHOICES,
+    rewriteKeyChoices: REWRITE_KEY_CHOICES,
     toggleKeyChoices: TOGGLE_KEY_CHOICES,
     status: dictation.status(),
     version: app.isPackaged ? app.getVersion() : pkg.version,
@@ -251,6 +270,7 @@ function registerIpc(): void {
     pushSettings();
     return next;
   });
+  ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
     setCustomPersonas(list);
     pushSettings();
@@ -273,6 +293,9 @@ function registerIpc(): void {
   ipcMain.handle("stats:get", () => getStats());
   ipcMain.handle("doubao:ready", () => hasAppKey());
   ipcMain.handle("doubao:activate", () => showBridge());
+  ipcMain.handle("chatgpt:ready", () => chatgptLoggedIn());
+  ipcMain.handle("chatgpt:login", () => showChatgptLogin());
+  ipcMain.handle("chatgpt:test", () => testChatgpt());
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => {
     if (dictation.isRecording()) void dictation.stop();

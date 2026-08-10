@@ -2,7 +2,8 @@ import { Converter } from "opencc-js/t2cn";
 import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
-import { ensureLocalServer } from "./localasr";
+import { transcribeViaChatgpt } from "./chatgpt";
+import { SENSEVOICE, ensureLocalServer, transcribeSenseVoice } from "./localasr";
 
 // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
 let t2cn: ((text: string) => string) | null = null;
@@ -13,6 +14,11 @@ function toSimplified(text: string): string {
 }
 
 const SAMPLE_RATE = 16000;
+// 离线流式字幕：每 1s 重解一次已录音频，1s 起步、超过 20s 停止预览（重解耗时随长度线性增长）
+const PARTIAL_TICK_MS = 250;
+const PARTIAL_INTERVAL_MS = 1000;
+const PARTIAL_MIN_SAMPLES = SAMPLE_RATE;
+const PARTIAL_MAX_SAMPLES = SAMPLE_RATE * 20;
 
 function transcriptionsUrl(baseUrl: string): string {
   const base = baseUrl.replace(/\/$/, "");
@@ -121,16 +127,12 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
 }
 
 /**
- * 内置离线 whisper.cpp：同样是整句识别，松手后懒启动本地 whisper-server
- * 并 POST /inference（无需密钥）。
+ * ChatGPT 网页转写：复用本机已有的 ChatGPT 登录态调用它自带的语音输入接口，
+ * 免密钥、免额度配置；整句识别，无流式 partial。
  */
-export function startLocalAsrSession(settings: Settings): DoubaoSession {
+export function startChatgptAsrSession(settings: Settings): DoubaoSession {
   const frames: Int16Array[] = [];
   let cancelled = false;
-
-  // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
-  const warming = ensureLocalServer(settings.localModel || "base-q5_1");
-  warming.catch(() => undefined);
 
   return {
     pushPcm(frame: Int16Array): void {
@@ -142,7 +144,87 @@ export function startLocalAsrSession(settings: Settings): DoubaoSession {
     },
     async finish(): Promise<string> {
       if (cancelled || frames.length === 0) return "";
-      const url = await ensureLocalServer(settings.localModel || "base-q5_1");
+      return transcribeViaChatgpt(pcmToWav(frames), settings.language ?? "");
+    },
+  };
+}
+
+/** PCM16 帧拼成 sherpa-onnx 要的 [-1,1] 浮点采样 */
+function pcmToFloat32(frames: Int16Array[]): Float32Array {
+  const total = frames.reduce((sum, f) => sum + f.length, 0);
+  const out = new Float32Array(total);
+  let offset = 0;
+  for (const frame of frames) {
+    for (let i = 0; i < frame.length; i++) out[offset + i] = (frame[i] ?? 0) / 32768;
+    offset += frame.length;
+  }
+  return out;
+}
+
+/**
+ * 内置离线识别：SenseVoice 走进程内 sherpa-onnx，whisper 模型懒启动本地
+ * whisper-server 并 POST /inference。两者都不联网、不需密钥，整句识别。
+ */
+export function startLocalAsrSession(
+  settings: Settings,
+  onPartial?: (text: string) => void,
+): DoubaoSession {
+  const frames: Int16Array[] = [];
+  let cancelled = false;
+  const model = settings.localModel || "base-q5_1";
+
+  // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
+  if (model !== SENSEVOICE) ensureLocalServer(model).catch(() => undefined);
+
+  // SenseVoice 是整句模型，流式字幕靠定时重解已录部分近似；只在音频够长且
+  // 不过长时做，超过上限停掉预览留给最终识别
+  let timer: NodeJS.Timeout | null = null;
+  if (onPartial && model === SENSEVOICE) {
+    let inFlight = false;
+    let nextAt = 0;
+    timer = setInterval(() => {
+      const samples = frames.reduce((sum, f) => sum + f.length, 0);
+      if (inFlight || samples < PARTIAL_MIN_SAMPLES || samples > PARTIAL_MAX_SAMPLES) return;
+      if (Date.now() < nextAt) return;
+      inFlight = true;
+      const started = Date.now();
+      void transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto")
+        .then((text) => {
+          // 解码在 worker 里，但仍串行；按上次耗时拉开间隔，别让预览霸占识别线程
+          nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, (Date.now() - started) * 2);
+          if (text && !cancelled) onPartial(text);
+        })
+        .catch(() => {
+          /* 预览失败无所谓，最终识别会给出真正的报错 */
+          nextAt = Date.now() + PARTIAL_INTERVAL_MS * 5;
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    }, PARTIAL_TICK_MS);
+  }
+  const stopTimer = (): void => {
+    if (timer) clearInterval(timer);
+    timer = null;
+  };
+
+  return {
+    pushPcm(frame: Int16Array): void {
+      if (!cancelled) frames.push(frame);
+    },
+    cancel(): void {
+      cancelled = true;
+      stopTimer();
+      frames.length = 0;
+    },
+    async finish(): Promise<string> {
+      stopTimer();
+      if (cancelled || frames.length === 0) return "";
+      if (model === SENSEVOICE) {
+        // SenseVoice 本就输出简体，不再过繁→简以免误伤专名
+        return transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
+      }
+      const url = await ensureLocalServer(model);
       const wav = pcmToWav(frames);
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");

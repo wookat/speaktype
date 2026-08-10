@@ -279,25 +279,34 @@ function connectRelay(d: RemoteMicDeps): void {
 }
 
 /** 公网中转模式：连入用户自部署（或公共）的 Cloudflare Worker 中转 */
-async function startRelayMic(relayUrl: string): Promise<RemoteMicInfo> {
+async function startRelayMic(relayUrl: string, room: string): Promise<RemoteMicInfo> {
   const d = deps;
   if (!d) throw new Error("remote mic not configured");
   relayHost = new URL(relayUrl.startsWith("http") ? relayUrl : `https://${relayUrl}`).host;
-  relayRoom = randomBytes(6).toString("hex");
+  relayRoom = room;
   relayStopped = false;
   connectRelay(d);
   const url = `https://${relayHost}/m/${relayRoom}`;
   const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
-  info = { running: true, url, qrDataUrl, clients: 0 };
+  info = { running: true, url, qrDataUrl, clients: 0, pairCode: relayRoom };
   log.info(`remote mic relaying via ${url}`);
   return remoteMicInfo();
 }
 
-export async function startRemoteMic(mode: "lan" | "relay" = "lan", relayUrl = ""): Promise<RemoteMicInfo> {
+/** 房间号即配对码：固定下来，装到主屏幕的手机 App 才能一直连同一台电脑 */
+export function newPairCode(): string {
+  return randomBytes(6).toString("hex");
+}
+
+export async function startRemoteMic(
+  mode: "lan" | "relay" = "lan",
+  relayUrl = "",
+  relayRoomId = "",
+): Promise<RemoteMicInfo> {
   if (server || relayWs) return remoteMicInfo();
   if (mode === "relay") {
     if (!relayUrl.trim()) throw new Error("relay URL required");
-    return startRelayMic(relayUrl.trim());
+    return startRelayMic(relayUrl.trim(), relayRoomId || newPairCode());
   }
   const d = deps;
   if (!d) throw new Error("remote mic not configured");

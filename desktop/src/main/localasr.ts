@@ -1,17 +1,30 @@
 import { app } from "electron";
 import { type ChildProcess, spawn } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import type { LocalModelStatus } from "../shared/types";
 import { t } from "./i18n";
 
-/** 内置离线识别：管理 whisper.cpp whisper-server 子进程与 ggml 模型下载 */
+/**
+ * 内置离线识别，两套引擎：
+ * - whisper.cpp：whisper-server 子进程 + ggml 模型，多语种通用。
+ * - SenseVoice（sherpa-onnx）：进程内推理，中文准确率和速度明显好于同体积 whisper。
+ */
 
 const PORT = 18717;
 
+/** SenseVoice 模型 id；localModel 等于它时走 sherpa-onnx 而不是 whisper-server */
+export const SENSEVOICE = "sensevoice-small";
+
+const SENSEVOICE_BASE =
+  "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
+
 export const LOCAL_MODELS = [
+  { id: SENSEVOICE, size: "234MB" },
   { id: "tiny-q5_1", size: "32MB" },
   { id: "base-q5_1", size: "60MB" },
   { id: "small-q5_1", size: "190MB" },
@@ -23,6 +36,22 @@ function modelsDir(): string {
 
 function modelPath(model: string): string {
   return join(modelsDir(), `ggml-${model}.bin`);
+}
+
+/** 一个模型需要的全部文件：[HuggingFace 仓内路径, 本地落盘路径] */
+function modelFiles(model: string): Array<[string, string]> {
+  if (model === SENSEVOICE) {
+    const dir = join(modelsDir(), SENSEVOICE);
+    return [
+      [`${SENSEVOICE_BASE}/model.int8.onnx`, join(dir, "model.int8.onnx")],
+      [`${SENSEVOICE_BASE}/tokens.txt`, join(dir, "tokens.txt")],
+    ];
+  }
+  return [[`ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model)]];
+}
+
+function modelReady(model: string): boolean {
+  return modelFiles(model).every(([, path]) => existsSync(path));
 }
 
 function serverExe(): string {
@@ -47,7 +76,7 @@ export function onLocalModelStatus(cb: (s: LocalModelStatus) => void): void {
 
 export function localModelStatus(model: string): LocalModelStatus {
   if (status.downloading && status.model === model) return { ...status };
-  return { model, downloaded: existsSync(modelPath(model)), downloading: false, progress: 0 };
+  return { model, downloaded: modelReady(model), downloading: false, progress: 0 };
 }
 
 function push(patch: Partial<LocalModelStatus>): void {
@@ -55,55 +84,149 @@ function push(patch: Partial<LocalModelStatus>): void {
   notify?.({ ...status });
 }
 
-/** 从 Hugging Face 下载 ggml 模型到 userData\models（先落 .part 再改名） */
+/** 下载单个文件（先落 .part 再改名），直连 HuggingFace 失败时落到镜像源 */
+async function fetchFile(path: string, dest: string, onProgress: (bytes: number, total: number) => void): Promise<void> {
+  const hosts = ["https://huggingface.co", "https://hf-mirror.com"];
+  let res: Response | null = null;
+  let lastError: unknown = null;
+  for (const host of hosts) {
+    try {
+      const r = await fetch(`${host}/${path}`);
+      if (r.ok && r.body) {
+        res = r;
+        break;
+      }
+      lastError = new Error(`HTTP ${r.status} (${host})`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!res || !res.body) throw lastError instanceof Error ? lastError : new Error(String(lastError));
+
+  const part = `${dest}.part`;
+  const total = Number(res.headers.get("content-length")) || 0;
+  let got = 0;
+  const out = createWriteStream(part);
+  const reader = res.body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const buf = Buffer.from(value);
+    got += buf.length;
+    if (!out.write(buf)) await new Promise<void>((r) => out.once("drain", () => r()));
+    onProgress(got, total);
+  }
+  await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
+  renameSync(part, dest);
+}
+
+/** 下载模型所需的全部文件到 userData\models，进度按文件个数均分 */
 export async function downloadLocalModel(model: string): Promise<LocalModelStatus> {
   if (status.downloading) return { ...status };
-  if (existsSync(modelPath(model))) return localModelStatus(model);
+  if (modelReady(model)) return localModelStatus(model);
 
   push({ model, downloading: true, downloaded: false, progress: 0, error: undefined });
-  const part = `${modelPath(model)}.part`;
+  const files = modelFiles(model);
   try {
-    mkdirSync(modelsDir(), { recursive: true });
-    // 多源顺序重试：直连 HuggingFace 失败时落到镜像源
-    const hosts = ["https://huggingface.co", "https://hf-mirror.com"];
-    let res: Response | null = null;
-    let lastError: unknown = null;
-    for (const host of hosts) {
-      try {
-        const r = await fetch(`${host}/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`);
-        if (r.ok && r.body) {
-          res = r;
-          break;
-        }
-        lastError = new Error(`HTTP ${r.status} (${host})`);
-      } catch (error) {
-        lastError = error;
-      }
+    for (const [index, [remote, dest]] of files.entries()) {
+      mkdirSync(join(dest, ".."), { recursive: true });
+      if (existsSync(dest)) continue;
+      await fetchFile(remote, dest, (got, total) => {
+        if (!total) return;
+        push({ progress: Math.floor(((index + got / total) / files.length) * 100) });
+      });
     }
-    if (!res || !res.body) throw lastError instanceof Error ? lastError : new Error(String(lastError));
-    const total = Number(res.headers.get("content-length")) || 0;
-    let got = 0;
-    const out = createWriteStream(part);
-    const reader = res.body.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const buf = Buffer.from(value);
-      got += buf.length;
-      if (!out.write(buf)) await new Promise<void>((r) => out.once("drain", () => r()));
-      if (total) push({ progress: Math.floor((got / total) * 100) });
-    }
-    await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
-    renameSync(part, modelPath(model));
     push({ downloading: false, downloaded: true, progress: 100 });
-    log.info(`local model ${model} downloaded (${got} bytes)`);
+    log.info(`local model ${model} downloaded`);
   } catch (error) {
-    rmSync(part, { force: true });
+    for (const [, dest] of files) rmSync(`${dest}.part`, { force: true });
     const message = error instanceof Error ? error.message : String(error);
     push({ downloading: false, downloaded: false, progress: 0, error: message });
     log.warn(`local model ${model} download failed`, error);
   }
   return { ...status };
+}
+
+/**
+ * SenseVoice 推理跑在 worker 线程里：sherpa-onnx 的解码是同步的，长句要几百毫秒到
+ * 一秒多，留在主进程会卡住整个 UI（实时字幕反复重解时尤其明显）。worker 里模型实例
+ * 常驻，语言变化时重建。
+ */
+const workerSource = `
+const { parentPort, workerData } = require("worker_threads");
+const mod = require(workerData.modulePath);
+let rec = null;
+let lang = null;
+parentPort.on("message", (msg) => {
+  try {
+    if (!rec || lang !== msg.language) {
+      rec = new mod.OfflineRecognizer({
+        modelConfig: {
+          senseVoice: { model: workerData.model, language: msg.language, useInverseTextNormalization: 1 },
+          tokens: workerData.tokens,
+          numThreads: 2,
+          provider: "cpu",
+          debug: 0,
+        },
+      });
+      lang = msg.language;
+    }
+    const stream = rec.createStream();
+    stream.acceptWaveform({ sampleRate: msg.sampleRate, samples: msg.samples });
+    rec.decode(stream);
+    parentPort.postMessage({ id: msg.id, text: rec.getResult(stream).text.trim() });
+  } catch (error) {
+    parentPort.postMessage({ id: msg.id, error: error instanceof Error ? error.message : String(error) });
+  }
+});
+`;
+
+let worker: Worker | null = null;
+let nextJobId = 1;
+const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
+
+function ensureWorker(model: string, tokens: string): Worker {
+  if (worker) return worker;
+  const require = createRequire(import.meta.url);
+  worker = new Worker(workerSource, {
+    eval: true,
+    workerData: { modulePath: require.resolve("sherpa-onnx-node"), model, tokens },
+  });
+  worker.on("message", (msg: { id: number; text?: string; error?: string }) => {
+    const job = pending.get(msg.id);
+    if (!job) return;
+    pending.delete(msg.id);
+    if (msg.error) job.reject(new Error(msg.error));
+    else job.resolve(msg.text ?? "");
+  });
+  worker.on("error", (error) => {
+    log.warn("sensevoice worker error", error);
+    for (const job of pending.values()) job.reject(error);
+    pending.clear();
+    worker = null;
+  });
+  worker.on("exit", () => {
+    worker = null;
+  });
+  log.info("sensevoice worker started");
+  return worker;
+}
+
+export async function transcribeSenseVoice(
+  samples: Float32Array,
+  sampleRate: number,
+  language: string,
+): Promise<string> {
+  const files = modelFiles(SENSEVOICE);
+  const model = files[0]?.[1] ?? "";
+  const tokens = files[1]?.[1] ?? "";
+  if (!existsSync(model) || !existsSync(tokens)) throw new Error(t("error.localModelMissing"));
+  const w = ensureWorker(model, tokens);
+  const id = nextJobId++;
+  return new Promise<string>((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    w.postMessage({ id, samples, sampleRate, language });
+  });
 }
 
 export function stopLocalServer(): void {
@@ -130,7 +253,7 @@ async function waitHealthy(): Promise<void> {
 
 /** 懒启动 whisper-server（换模型自动重启），返回 /inference 端点 */
 export async function ensureLocalServer(model: string): Promise<string> {
-  if (!existsSync(modelPath(model))) throw new Error(t("error.localModelMissing"));
+  if (!modelReady(model)) throw new Error(t("error.localModelMissing"));
   if (proc && procModel !== model) stopLocalServer();
 
   if (!proc || !ready) {

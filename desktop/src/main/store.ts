@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Alt+Space 是 Windows 系统菜单键，会让目标窗口进入菜单模态吃掉 Ctrl+V，默认避开
   hotkeyToggle: "Alt+Q",
   hotkeyHold: "RightCtrl",
+  hotkeyRewrite: "F8",
   holdDelayMs: 120,
   minRecordMs: 300,
   language: "zh",
@@ -25,18 +26,23 @@ export const DEFAULT_SETTINGS: Settings = {
   polishModel: "",
   hotwords: [],
   doubaoAppKey: "",
-  asrProvider: "doubao",
+  // 默认走内置离线：零密钥零登录，新用户下完模型就能说第一句
+  asrProvider: "local",
   asrBaseUrl: "",
   asrApiKey: "",
   asrModel: "",
-  localModel: "base-q5_1",
+  localModel: "sensevoice-small",
   localSimplified: true,
   enhancedVad: false,
   keepFailedAudio: true,
   captionLines: 3,
   remoteMicEnabled: false,
   remoteMicMode: "lan",
-  remoteRelayUrl: "",
+  // 官方公共中转（Cloudflare Worker，音频直通不存储）；用户可换成自部署地址
+  remoteRelayUrl: "https://speaktype-relay.wookat520.workers.dev",
+  remoteRelayRoom: "",
+  appPersonas: [],
+  autoLearn: true,
 };
 
 interface Schema {
@@ -61,7 +67,10 @@ const store = new Store<Schema>({
 });
 
 export function getSettings(): Settings {
-  return { ...DEFAULT_SETTINGS, ...store.get("settings") };
+  const merged = { ...DEFAULT_SETTINGS, ...store.get("settings") };
+  // 中转地址留空时回落到官方中转，保证「公网中转」开箱即用
+  if (!merged.remoteRelayUrl.trim()) merged.remoteRelayUrl = DEFAULT_SETTINGS.remoteRelayUrl;
+  return merged;
 }
 
 export function setSettings(patch: Partial<Settings>): Settings {

@@ -72,7 +72,7 @@ function Panel() {
       {(recording || working || status?.state === "error") && (
       <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#292929]/95 px-4 py-2 shadow-xl">
         {recording && (
-          <div className="flex h-8 items-end gap-[3px]">
+          <div className="flex h-8 items-center gap-[3px]">
             {levels.map((v, i) => (
               <span
                 key={i}

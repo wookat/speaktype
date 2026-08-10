@@ -11,14 +11,19 @@ export interface Persona {
 /** 界面语言："system" 表示跟随系统 */
 export type UiLanguage = "system" | "zh-CN" | "zh-TW" | "en" | "ja" | "ko";
 
-/** 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、或内置离线 whisper.cpp */
-export type AsrProvider = "doubao" | "openai" | "local";
+/**
+ * 语音识别服务商：豆包（流式，需登录）、任意 OpenAI 兼容转写接口（整句）、
+ * ChatGPT 网页会话（免密钥，需应用内登录）、或内置离线 whisper.cpp
+ */
+export type AsrProvider = "doubao" | "openai" | "chatgpt" | "local";
 
 export interface Settings {
   /** 点按开关热键，uiohook 键名组合，例如 "Alt+Space" */
   hotkeyToggle: string;
   /** 长按说话热键，例如 "RightCtrl" */
   hotkeyHold: string;
+  /** 选中文字后长按说指令改写/翻译的热键；"Off" 为关闭 */
+  hotkeyRewrite: string;
   /** 长按判定时长，低于它算误触 */
   holdDelayMs: number;
   /** 最短录音时长，低于它不发起识别 */
@@ -67,6 +72,18 @@ export interface Settings {
   remoteMicMode: "lan" | "relay";
   /** 公网中转服务地址，如 https://speaktype-relay.xxx.workers.dev */
   remoteRelayUrl: string;
+  /** 中转房间号（= 手机端配对码），首次开启时生成后固定，装到主屏幕的手机 App 才能一直连同一台电脑 */
+  remoteRelayRoom: string;
+  /** 按当前应用自动切人设；匹配前台进程名或窗口标题，先命中先用 */
+  appPersonas: AppPersonaRule[];
+  /** 落字后观察输入框：用户手动改对的词自动学进词典（仅 Windows，纯本地） */
+  autoLearn: boolean;
+}
+
+export interface AppPersonaRule {
+  /** 子串匹配，如 "code.exe"、"wechat"、"gmail" */
+  match: string;
+  personaId: string;
 }
 
 /** 手机麦克风服务状态，主进程推给设置页 */
@@ -75,6 +92,8 @@ export interface RemoteMicInfo {
   url: string;
   qrDataUrl: string;
   clients: number;
+  /** 公网中转模式下的 12 位配对码（房间号），装了手机 App 的用户可直接手输配对 */
+  pairCode?: string;
   error?: string;
 }
 
