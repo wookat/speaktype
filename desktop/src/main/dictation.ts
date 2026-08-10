@@ -17,8 +17,8 @@ import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { localModelStatus } from "./localasr";
 import { t, translator } from "./i18n";
-import { pasteText, toggleSystemMute } from "./paste";
-import { polishText } from "./polish";
+import { copySelection, pasteText, toggleSystemMute } from "./paste";
+import { polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
 import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText } from "./watchedit";
@@ -116,6 +116,8 @@ export class Dictation {
   private maxPeak = 0;
   private voicedMs = 0;
   private silero: SileroVad | null = null;
+  /** 改写模式：按下改写键时抓到的选区文字，本次口述当作改写指令 */
+  private rewriteTarget: string | null = null;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -214,6 +216,26 @@ export class Dictation {
     if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
   }
 
+  /**
+   * 改写模式：先抓当前选中的文字，再开录；本次说的话当作改写/翻译指令。
+   * 没选中文字或没配润色模型时直接提示，不进入录音。
+   */
+  async startRewrite(): Promise<void> {
+    if (this.busy) return;
+    const settings = getSettings();
+    if (!settings.polishBaseUrl || !settings.polishApiKey) {
+      this.deps.showToast(t("toast.rewriteNoModel"), t("toast.rewriteNoModelBody"));
+      return;
+    }
+    const selection = await copySelection();
+    if (!selection.trim()) {
+      this.deps.showToast(t("toast.rewriteNoSelection"), t("toast.rewriteNoSelectionBody"));
+      return;
+    }
+    this.rewriteTarget = selection;
+    await this.start("hold");
+  }
+
   /** remote=true 时音频由手机端经 remotemic 推流，不开本机麦克风 */
   async start(mode: "hold" | "toggle" = "hold", remote = false): Promise<void> {
     if (this.busy) return;
@@ -291,6 +313,7 @@ export class Dictation {
   }
 
   cancel(): void {
+    this.rewriteTarget = null;
     if (!this.busy) return;
     if (!this.session) {
       this.pendingEnd = "cancel";
@@ -476,11 +499,27 @@ export class Dictation {
     }
 
     this.report("polishing");
-    const text = await polishText(settings, persona, raw);
+    const rewriteTarget = this.rewriteTarget;
+    this.rewriteTarget = null;
+    let text: string;
+    if (rewriteTarget) {
+      const rewritten = await rewriteSelection(settings, rewriteTarget, raw);
+      if (!rewritten) {
+        this.busy = false;
+        this.partial = "";
+        this.report("idle");
+        this.deps.showToast(t("toast.rewriteFailed"), t("toast.rewriteFailedBody"));
+        return;
+      }
+      text = rewritten;
+    } else {
+      text = await polishText(settings, persona, raw);
+    }
 
     let failed: string | undefined;
-    if (settings.autoPaste) {
+    if (settings.autoPaste || rewriteTarget) {
       try {
+        // 改写模式：选区还选着，直接粘贴就是替换
         await pasteText(text);
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
@@ -503,8 +542,8 @@ export class Dictation {
       });
     addStats(text.length, durationMs);
 
-    // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典
-    if (settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]/.test(text)) {
+    // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
+    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]/.test(text)) {
       watchPastedText(text, (wrong, right) => this.learnCorrection(historyId, wrong, right));
     }
 

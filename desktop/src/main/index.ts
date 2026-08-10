@@ -14,7 +14,7 @@ import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
 import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
-import { HOLD_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
+import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
@@ -147,7 +147,7 @@ async function syncRemoteMic(enabled: boolean): Promise<void> {
 
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
-  onHoldStart: () => void dictation.start("hold"),
+  onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => {
     if (dictation.isRecording()) void dictation.stop();
@@ -165,7 +165,13 @@ const hotkeys = new HotkeyManager({
 });
 
 function applyHotkeys(settings: Settings): void {
-  hotkeys.configure(settings.hotkeyHold, settings.hotkeyToggle, settings.holdDelayMs, settings.personaHotkeysEnabled);
+  hotkeys.configure(
+    settings.hotkeyHold,
+    settings.hotkeyToggle,
+    settings.holdDelayMs,
+    settings.personaHotkeysEnabled,
+    settings.hotkeyRewrite,
+  );
 }
 
 function pushSettings(): void {
@@ -241,6 +247,7 @@ function registerIpc(): void {
     onboarded: isOnboarded(),
     doubaoReady: hasAppKey(),
     holdKeyChoices: HOLD_KEY_CHOICES,
+    rewriteKeyChoices: REWRITE_KEY_CHOICES,
     toggleKeyChoices: TOGGLE_KEY_CHOICES,
     status: dictation.status(),
     version: app.isPackaged ? app.getVersion() : pkg.version,

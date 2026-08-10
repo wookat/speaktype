@@ -113,6 +113,47 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
 }
 
 /**
+ * 选中文字 + 语音指令改写/翻译：把选区和口述指令交给润色模型，只回改写后的正文。
+ * 没配润色模型时返回 null，由调用方提示用户去配置。
+ */
+export async function rewriteSelection(
+  settings: Settings,
+  selection: string,
+  instruction: string,
+): Promise<string | null> {
+  if (!settings.polishBaseUrl || !settings.polishApiKey) return null;
+  const prompt = [
+    "你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。",
+    "要求：",
+    "1. 只输出改写后的正文，不要解释、不要引号、不要 Markdown 代码块。",
+    "2. 严格遵守指令；指令没要求的部分不要擅自改动。",
+    "3. 保持原文的换行与列表结构。",
+    `\n口述指令：\n"""${instruction}"""`,
+    `\n原文：\n"""${selection}"""`,
+  ].join("\n");
+  try {
+    const res = await fetch(chatUrl(settings.polishBaseUrl), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.polishApiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.polishModel || "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as ChatResponse;
+    const content = data.choices?.[0]?.message?.content?.trim();
+    return content ? content.replace(/^["“]|["”]$/g, "") : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 人设润色。识别与润色解耦：任何 OpenAI 兼容端点都能接
  * （DeepSeek / Kimi / 通义 / 智谱 / 本地 Ollama），没配就只做本地清理。
  */

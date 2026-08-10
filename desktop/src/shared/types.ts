@@ -22,6 +22,8 @@ export interface Settings {
   hotkeyToggle: string;
   /** 长按说话热键，例如 "RightCtrl" */
   hotkeyHold: string;
+  /** 选中文字后长按说指令改写/翻译的热键；"Off" 为关闭 */
+  hotkeyRewrite: string;
   /** 长按判定时长，低于它算误触 */
   holdDelayMs: number;
   /** 最短录音时长，低于它不发起识别 */

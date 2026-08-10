@@ -18,6 +18,7 @@ export interface InitPayload {
   onboarded: boolean;
   doubaoReady: boolean;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
   status: StatusPayload;
   version: string;

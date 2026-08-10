@@ -5,12 +5,13 @@ import { UiohookKey, uIOhook, type UiohookKeyboardEvent, type UiohookMouseEvent 
  * - 长按键：按住说话、松手结束；按住不满判定时长算误触，直接忽略。
  * - 长按位也可以是鼠标侧键（Mouse4/Mouse5），适合手一直在鼠标上的场景。
  * - 点按组合键：按一下开始、再按一下结束（免按模式）。
+ * - 改写键：按住对着选中的文字说指令（改写/翻译），松手替换选区。
  * - Alt+1..9：切换人设。
  */
 
 export interface HotkeyHandlers {
-  onHoldStart(): void;
-  onHoldEnd(): void;
+  onHoldStart(rewrite: boolean): void;
+  onHoldEnd(rewrite: boolean): void;
   onToggle(): void;
   onPersona(index: number): void;
   /** 按下瞬间就回调（判定时长之前），用于抢跑建联 */
@@ -62,6 +63,8 @@ export const HOLD_KEY_CHOICES = [
   "MouseMiddle",
 ];
 
+export const REWRITE_KEY_CHOICES = ["Off", ...HOLD_KEY_CHOICES];
+
 export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "Alt+Space", "F9", "F10"];
 
 const DIGIT_KEYCODES: number[] = [
@@ -79,6 +82,8 @@ const DIGIT_KEYCODES: number[] = [
 export class HotkeyManager {
   private holdKeycode: number = UiohookKey.CtrlRight;
   private holdMouseButton = 0;
+  private rewriteKeycode = -1;
+  private rewriteMouseButton = 0;
   private toggleModAlt = true;
   private toggleKeycode: number = UiohookKey.Space;
   private holdDelayMs = 120;
@@ -86,6 +91,9 @@ export class HotkeyManager {
   private holdTimer: NodeJS.Timeout | null = null;
   private holdActive = false;
   private holdPressed = false;
+  private rewriteTimer: NodeJS.Timeout | null = null;
+  private rewriteActive = false;
+  private rewritePressed = false;
   private started = false;
   private capture: ((name: string | null) => void) | null = null;
   /** 刚被录制的键：松开前吃掉系统 key repeat 的 keydown，避免误触发录音 */
@@ -93,9 +101,18 @@ export class HotkeyManager {
 
   constructor(private handlers: HotkeyHandlers) {}
 
-  configure(hotkeyHold: string, hotkeyToggle: string, holdDelayMs: number, personaHotkeys = true): void {
+  configure(
+    hotkeyHold: string,
+    hotkeyToggle: string,
+    holdDelayMs: number,
+    personaHotkeys = true,
+    hotkeyRewrite = "Off",
+  ): void {
     this.holdMouseButton = MOUSE_BUTTONS[hotkeyHold] ?? 0;
     this.holdKeycode = this.holdMouseButton ? -1 : (KEY_NAMES[hotkeyHold] ?? UiohookKey.CtrlRight);
+    const rewriteOff = !hotkeyRewrite || hotkeyRewrite === "Off" || hotkeyRewrite === hotkeyHold;
+    this.rewriteMouseButton = rewriteOff ? 0 : (MOUSE_BUTTONS[hotkeyRewrite] ?? 0);
+    this.rewriteKeycode = rewriteOff || this.rewriteMouseButton ? -1 : (KEY_NAMES[hotkeyRewrite] ?? -1);
     this.holdDelayMs = holdDelayMs;
     this.personaHotkeys = personaHotkeys;
     const parts = hotkeyToggle.split("+");
@@ -143,10 +160,12 @@ export class HotkeyManager {
       return;
     }
     if (this.holdMouseButton && ev.button === this.holdMouseButton) this.pressHold();
+    else if (this.rewriteMouseButton && ev.button === this.rewriteMouseButton) this.pressRewrite();
   }
 
   private onMouseUp(ev: UiohookMouseEvent): void {
     if (this.holdMouseButton && ev.button === this.holdMouseButton) this.releaseHold();
+    else if (this.rewriteMouseButton && ev.button === this.rewriteMouseButton) this.releaseRewrite();
   }
 
   private pressHold(): void {
@@ -156,7 +175,7 @@ export class HotkeyManager {
     this.holdTimer = setTimeout(() => {
       this.holdTimer = null;
       this.holdActive = true;
-      this.handlers.onHoldStart();
+      this.handlers.onHoldStart(false);
     }, this.holdDelayMs);
   }
 
@@ -170,7 +189,30 @@ export class HotkeyManager {
     }
     if (this.holdActive) {
       this.holdActive = false;
-      this.handlers.onHoldEnd();
+      this.handlers.onHoldEnd(false);
+    }
+  }
+
+  private pressRewrite(): void {
+    if (this.rewritePressed) return;
+    this.rewritePressed = true;
+    this.rewriteTimer = setTimeout(() => {
+      this.rewriteTimer = null;
+      this.rewriteActive = true;
+      this.handlers.onHoldStart(true);
+    }, this.holdDelayMs);
+  }
+
+  private releaseRewrite(): void {
+    this.rewritePressed = false;
+    if (this.rewriteTimer) {
+      clearTimeout(this.rewriteTimer);
+      this.rewriteTimer = null;
+      return;
+    }
+    if (this.rewriteActive) {
+      this.rewriteActive = false;
+      this.handlers.onHoldEnd(true);
     }
   }
 
@@ -189,6 +231,10 @@ export class HotkeyManager {
     if (ev.keycode === this.captureSwallowKeycode) return;
     if (ev.keycode === this.holdKeycode) {
       this.pressHold();
+      return;
+    }
+    if (ev.keycode === this.rewriteKeycode) {
+      this.pressRewrite();
       return;
     }
     if (ev.altKey && ev.keycode === this.toggleKeycode && this.toggleModAlt) {
@@ -211,5 +257,6 @@ export class HotkeyManager {
       return;
     }
     if (ev.keycode === this.holdKeycode) this.releaseHold();
+    else if (ev.keycode === this.rewriteKeycode) this.releaseRewrite();
   }
 }

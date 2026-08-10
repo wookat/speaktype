@@ -267,6 +267,7 @@ export default function App() {
             settings={settings}
             update={update}
             holdKeyChoices={init.holdKeyChoices}
+            rewriteKeyChoices={init.rewriteKeyChoices}
             toggleKeyChoices={init.toggleKeyChoices}
             doubaoReady={doubaoReady}
             version={init.version}
@@ -973,6 +974,7 @@ function SettingsPage(props: {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
   doubaoReady: boolean;
   version: string;
@@ -1007,7 +1009,14 @@ function SettingsPage(props: {
 
       <div className="mt-4 space-y-6">
         {tab === "general" && (
-          <GeneralTab t={t} s={s} update={props.update} holdKeyChoices={props.holdKeyChoices} toggleKeyChoices={props.toggleKeyChoices} />
+          <GeneralTab
+            t={t}
+            s={s}
+            update={props.update}
+            holdKeyChoices={props.holdKeyChoices}
+            rewriteKeyChoices={props.rewriteKeyChoices}
+            toggleKeyChoices={props.toggleKeyChoices}
+          />
         )}
         {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
         {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
@@ -1022,6 +1031,7 @@ function GeneralTab(props: {
   s: Settings;
   update: (patch: Partial<Settings>) => void;
   holdKeyChoices: string[];
+  rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
 }) {
   const { t, s, update } = props;
@@ -1078,6 +1088,34 @@ function GeneralTab(props: {
               {capturing ? t("settings.holdCapturing") : t("settings.holdCapture")}
             </button>
           </div>
+        </Row>
+        <Row
+          label={t("settings.rewriteKey")}
+          hint={
+            s.hotkeyRewrite === "Off"
+              ? t("settings.rewriteKeyOffHint")
+              : t("settings.rewriteKeyHint", { key: s.hotkeyRewrite })
+          }
+        >
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.hotkeyRewrite}
+            onChange={(e) => update({ hotkeyRewrite: e.target.value })}
+          >
+            {props.rewriteKeyChoices.map((key) => (
+              <option key={key} value={key}>
+                {key === "Off"
+                  ? t("settings.rewriteKeyOff")
+                  : key === "MouseBack"
+                    ? t("settings.mouseBack")
+                    : key === "MouseForward"
+                      ? t("settings.mouseForward")
+                      : key === "MouseMiddle"
+                        ? t("settings.mouseMiddle")
+                        : key}
+              </option>
+            ))}
+          </select>
         </Row>
         <Row label={t("settings.toggle")} hint={t("settings.toggleHint", { key: s.hotkeyToggle })}>
           <select
