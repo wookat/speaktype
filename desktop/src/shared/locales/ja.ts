@@ -35,6 +35,8 @@ export const ja: LocaleDict = {
 
   "history.title": "履歴",
   "history.clear": "すべて消去",
+  "history.clearConfirm": "履歴をすべて消去しますか？",
+  "history.clearYes": "消去",
   "history.empty": "履歴はまだありません",
   "history.emptyHint": "ホットキーを押しながら話すと、ここに記録されます",
   "history.copy": "コピー",

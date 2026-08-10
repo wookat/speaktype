@@ -32,6 +32,8 @@ export const zhTW: LocaleDict = {
   "home.persona.switch": "Alt+1..9 快速切換",
   "history.title": "歷史記錄",
   "history.clear": "清空歷史",
+  "history.clearConfirm": "清空全部歷史？",
+  "history.clearYes": "清空",
   "history.empty": "暫時沒有歷史記錄",
   "history.emptyHint": "按住熱鍵開始語音，這裡會記錄你的每一次輸入",
   "history.copy": "複製",

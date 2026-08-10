@@ -458,6 +458,7 @@ function History(props: {
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const saveEdit = (item: HistoryItem): void => {
     if (!editing) return;
     const next = editing.text.trim();
@@ -506,10 +507,27 @@ function History(props: {
               onChange={(e) => setQuery(e.target.value)}
             />
           )}
-          {props.history.length > 0 && (
+          {props.history.length > 0 && confirmClear && (
+            <>
+              <span className="text-sm text-slate-500">{t("history.clearConfirm")}</span>
+              <button
+                className="text-sm font-medium text-red-500 hover:text-red-600"
+                onClick={() => {
+                  setConfirmClear(false);
+                  void api.clearHistory().then(props.setHistory);
+                }}
+              >
+                {t("history.clearYes")}
+              </button>
+              <button className="text-sm text-slate-400" onClick={() => setConfirmClear(false)}>
+                {t("common.cancel")}
+              </button>
+            </>
+          )}
+          {props.history.length > 0 && !confirmClear && (
             <button
               className="text-sm text-slate-400 hover:text-red-500"
-              onClick={() => void api.clearHistory().then(props.setHistory)}
+              onClick={() => setConfirmClear(true)}
             >
               {t("history.clear")}
             </button>
