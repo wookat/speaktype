@@ -5,3 +5,5 @@ stats.html
 *.zip
 .dev.vars
 .wrangler/
+
+docs/dl/
