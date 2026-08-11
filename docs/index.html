@@ -1,149 +1,282 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SpeakType — 开源 AI 语音输入法</title>
-<meta name="description" content="你说，它写。开源、无后端、隐私优先的 AI 语音输入法：按住一个键说话，文字落到任何程序的光标处。支持豆包 / 任意 OpenAI 兼容接口 / 完全离线 whisper.cpp。" />
+<title>SpeakType — You speak, it types. Open-source AI dictation for Windows</title>
+<meta name="description" content="Hold a key, speak, release — your words land at the cursor in any app. Open-source, local-first AI dictation: offline recognition, hotword correction that learns from your edits, and your phone as a microphone. MIT licensed." />
+<link rel="canonical" href="https://speaktype.zalize.com/" />
+<link rel="alternate" hreflang="zh-CN" href="https://speaktype.zalize.com/zh/" />
+<link rel="alternate" hreflang="en" href="https://speaktype.zalize.com/" />
 <link rel="icon" href="assets/logo.png" />
-<style>
-:root{--bg:#0b0d17;--card:#141829;--fg:#e8eaf6;--muted:#9aa3c0;--accent:#8b5cf6;--accent2:#6366f1;--border:#252a45}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
-a{color:var(--accent);text-decoration:none}
-.container{max-width:1040px;margin:0 auto;padding:0 24px}
-header{padding:96px 0 64px;text-align:center;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(139,92,246,.25),transparent)}
-header img.logo{width:96px;height:96px;border-radius:24px;box-shadow:0 8px 40px rgba(139,92,246,.4)}
-h1{font-size:56px;margin:24px 0 8px;background:linear-gradient(90deg,#a78bfa,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent}
-.tagline{font-size:22px;color:var(--fg);margin-bottom:8px}
-.sub{color:var(--muted);max-width:640px;margin:0 auto 32px}
-.btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-block;padding:14px 32px;border-radius:12px;font-size:17px;font-weight:600;transition:transform .15s}
-.btn:hover{transform:translateY(-2px)}
-.btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 24px rgba(99,102,241,.45)}
-.btn-ghost{border:1px solid var(--border);color:var(--fg);background:var(--card)}
-.note{color:var(--muted);font-size:13px;margin-top:12px}
-.shot{display:block;max-width:860px;width:100%;margin:56px auto 0;border-radius:14px;border:1px solid var(--border);box-shadow:0 24px 80px rgba(0,0,0,.5)}
-section{padding:72px 0}
-h2{font-size:32px;text-align:center;margin-bottom:40px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
-.card .emoji{font-size:28px}
-.card h3{margin:12px 0 8px;font-size:18px}
-.card p{color:var(--muted);font-size:15px}
-.engines{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
-.engine{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative}
-.engine .tag{position:absolute;top:20px;right:20px;font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(139,92,246,.15);color:#a78bfa}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
-.two img{width:100%;border-radius:12px;border:1px solid var(--border)}
-@media(max-width:800px){.two{grid-template-columns:1fr}h1{font-size:40px}}
-.privacy li{margin:10px 0;color:var(--muted)}
-.privacy li b{color:var(--fg)}
-footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
-kbd{background:#1e2338;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-family:Consolas,monospace;font-size:.9em}
-</style>
+<meta property="og:type" content="website" />
+<meta property="og:title" content="SpeakType — open-source AI dictation for Windows" />
+<meta property="og:description" content="Hold a key, speak, release. Offline-capable, local-first, MIT licensed — and your phone can be the microphone." />
+<meta property="og:image" content="https://speaktype.zalize.com/assets/screenshot-home.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="stylesheet" href="assets/site.css" />
 </head>
 <body>
+<div class="aurora"></div>
+<div class="grid-bg"></div>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="/"><img src="assets/logo.png" alt="" /> SpeakType</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#engines">Engines</a>
+      <a href="#phone">Phone mic</a>
+      <a href="#compare">Compare</a>
+      <a href="#faq">FAQ</a>
+      <a class="lang" href="/zh/">中文</a>
+      <a class="btn btn-primary btn-sm" href="#download">Download</a>
+    </div>
+  </div>
+</nav>
 
 <header>
-  <div class="container">
-    <img class="logo" src="assets/logo.png" alt="SpeakType" />
-    <h1>SpeakType</h1>
-    <p class="tagline">你说，它写 —— 开源 AI 语音输入法</p>
-    <p class="sub">按住 <kbd>RightCtrl</kbd> 说话，松手，文字落到任何程序的光标处。识别引擎、AI 润色、热词纠错全部由你定义，密钥与语音永不离开你的掌控。</p>
-    <div class="btns">
-      <a class="btn btn-primary" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe">⬇ 下载 Windows 版 v0.9.2</a>
-      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe">绿色免安装版</a>
-      <a class="btn btn-ghost" href="/dl/SpeakType-0.9.0.apk">📱 安卓麦克风 App</a>
-      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">GitHub 源码 →</a>
+  <div class="wrap">
+    <a class="pill" href="https://github.com/wookat/speaktype/releases/latest"><span class="dot"></span> <b>v0.9.2</b> is out — learns from the words you fix</a>
+    <h1>You speak,<br /><span class="grad">it types.</span></h1>
+    <p class="lede">Hold <kbd>RightCtrl</kbd>, talk, release — your words land at the cursor in <b>any</b> app. Recognition engine, AI polishing and hotword correction are all yours to configure. Runs fully offline if you want it to.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe">⬇ Download for Windows</a>
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe">Portable build</a>
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">★ Star on GitHub</a>
     </div>
-    <p class="note">Windows 10/11 x64 · MIT 开源 · macOS 版开发中 · <a href="https://github.com/wookat/speaktype/releases/latest" style="color:inherit">历史版本 / Release 说明</a></p>
-    <img class="shot" src="assets/screenshot-home.png" alt="SpeakType 界面" />
+    <p class="note">Windows 10/11 x64 · MIT licensed · macOS in progress · <a href="https://github.com/wookat/speaktype/releases/latest">release notes &amp; older builds</a></p>
+
+    <div class="wave" aria-hidden="true">
+      <i style="animation-delay:0s"></i><i style="animation-delay:.08s"></i><i style="animation-delay:.16s"></i>
+      <i style="animation-delay:.24s"></i><i style="animation-delay:.32s"></i><i style="animation-delay:.4s"></i>
+      <i style="animation-delay:.48s"></i><i style="animation-delay:.56s"></i><i style="animation-delay:.64s"></i>
+      <i style="animation-delay:.72s"></i><i style="animation-delay:.8s"></i><i style="animation-delay:.88s"></i>
+      <i style="animation-delay:.96s"></i><i style="animation-delay:1.04s"></i><i style="animation-delay:1.12s"></i>
+    </div>
+
+    <div class="shot-wrap">
+      <img class="shot" src="assets/screenshot-home.png" alt="SpeakType main window" />
+    </div>
   </div>
 </header>
 
-<section>
-  <div class="container">
-    <h2>为什么是 SpeakType</h2>
+<section id="features">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Why SpeakType</p>
+    <h2>Dictation that belongs to you</h2>
+    <p class="sub">Most AI dictation apps are closed source and route your voice through the vendor's servers. SpeakType has no servers at all — audio goes only where you tell it to go, or nowhere at all.</p>
+  </div>
+  <div class="wrap">
     <div class="grid">
-      <div class="card"><span class="emoji">🔓</span><h3>完全开源（MIT）</h3><p>协议、纠错算法、界面，每一行都能看、能改、能自部署。</p></div>
-      <div class="card"><span class="emoji">🛡️</span><h3>没有自己的后端</h3><p>不架设任何云端服务，语音只发给你自己选择并配置的识别服务——或者干脆完全离线。</p></div>
-      <div class="card"><span class="emoji">🧩</span><h3>一切可插拔</h3><p>识别引擎、AI 润色模型、热词词典、人设风格、快捷键，全部由你定义。</p></div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M7 11V7a5 5 0 0 1 10 0v4" /><rect x="4" y="11" width="16" height="10" rx="2" /></svg></div>
+        <h3>Fully open source (MIT)</h3>
+        <p>Protocols, correction algorithms, UI — every line is readable, hackable and self-hostable. No telemetry, no account.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7l8-4z" /><path d="M9 12l2 2 4-4" /></svg></div>
+        <h3>No backend of its own</h3>
+        <p>SpeakType runs no cloud service. Your audio goes only to the recognition service you chose and configured — or stays entirely on your machine.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h6v6H4z" /><path d="M14 11h6v6h-6z" /><path d="M10 10h4" /></svg></div>
+        <h3>Everything pluggable</h3>
+        <p>Recognition engine, polishing model, hotword dictionary, personas, hotkeys — swap any piece, including a local Ollama.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 4-6 5 5" /><path d="M3 21h18" /></svg></div>
+        <h3>Gets better as you use it</h3>
+        <p>Fix a wrong word by hand after it lands, and SpeakType notices the edit and learns it into your dictionary. The same mistake won't happen twice.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="3" /><path d="M11 18h2" /></svg></div>
+        <h3>Your phone as the microphone</h3>
+        <p>Desktop with no mic? Scan a QR code and talk into your phone — LAN direct, or through a relay you can self-host. No one else ships this.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 6h16" /><path d="M4 12h10" /><path d="M4 18h13" /></svg></div>
+        <h3>5 UI languages</h3>
+        <p>English, 简体中文, 繁體中文, 日本語, 한국어 — follows your system or switch instantly. More welcome via PR.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section>
-  <div class="container">
-    <h2>核心体验</h2>
+<section id="how">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Sixty seconds</p>
+    <h2>From download to dictating</h2>
+  </div>
+  <div class="wrap">
+    <div class="steps">
+      <div class="step reveal"><h3>Install</h3><p>Run the installer, or unzip the portable build — it keeps its config next to the .exe.</p></div>
+      <div class="step reveal"><h3>Pick an engine</h3><p>Settings → Recognition → built-in offline model (one-click download), or paste your own API key.</p></div>
+      <div class="step reveal"><h3>Hold and talk</h3><p>Put the cursor anywhere, hold <kbd>RightCtrl</kbd> (or a mouse side button), speak, release.</p></div>
+      <div class="step reveal"><h3>It learns</h3><p>Fix a word by hand and it goes into your dictionary automatically — accuracy compounds.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="engines">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Recognition</p>
+    <h2>Three ways in, switch anytime</h2>
+    <p class="sub">Bring your own key, bring your own account, or bring nothing at all.</p>
+  </div>
+  <div class="wrap">
     <div class="grid">
-      <div class="card"><span class="emoji">🎙️</span><h3>按住说话</h3><p>按住 <kbd>RightCtrl</kbd> 说话，实时字幕逐字上屏，松手自动落字到任何 Windows 程序的光标处。</p></div>
-      <div class="card"><span class="emoji">⚡</span><h3>免按模式</h3><p><kbd>Alt+Q</kbd> 按一下开始、说完自动结束（静音检测），适合长段输入。</p></div>
-      <div class="card"><span class="emoji">🎭</span><h3>人设风格</h3><p><kbd>Alt+1..9</kbd> 秒切：默认 / 自动翻译 / 汇报老板 / 命令行 / 自定义 prompt。</p></div>
-      <div class="card"><span class="emoji">📖</span><h3>热词纠错</h3><p>词典加上人名、产品名，同音/近音误字自动替换；历史页手动纠错一键学进词典。</p></div>
-      <div class="card"><span class="emoji">🧠</span><h3>增强人声检测</h3><p>可选 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准。</p></div>
-      <div class="card"><span class="emoji">🔁</span><h3>失败可重试</h3><p>识别失败的录音保留在本机，历史页一键重试，不用重说。</p></div>
-      <div class="card"><span class="emoji">📱</span><h3>手机当麦克风</h3><p>台式机没麦克风？手机扫码即用；同一 Wi-Fi 走局域网直连，异地走中转。</p></div>
-      <div class="card"><span class="emoji">✍️</span><h3>选中即改写</h3><p>选一段文字按住 <kbd>F8</kbd> 说「翻译成英文」「改得正式一点」，松手直接替换选区。</p></div>
-      <div class="card"><span class="emoji">📈</span><h3>越用越准</h3><p>落字后你手改对的词自动学进词典，同样的错不会再犯第二次。</p></div>
+      <div class="card reveal">
+        <span class="tag green">Recommended · Offline</span>
+        <h3>Built-in on-device models</h3>
+        <p>One-click download inside the app: whisper.cpp (tiny/base/small) for many languages, or SenseVoice-Small for Chinese — about 0.27s per utterance with punctuation. No network, no account, no key.</p>
+      </div>
+      <div class="card reveal">
+        <span class="tag">Bring your own key</span>
+        <h3>Any OpenAI-compatible API</h3>
+        <p>Base URL + key + model name, with a connection test. Presets for OpenAI Whisper, Groq (generous free tier), Fireworks, Mistral Voxtral, SiliconFlow and Alibaba Bailian.</p>
+      </div>
+      <div class="card reveal">
+        <span class="tag cyan">No key needed</span>
+        <h3>ChatGPT web transcription</h3>
+        <p>Sign in to ChatGPT once inside the app and dictate through your own session — a free account works. Doubao voice works the same way. Undocumented endpoints, off by default; <a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">read the disclaimer</a> first.</p>
+      </div>
+      <div class="card wide reveal">
+        <span class="tag">Polishing</span>
+        <h3>Any chat model, or none</h3>
+        <p>Point AI polishing at any OpenAI-compatible chat endpoint — OpenAI, Gemini's compatible endpoint, Groq, DeepSeek, Zhipu GLM-4-Flash, Kimi, Qwen, or a local Ollama. Leave it empty and a local cleanup pass still fixes filler and self-corrections ("5pm — no, 6pm" → "6pm").</p>
+      </div>
+      <div class="card reveal">
+        <span class="tag">Accuracy</span>
+        <h3>Hotwords &amp; homophones</h3>
+        <p>Add names and product terms; homophone and near-homophone errors are repaired locally through pinyin matching, before any model sees them.</p>
+      </div>
+    </div>
+    <div class="shot-wrap" style="margin-top:44px">
+      <img class="shot reveal" src="assets/screenshot-asr.png" alt="Recognition settings" />
     </div>
   </div>
 </section>
 
-<section>
-  <div class="container">
-    <h2>识别引擎，三选一</h2>
-    <div class="engines">
-      <div class="engine"><span class="tag">零密钥</span><h3>豆包语音</h3><p style="color:var(--muted)">复用你自己登录的 doubao.com 会话做流式识别，App Key 自动获取，装完即用。</p></div>
-      <div class="engine"><span class="tag">自带 Key</span><h3>OpenAI 兼容接口</h3><p style="color:var(--muted)">填 Base URL + Key 即可，内置 Whisper / SiliconFlow / Groq / Fireworks / Mistral / 阿里云百炼预设。</p></div>
-      <div class="engine"><span class="tag">完全离线</span><h3>本地识别（SenseVoice / whisper.cpp）</h3><p style="color:var(--muted)">应用内一键下载模型，完全本机识别——不联网、不注册、零密钥；SenseVoice 中文实测每句 0.27 秒、自带标点。</p></div>
+<section id="phone">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Nobody else has this</p>
+    <h2>Your phone is the microphone</h2>
+    <p class="sub">Desktop tower with no mic, or a laptop mic that picks up the fan? Scan the QR code on your screen, hold the button on your phone and talk — the text lands at your desktop cursor. Same Wi-Fi goes LAN-direct; anywhere else goes through a relay you can deploy to your own Cloudflare account in one command. An Android APK and an installable PWA are both available.</p>
+    <div class="cta">
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk">📱 Android APK</a>
+      <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/tree/main/relay">Self-host the relay</a>
     </div>
   </div>
 </section>
 
-<section>
-  <div class="container two">
-    <div>
-      <h2 style="text-align:left">隐私边界</h2>
-      <ul class="privacy" style="list-style:none">
-        <li><b>没有服务器</b> —— 不收集、不上传任何语音、文本、统计。</li>
-        <li><b>语音只发给你配置的服务</b> —— 离线模式下不出本机。</li>
-        <li><b>密钥、历史、失败录音只存本机</b> —— %APPDATA%\SpeakType。</li>
-        <li><b>仓库不内置任何第三方凭证</b>。</li>
-      </ul>
+<section id="compare">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Honest comparison</p>
+    <h2>How we differ</h2>
+    <p class="sub">Great tools exist in this space. Here is where SpeakType is genuinely different — and where it isn't there yet.</p>
+  </div>
+  <div class="wrap">
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr><th>&nbsp;</th><th>SpeakType</th><th>Closed-source SaaS dictation</th><th>Offline-only open source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Source available</td><td class="yes">MIT, all of it</td><td class="no">No</td><td class="yes">Usually yes</td></tr>
+          <tr><td>Price</td><td class="yes">Free</td><td class="no">≈ $10–15 / month</td><td class="yes">Free</td></tr>
+          <tr><td>Works fully offline</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td></tr>
+          <tr><td>Cloud models when you want them</td><td class="yes">Any OpenAI-compatible API</td><td class="yes">Vendor's own</td><td class="no">Rarely</td></tr>
+          <tr><td>Phone as microphone</td><td class="yes">Yes, QR-code pairing</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td>Learns from the words you fix</td><td class="yes">Automatic</td><td class="no">Rarely</td><td class="no">No</td></tr>
+          <tr><td>Chinese homophone repair</td><td class="yes">Built in</td><td class="no">Varies</td><td class="no">Varies</td></tr>
+          <tr><td>macOS / Linux</td><td class="no">In progress</td><td class="yes">Usually yes</td><td class="yes">Often yes</td></tr>
+        </tbody>
+      </table>
     </div>
-    <img src="assets/screenshot-asr.png" alt="识别引擎设置" />
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap center reveal">
+    <p class="eyebrow">Download</p>
+    <h2>Get SpeakType v0.9.2</h2>
+    <p class="sub">Unsigned installer — if SmartScreen objects, choose “More info → Run anyway”.</p>
+  </div>
+  <div class="wrap">
+    <div class="dl">
+      <div class="dl-card reveal">
+        <h3>Windows installer</h3>
+        <p>Windows 10/11 x64 · ~98MB · start menu shortcut, optional autostart.</p>
+        <a class="btn btn-primary" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe">⬇ SpeakType-Setup-0.9.2.exe</a>
+      </div>
+      <div class="dl-card reveal">
+        <h3>Windows portable</h3>
+        <p>No installation, config stored beside the executable · ~87MB.</p>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe">⬇ Portable .exe</a>
+      </div>
+      <div class="dl-card reveal">
+        <h3>Android microphone app</h3>
+        <p>Turns your phone into the mic for the desktop app. Or just add the web page to your home screen.</p>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk">⬇ SpeakType-0.9.0.apk</a>
+      </div>
+      <div class="dl-card reveal">
+        <h3>macOS</h3>
+        <p>The platform layer is merged; the DMG is waiting on a macOS build machine. Watch the repo for it.</p>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">Follow on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap center reveal">
+    <p class="eyebrow">FAQ</p>
+    <h2>Questions people actually ask</h2>
+  </div>
+  <div class="wrap" style="max-width:820px">
+    <details class="reveal"><summary>Does my voice get uploaded anywhere?</summary><p>Only to the service you configured yourself. With a built-in offline model, nothing leaves your machine — SpeakType operates no servers and collects no telemetry. Keys, history and failed clips live in <code>%APPDATA%\SpeakType</code>.</p></details>
+    <details class="reveal"><summary>Do I need an API key?</summary><p>No. The default path is a built-in offline model you download once inside the app. Keys are optional, for people who want cloud accuracy or speed.</p></details>
+    <details class="reveal"><summary>Which apps does it type into?</summary><p>Any Windows app with a text cursor — browsers, editors, IDEs, chat clients, Office. Text is inserted the same way a paste would be.</p></details>
+    <details class="reveal"><summary>Can I change the hotkey?</summary><p>Yes. Settings → General → “record a key” and press anything, including mouse side buttons. Hands-free mode (<kbd>Alt+Q</kbd>) stops on silence for long dictation.</p></details>
+    <details class="reveal"><summary>How does “learning from my edits” work?</summary><p>After the text lands, SpeakType watches that one input field via Windows UI Automation. If you fix a word, it diffs the change locally, learns the corrected word into your dictionary and updates the history entry. Switch windows and it stops watching. The comparison never leaves your machine, and you can turn the whole thing off.</p></details>
+    <details class="reveal"><summary>Is the ChatGPT / Doubao path allowed?</summary><p>It reuses a session you sign into yourself and calls endpoints those vendors do not document, so it may break or conflict with their terms — the account risk is yours. It ships off by default. Prefer the offline engine or your own API key if you'd rather not take it. <a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">Full disclaimer</a>.</p></details>
+    <details class="reveal"><summary>macOS or Linux?</summary><p>The platform abstraction is merged and a DMG target is configured; the build needs a macOS machine. Contributions welcome.</p></details>
   </div>
 </section>
 
 <section>
-  <div class="container">
-    <h2>手机当麦克风（别家都没有）</h2>
-    <div class="grid">
-      <div class="card"><span class="emoji">📷</span><h3>扫码即用</h3><p>桌面端设置里开「手机当麦克风」，手机扫二维码打开页面，按住圆钮说话，文字落到电脑光标处。零安装，iPhone / Android 通用。</p></div>
-      <div class="card"><span class="emoji">🏠</span><h3>装到主屏幕 / 安卓 App</h3><p>手机页面是可安装 PWA：点「添加到主屏幕」就有图标、全屏、无地址栏；安卓另提供 APK 直装。下次打开自动连回上次配对的电脑。</p></div>
-      <div class="card"><span class="emoji">🌐</span><h3>局域网 / 公网都行</h3><p>同一 Wi-Fi 走局域网直连（更快更私密），不在一起时走中转（音频直通不落盘，中转服务开源可自部署）。</p></div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="container two">
-    <img src="assets/screenshot-personas.png" alt="人设风格" />
-    <div>
-      <h2 style="text-align:left">5 种界面语言</h2>
-      <p style="color:var(--muted)">简体中文、繁體中文、English、日本語、한국어——跟随系统或手动切换，即时生效。语言包架构支持社区继续添加。</p>
-      <p style="margin-top:24px"><a class="btn btn-primary" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe">立即下载</a></p>
+  <div class="wrap">
+    <div class="band reveal">
+      <h2 style="margin-top:0">Stop typing what you could just say.</h2>
+      <p class="sub center" style="margin:0 auto 26px">Free, open source, and it never phones home.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe">⬇ Download for Windows</a>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">View source</a>
+      </div>
     </div>
   </div>
 </section>
 
 <footer>
-  <div class="container">
-    <p><a href="https://github.com/wookat/speaktype">GitHub</a> · <a href="https://github.com/wookat/speaktype/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/wookat/speaktype/issues">反馈问题</a> · <a href="https://github.com/wookat/speaktype/blob/main/CONTRIBUTING.md">参与贡献</a></p>
-    <p style="margin-top:8px">© 2026 wookat & SpeakType contributors — SpeakType 是独立的开源项目，与智谱、字节跳动等公司无关。</p>
+  <div class="wrap">
+    <span>© 2026 SpeakType · <a href="https://github.com/wookat/speaktype/blob/main/LICENSE">MIT</a></span>
+    <a href="https://github.com/wookat/speaktype">GitHub</a>
+    <a href="https://github.com/wookat/speaktype/issues">Issues</a>
+    <a href="https://github.com/wookat/speaktype/blob/main/CONTRIBUTING.md">Contributing</a>
+    <a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">Disclaimer</a>
+    <span class="spacer"><a href="/zh/">中文</a></span>
+  </div>
+  <div class="wrap" style="margin-top:14px;font-size:13px;color:#6b6b83">
+    An independent open-source project, not affiliated with OpenAI, Google, ByteDance, Zhipu or any other vendor. Product names are used only to describe compatibility.
   </div>
 </footer>
 
+<script>
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+</script>
 </body>
 </html>
