@@ -33,8 +33,6 @@ export const zhCN = {
 
   "history.title": "历史记录",
   "history.clear": "清空历史",
-  "history.clearConfirm": "清空全部历史？",
-  "history.clearYes": "清空",
   "history.empty": "暂时没有历史记录",
   "history.emptyHint": "按住热键开始语音，这里会记录你的每一次输入",
   "history.copy": "复制",

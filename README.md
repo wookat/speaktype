@@ -64,8 +64,12 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（DeepSeek / 智谱 / Kimi / 
 
 | 平台 | 下载 | 状态 |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.3.0.exe](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.3.0.exe)（~93MB） | ✅ 稳定 |
+| Windows 10/11 x64 | [SpeakType-Setup-0.9.2.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe)（~98MB） | ✅ 稳定 |
+| Windows 绿色免安装 | [SpeakType-0.9.2-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe)（~87MB） | ✅ 稳定 |
+| Android（手机当麦克风） | [SpeakType-0.9.0.apk](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk) | ✅ 可用 |
 | macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
+
+最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
 
 1. 安装（SmartScreen 拦截时点「更多信息 → 仍要运行」，安装包未做商业签名）。
 2. 三条路任选其一开始用：
