@@ -64,8 +64,12 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (DeepSeek / Zh
 
 | Platform | Download | Status |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.3.0.exe](https://github.com/wookat/speaktype/raw/dist-v0.1.0/SpeakType-Setup-0.3.0.exe) (~93MB) | ✅ Stable |
+| Windows 10/11 x64 | [SpeakType-Setup-0.9.2.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe) (~98MB) | ✅ Stable |
+| Windows portable | [SpeakType-0.9.2-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe) (~87MB) | ✅ Stable |
+| Android (phone as microphone) | [SpeakType-0.9.0.apk](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk) | ✅ Available |
 | macOS (Apple Silicon / Intel) | Platform layer merged; installer pending a macOS build environment | 🚧 In progress |
+
+Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
 
 1. Install (if SmartScreen objects, click "More info → Run anyway"; the installer is not commercially signed).
 2. Pick any of the three engine paths above to get recognition working.
