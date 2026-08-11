@@ -4,113 +4,114 @@
 
 # SpeakType
 
-**你说，它写 —— 开源 AI 语音输入法，落字到任何程序。**
+**You speak, it types — open-source AI voice typing, into any app.**
 
-按住一个键说话，松手，文字就出现在光标处。<br/>
-识别引擎、AI 润色、热词纠错全部由你定义，密钥与语音永不离开你的掌控。
+Hold a key, talk, release — the words land at your cursor.<br/>
+Recognition engine, AI polishing and hotword correction are all yours to configure; keys and audio never leave your control.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-下载安装)
-[![Release](https://img.shields.io/badge/Release-v0.3.0-8b5cf6.svg)](#-下载安装)
-[![i18n](https://img.shields.io/badge/界面语言-5%20种-16a34a.svg)](#-国际化)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-download--install)
+[![Release](https://img.shields.io/badge/Release-v0.9.2-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
+[![i18n](https://img.shields.io/badge/UI%20languages-5-16a34a.svg)](#-internationalization)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](CONTRIBUTING.md)
 
-[⬇ 下载安装包](#-下载安装) · [🌐 官网](https://wookat.github.io/speaktype/) · [English](README.en.md) · [报告问题](https://github.com/wookat/speaktype/issues) · [开发文档](desktop/README.md)
+[⬇ Download](#-download--install) · [🌐 Website](https://speaktype.zalize.com) · [简体中文](README.zh-CN.md) · [Report an issue](https://github.com/wookat/speaktype/issues) · [Dev docs](desktop/README.md)
 
-<img src="docs/assets/screenshot-home.png" width="720" alt="SpeakType 首页" />
+<img src="docs/assets/screenshot-home.png" width="720" alt="SpeakType home" />
 
 </div>
 
 ---
 
-## ✨ 为什么是 SpeakType
+## ✨ Why SpeakType
 
-市面上的 AI 语音输入法要么闭源、要么把你的语音送进厂商自己的服务器。SpeakType 反过来：
-
-|  |  |
-|---|---|
-| 🔓 **完全开源（MIT）** | 协议、纠错算法、界面，每一行都能看、能改、能自部署 |
-| 🛡️ **没有自己的后端** | 不架设任何云端服务，语音只发给**你自己选择并配置**的识别服务——或者干脆完全离线 |
-| 🧩 **一切可插拔** | 识别引擎、AI 润色模型、热词词典、人设风格、快捷键，全部由你定义 |
-
-## 🎬 核心体验
+Most AI dictation tools are closed source, or route your voice through the vendor's own servers. SpeakType flips that:
 
 |  |  |
 |---|---|
-| 🎙️ **按住说话** | 按住 `RightCtrl`（可改）说话，实时字幕逐字上屏，松手自动落字到任何 Windows 程序的光标处 |
-| ⚡ **免按模式** | `Alt+Q` 按一下开始、说完自动结束（静音检测），适合长段输入 |
-| 🎭 **人设风格** | `Alt+1..9` 秒切：默认 / 自动翻译 / 汇报老板 / 面对同事 / 命令行 / 自定义 prompt |
-| 📖 **热词纠错** | 词典里加上人名、产品名，同音/近音误字自动替换；历史页手动纠错还会**一键学进词典** |
-| 🧠 **增强人声检测** | 可选下载 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准 |
-| 🔁 **失败可重试** | 识别失败的录音保留在本机（最多 20 段/7 天/50MB，可关），历史页一键重试，不用重说 |
+| 🔓 **Fully open source (MIT)** | Protocols, correction algorithms, UI — every line is readable, hackable, self-hostable |
+| 🛡️ **No backend of its own** | Runs no cloud service; your audio goes only to the recognition service **you choose and configure** — or stays entirely offline |
+| 🧩 **Everything pluggable** | Recognition engine, polishing model, hotword dictionary, persona styles, hotkeys: all yours |
+| 📱 **Your phone as the microphone** | Desktop with no mic? Scan a QR code and talk into your phone — LAN direct, or through a relay you can self-host |
+
+## 🎬 Core experience
+
+|  |  |
+|---|---|
+| 🎙️ **Push to talk** | Hold `RightCtrl` (any key or mouse side button, recordable), live captions stream as you speak, release to type into any Windows app |
+| ⚡ **Hands-free mode** | Tap `Alt+Q` to start, auto-stops on silence — great for long dictation |
+| 🎭 **Personas** | `Alt+1..9` to switch: default / auto-translate / report-to-boss / CLI / custom prompt — and optionally switch automatically per foreground app |
+| 📈 **Gets better as you use it** | Fix a word by hand after it lands and SpeakType learns it into your dictionary — the same mistake won't happen twice |
+| 📖 **Hotword correction** | Add names and product terms; homophone and near-homophone errors are fixed locally via pinyin matching |
+| ✍️ **Select and rewrite** | Select text, hold `F8` and say "translate to English" / "make it formal" — the selection is replaced in place |
+| 🧠 **Enhanced voice detection** | Optional Silero VAD neural network (~35MB, on-device) for accurate auto-stop and hallucination filtering in noise |
+| 🔁 **Retryable failures** | Failed recordings are kept locally (max 20 clips / 7 days / 50MB, can be disabled); retry from History without re-speaking |
 
 <div align="center">
-<img src="docs/assets/screenshot-personas.png" width="720" alt="人设风格" />
+<img src="docs/assets/screenshot-personas.png" width="720" alt="Personas" />
 </div>
 
-## 🎛️ 识别引擎（三选一，随时切换）
+## 🎛️ Recognition engines (pick one, switch anytime)
 
 <div align="center">
-<img src="docs/assets/screenshot-asr.png" width="720" alt="识别引擎设置" />
+<img src="docs/assets/screenshot-asr.png" width="720" alt="Recognition settings" />
 </div>
 
-1. **豆包语音**（默认，免 API Key）：复用你自己登录的 doubao.com 会话做流式识别，App Key 自动获取。非官方接口，可能随豆包改版失效。
-2. **任意 OpenAI 兼容转写接口**：填 Base URL + API Key + 模型名即可，内置 OpenAI Whisper / SiliconFlow / Groq / Fireworks / Mistral / 阿里云百炼 预设，带测试连接。
-3. **内置离线识别（whisper.cpp）**：应用内一键下载模型（tiny/base/small），完全本机识别——不联网、不注册、零密钥。
+1. **Built-in offline recognition** (default, recommended) — one-click model download inside the app: whisper.cpp (tiny/base/small) or SenseVoice-Small for Chinese (~0.27s per utterance, punctuation included). No network, no account, no keys.
+2. **Any OpenAI-compatible `/audio/transcriptions` API** — Base URL + API key + model name. Presets for OpenAI Whisper, Groq (free tier), Fireworks, Mistral Voxtral, SiliconFlow and Alibaba Bailian, with a connection test.
+3. **No-API-key web providers** — ChatGPT web transcription (a free OpenAI account works) or Doubao voice, both reusing a session you sign into yourself inside the app. These use undocumented endpoints, are off by default, and may break or conflict with those services' terms — the account risk is yours to judge. See [DISCLAIMER.md](DISCLAIMER.md).
 
-AI 润色同样接任意 OpenAI 兼容 Chat 端点（DeepSeek / 智谱 / Kimi / 通义 / OpenAI / 本地 Ollama…），不配置则只做本地口语清理（如「5 点，不对，6 点」→「6 点」），不影响识别。
+AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Google Gemini's OpenAI-compatible endpoint, Groq, DeepSeek, Zhipu GLM-4-Flash, Kimi, Qwen, or a local Ollama…). Without one, a local cleanup pass still handles self-corrections ("5pm — no, 6pm" → "6pm").
 
-## 📦 下载安装
+## 📦 Download & install
 
-| 平台 | 下载 | 状态 |
+| Platform | Download | Status |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.9.2.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe)（~98MB） | ✅ 稳定 |
-| Windows 绿色免安装 | [SpeakType-0.9.2-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe)（~87MB） | ✅ 稳定 |
-| Android（手机当麦克风） | [SpeakType-0.9.0.apk](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk) | ✅ 可用 |
-| macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
+| Windows 10/11 x64 | [SpeakType-Setup-0.9.2.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-Setup-0.9.2.exe) (~98MB) | ✅ Stable |
+| Windows portable | [SpeakType-0.9.2-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.2-portable.exe) (~87MB) | ✅ Stable |
+| Android (phone as microphone) | [SpeakType-0.9.0.apk](https://github.com/wookat/speaktype/releases/download/v0.9.2/SpeakType-0.9.0.apk) | ✅ Available |
+| macOS (Apple Silicon / Intel) | Platform layer merged; installer pending a macOS build environment | 🚧 In progress |
 
-最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
+Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
 
-1. 安装（SmartScreen 拦截时点「更多信息 → 仍要运行」，安装包未做商业签名）。
-2. 三条路任选其一开始用：
-   - **零密钥**：首页点「去激活」→ 登录豆包并用一次它自带的语音输入；
-   - **自带 key**：设置 → 语音识别 → 选服务商预设，填 key；
-   - **完全离线**：设置 → 语音识别 → 内置离线识别 → 下载模型。
-3. 把光标放进任何输入框，按住 `RightCtrl` 说话，松手落字。
+1. Install (if SmartScreen objects, click "More info → Run anyway"; the installer is not commercially signed).
+2. Settings → Recognition → **Built-in offline** → download a model (or fill in your own API key).
+3. Put the cursor in any input field, hold `RightCtrl`, speak, release.
 
-## 🔒 隐私边界
+## 🔒 Privacy boundary
 
-- SpeakType **没有服务器**，不收集、不上传任何语音、文本、统计。
-- 语音只发给你配置的识别服务；离线模式下不出本机。
-- API Key、豆包 App Key、历史记录、失败录音全部只存本机（`%APPDATA%\SpeakType`）。
-- 仓库不内置任何第三方凭证。
+- SpeakType **has no servers** — it collects and uploads nothing.
+- Audio goes only to the service you configured; in offline mode it never leaves your machine.
+- The "learn from my edits" comparison happens entirely on your machine.
+- API keys, history and failed recordings live only in `%APPDATA%\SpeakType`.
+- No third-party credentials are bundled in this repository.
 
-## 🌏 国际化
+## 🌏 Internationalization
 
-界面内置简体中文、繁體中文、English、日本語、한국어（跟随系统或手动切换，即时生效）；语言包架构支持社区继续添加更多语言。
+Simplified Chinese, Traditional Chinese, English, Japanese and Korean built in (follows system or manual, applies instantly); the locale architecture welcomes more community additions.
 
 <div align="center">
-<img src="docs/assets/screenshot-settings.png" width="720" alt="设置" />
+<img src="docs/assets/screenshot-settings.png" width="720" alt="Settings" />
 </div>
 
-## 🛠️ 参与开发
+## 🛠️ Contributing
 
 ```bash
 cd desktop
 npm install
-npm run dev        # 开发模式
+npm run dev        # dev mode
 npm run typecheck
-npm run pack       # NSIS 安装包 → release/
+npm run pack       # NSIS installer → release/
 ```
 
-技术栈：Electron + React 19 + Tailwind 4 + lucide-react；全局热键 uiohook-napi；落字 koffi SendInput；离线识别 whisper.cpp；增强 VAD Silero + onnxruntime。详见 [desktop/README.md](desktop/README.md)。
+Stack: Electron + React 19 + Tailwind 4 + lucide-react; global hotkeys via uiohook-napi; typing via koffi SendInput; offline recognition via SenseVoice / whisper.cpp; enhanced VAD via Silero + onnxruntime; phone microphone via a Cloudflare Worker relay you can self-host. See [desktop/README.md](desktop/README.md).
 
-仓库里还有一个更早形态的 [Chrome 浏览器扩展](docs/browser-extension.md)（网页内按住说话落字），与桌面版共享豆包协议层。
+An earlier [Chrome extension form](docs/browser-extension.md) lives in this repo too.
 
-欢迎 [Issue](https://github.com/wookat/speaktype/issues) 与 Pull Request。贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📄 许可
+## 📄 License
 
 [MIT](LICENSE) © wookat & SpeakType contributors
 
-> SpeakType 是独立的开源项目，与 OpenAI、字节跳动、智谱等公司无关。「豆包」「ChatGPT 网页转写」两个通道复用用户自己在本机的登录态访问对方网页端的非公开接口，可能不符合其服务条款，账号风险由使用者自行判断；不介意可用，介意请改用内置离线识别或自带 API Key 的服务。完整说明见 [DISCLAIMER.md](DISCLAIMER.md)。
+> SpeakType is an independent open-source project, unaffiliated with OpenAI, Google, ByteDance, Zhipu or any other vendor. The no-API-key providers reuse a login session you create yourself against undocumented endpoints, which may not comply with those services' terms; the account risk is yours to judge. Prefer the built-in offline engine or your own API key if unsure. See [DISCLAIMER.md](DISCLAIMER.md).
