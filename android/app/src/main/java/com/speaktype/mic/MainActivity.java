@@ -30,7 +30,7 @@ import androidx.core.content.ContextCompat;
  */
 public class MainActivity extends AppCompatActivity {
 
-  private static final String DEFAULT_SERVER = "https://speaktype-relay.wookat520.workers.dev";
+  private static final String DEFAULT_SERVER = "https://speaktype.zalize.com/relay";
   private static final String PREFS = "speaktype";
   private static final String KEY_SERVER = "server";
 
@@ -83,7 +83,10 @@ public class MainActivity extends AppCompatActivity {
 
   private String server() {
     SharedPreferences p = getSharedPreferences(PREFS, MODE_PRIVATE);
-    return p.getString(KEY_SERVER, DEFAULT_SERVER);
+    String url = p.getString(KEY_SERVER, DEFAULT_SERVER);
+    // 旧版官方地址（workers.dev 在部分地区不可达）迁移到新官方域名
+    if ("https://speaktype-relay.wookat520.workers.dev".equals(url)) url = DEFAULT_SERVER;
+    return url;
   }
 
   private void askServer(boolean failed) {

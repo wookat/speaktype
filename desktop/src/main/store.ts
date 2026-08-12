@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   remoteMicEnabled: false,
   remoteMicMode: "lan",
   // 官方公共中转（Cloudflare Worker，音频直通不存储）；用户可换成自部署地址
-  remoteRelayUrl: "https://speaktype-relay.wookat520.workers.dev",
+  remoteRelayUrl: "https://speaktype.zalize.com/relay",
   remoteRelayRoom: "",
   appPersonas: [],
   autoLearn: true,
@@ -70,6 +70,10 @@ export function getSettings(): Settings {
   const merged = { ...DEFAULT_SETTINGS, ...store.get("settings") };
   // 中转地址留空时回落到官方中转，保证「公网中转」开箱即用
   if (!merged.remoteRelayUrl.trim()) merged.remoteRelayUrl = DEFAULT_SETTINGS.remoteRelayUrl;
+  // 旧版官方地址（workers.dev 在部分地区不可达）迁移到新官方域名
+  if (merged.remoteRelayUrl === "https://speaktype-relay.wookat520.workers.dev") {
+    merged.remoteRelayUrl = DEFAULT_SETTINGS.remoteRelayUrl;
+  }
   return merged;
 }
 
