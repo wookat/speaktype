@@ -13,7 +13,9 @@ cd relay
 npx wrangler deploy
 ```
 
-部署完成后得到形如 `https://speaktype-relay.<你的子域>.workers.dev` 的地址。
+部署完成后得到形如 `https://speaktype-relay.<你的子域>.workers.dev` 的地址。自部署前请先删掉 `wrangler.toml` 里的 `routes` 段（那是官方域名的绑定）。
+
+不想自部署可直接用官方中转：`https://speaktype.zalize.com/relay`（国内可直连）。
 
 ## 使用
 

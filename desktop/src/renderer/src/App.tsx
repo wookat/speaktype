@@ -1363,7 +1363,7 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
         <Row label={t("settings.remoteRelayUrl")} hint={t("settings.remoteRelayUrlHint")}>
           <input
             className="w-[300px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
-            placeholder="https://speaktype-relay.xxx.workers.dev"
+            placeholder="https://speaktype.zalize.com/relay"
             defaultValue={s.remoteRelayUrl}
             onBlur={(e) => e.target.value !== s.remoteRelayUrl && update({ remoteRelayUrl: e.target.value.trim() })}
           />

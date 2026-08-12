@@ -70,7 +70,7 @@ export interface Settings {
   remoteMicEnabled: boolean;
   /** 手机麦克风连接方式：局域网直连（默认）或公网中转（Cloudflare Worker 自部署） */
   remoteMicMode: "lan" | "relay";
-  /** 公网中转服务地址，如 https://speaktype-relay.xxx.workers.dev */
+  /** 公网中转服务地址，如 https://speaktype.zalize.com/relay 或自部署的 workers.dev 地址 */
   remoteRelayUrl: string;
   /** 中转房间号（= 手机端配对码），首次开启时生成后固定，装到主屏幕的手机 App 才能一直连同一台电脑 */
   remoteRelayRoom: string;

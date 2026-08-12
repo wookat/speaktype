@@ -29,7 +29,7 @@ let token = "";
 // 公网中转模式：桌面端作为客户端连入 Cloudflare Worker 房间，手机页由 Worker 托管
 let relayWs: WebSocket | null = null;
 let relayRoom = "";
-let relayHost = "";
+let relayBase = "";
 let relayStopped = true;
 let relayPhoneConnected = false;
 let info: RemoteMicInfo = { running: false, url: "", qrDataUrl: "", clients: 0 };
@@ -260,7 +260,7 @@ export async function stopRemoteMic(): Promise<void> {
 }
 
 function connectRelay(d: RemoteMicDeps): void {
-  const ws = new WebSocket(`wss://${relayHost}/ws/${relayRoom}?role=desktop`);
+  const ws = new WebSocket(`wss://${relayBase}/ws/${relayRoom}?role=desktop`);
   relayWs = ws;
   ws.on("message", (data, isBinary) => handlePhoneMessage(d, ws, data, isBinary));
   ws.on("error", (error) => log.warn("relay ws error", error));
@@ -282,11 +282,12 @@ function connectRelay(d: RemoteMicDeps): void {
 async function startRelayMic(relayUrl: string, room: string): Promise<RemoteMicInfo> {
   const d = deps;
   if (!d) throw new Error("remote mic not configured");
-  relayHost = new URL(relayUrl.startsWith("http") ? relayUrl : `https://${relayUrl}`).host;
+  const parsed = new URL(relayUrl.startsWith("http") ? relayUrl : `https://${relayUrl}`);
+  relayBase = parsed.host + parsed.pathname.replace(/\/+$/, "");
   relayRoom = room;
   relayStopped = false;
   connectRelay(d);
-  const url = `https://${relayHost}/m/${relayRoom}`;
+  const url = `https://${relayBase}/m/${relayRoom}`;
   const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
   info = { running: true, url, qrDataUrl, clients: 0, pairCode: relayRoom };
   log.info(`remote mic relaying via ${url}`);

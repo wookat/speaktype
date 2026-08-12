@@ -9,7 +9,7 @@
  */
 
 import { ICON_192_B64, ICON_512_B64 } from "./icons";
-import { MANIFEST, SW_JS, phonePage } from "./phone";
+import { manifest, swJs, phonePage } from "./phone";
 
 export interface Env {
   ROOM: DurableObjectNamespace;
@@ -94,25 +94,30 @@ function png(base64: string): Response {
 export default {
   fetch(request: Request, env: Env): Response | Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === "/health") return new Response("ok");
+    // 支持挂在域名的 /relay 前缀下（如 speaktype.zalize.com/relay/…），也支持 workers.dev 根路径
+    const prefixed = url.pathname === "/relay" || url.pathname.startsWith("/relay/");
+    const base = prefixed ? "/relay" : "";
+    const path = prefixed ? url.pathname.slice("/relay".length) || "/" : url.pathname;
+
+    if (path === "/health") return new Response("ok");
 
     // PWA 资源：装到主屏幕后从 /app 启动，房间号取 localStorage 里上次配对的电脑
-    if (url.pathname === "/app") return new Response(phonePage(null), { headers: HTML_HEADERS });
-    if (url.pathname === "/manifest.webmanifest") {
-      return new Response(MANIFEST, { headers: { "content-type": "application/manifest+json" } });
+    if (path === "/app") return new Response(phonePage(null, base), { headers: HTML_HEADERS });
+    if (path === "/manifest.webmanifest") {
+      return new Response(manifest(base), { headers: { "content-type": "application/manifest+json" } });
     }
-    if (url.pathname === "/sw.js") {
-      return new Response(SW_JS, { headers: { "content-type": "text/javascript; charset=utf-8" } });
+    if (path === "/sw.js") {
+      return new Response(swJs(base), { headers: { "content-type": "text/javascript; charset=utf-8" } });
     }
-    if (url.pathname === "/icon-192.png") return png(ICON_192_B64);
-    if (url.pathname === "/icon-512.png") return png(ICON_512_B64);
+    if (path === "/icon-192.png") return png(ICON_192_B64);
+    if (path === "/icon-512.png") return png(ICON_512_B64);
 
-    const page = url.pathname.match(/^\/m\/([0-9a-f]+)$/);
+    const page = path.match(/^\/m\/([0-9a-f]+)$/);
     if (page && ROOM_RE.test(page[1]!)) {
-      return new Response(phonePage(page[1]!), { headers: HTML_HEADERS });
+      return new Response(phonePage(page[1]!, base), { headers: HTML_HEADERS });
     }
 
-    const ws = url.pathname.match(/^\/ws\/([0-9a-f]+)$/);
+    const ws = path.match(/^\/ws\/([0-9a-f]+)$/);
     if (ws && ROOM_RE.test(ws[1]!)) {
       const room = env.ROOM.get(env.ROOM.idFromName(ws[1]!));
       return room.fetch(request);

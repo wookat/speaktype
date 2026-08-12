@@ -6,27 +6,31 @@
  * - /app：PWA 启动地址，从 localStorage 取上次配对的房间；没有则显示配对界面（扫码或手输配对码）
  */
 
-export const MANIFEST = JSON.stringify({
-  name: "SpeakType 手机麦克风",
-  short_name: "SpeakType",
-  description: "按住说话，文字落到电脑光标处",
-  start_url: "/app",
-  scope: "/",
-  display: "standalone",
-  orientation: "portrait",
-  background_color: "#17171c",
-  theme_color: "#17171c",
-  lang: "zh-CN",
-  icons: [
-    { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-  ],
-});
+export function manifest(base: string): string {
+  return JSON.stringify({
+    name: "SpeakType 手机麦克风",
+    short_name: "SpeakType",
+    description: "按住说话，文字落到电脑光标处",
+    start_url: `${base}/app`,
+    scope: `${base}/`,
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#17171c",
+    theme_color: "#17171c",
+    lang: "zh-CN",
+    icons: [
+      { src: `${base}/icon-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: `${base}/icon-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: `${base}/icon-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  });
+}
 
 /** 只缓存外壳，音频与配对全部走网络；离线时至少能打开界面并提示 */
-export const SW_JS = `const CACHE = "speaktype-shell-v1";
-const SHELL = ["/app", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+export function swJs(base: string): string {
+  return `const CACHE = "speaktype-shell-v1";
+const BASE = ${JSON.stringify(base)};
+const SHELL = ["/app", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"].map((p) => BASE + p);
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
@@ -45,15 +49,16 @@ self.addEventListener("fetch", (e) => {
     fetch(req)
       .then((res) => {
         const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(url.pathname === "/app" || req.mode === "navigate" ? "/app" : req, copy));
+        caches.open(CACHE).then((c) => c.put(url.pathname === BASE + "/app" || req.mode === "navigate" ? BASE + "/app" : req, copy));
         return res;
       })
-      .catch(() => caches.match(req).then((hit) => hit || caches.match("/app"))),
+      .catch(() => caches.match(req).then((hit) => hit || caches.match(BASE + "/app"))),
   );
 });
 `;
+}
 
-export function phonePage(room: string | null): string {
+export function phonePage(room: string | null, base: string): string {
   return `<!doctype html>
 <html lang="zh">
 <head>
@@ -64,9 +69,9 @@ export function phonePage(room: string | null): string {
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="SpeakType" />
-<link rel="manifest" href="/manifest.webmanifest" />
-<link rel="apple-touch-icon" href="/icon-192.png" />
-<link rel="icon" href="/icon-192.png" />
+<link rel="manifest" href="${base}/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="${base}/icon-192.png" />
+<link rel="icon" href="${base}/icon-192.png" />
 <title>SpeakType</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -118,6 +123,7 @@ export function phonePage(room: string | null): string {
 <footer>松手后文字会落到电脑光标处<br />音频经中转服务器直通，不存储</footer>
 <script>
 const ROOM_RE = /^[0-9a-f]{12}$/;
+const BASE = ${JSON.stringify(base)};
 const stateEl = document.getElementById("state");
 const partialEl = document.getElementById("partial");
 const talk = document.getElementById("talk");
@@ -137,7 +143,7 @@ function showPairing() {
 }
 
 function connect() {
-  ws = new WebSocket("wss://" + location.host + "/ws/" + room + "?role=phone");
+  ws = new WebSocket("wss://" + location.host + BASE + "/ws/" + room + "?role=phone");
   ws.binaryType = "arraybuffer";
   ws.onopen = () => { stateEl.textContent = "已连接中转，等待电脑…"; talk.disabled = false; };
   ws.onclose = (ev) => {
@@ -273,7 +279,7 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
 });
 window.addEventListener("appinstalled", () => { installBtn.style.display = "none"; });
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+if ("serviceWorker" in navigator) navigator.serviceWorker.register(BASE + "/sw.js").catch(() => {});
 
 if (ROOM_RE.test(room)) { unpair.style.display = "block"; connect(); }
 else showPairing();
