@@ -1,6 +1,7 @@
 import { BrowserWindow, screen, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getWindowBounds, setWindowBounds } from "./store";
 
 const dir = fileURLToPath(new URL(".", import.meta.url));
 const preload = join(dir, "../preload/index.mjs");
@@ -16,24 +17,41 @@ const PANEL_HEIGHT = 150;
 const TOAST_WIDTH = 520;
 const TOAST_HEIGHT = 92;
 
+function intersects(a: Electron.Rectangle, b: Electron.Rectangle): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
 function load(win: BrowserWindow, page: string): void {
   if (devServer) void win.loadURL(`${devServer}/${page}.html`);
   else void win.loadFile(join(rendererDir, `${page}.html`));
 }
 
 export function createMainWindow(visible = true): BrowserWindow {
+  const saved = getWindowBounds();
   const win = new BrowserWindow({
-    width: 1100,
-    height: 740,
+    width: saved?.width ?? 1100,
+    height: saved?.height ?? 740,
+    ...(saved?.x !== undefined && saved.y !== undefined ? { x: saved.x, y: saved.y } : { center: true }),
     minWidth: 820,
     minHeight: 560,
     frame: false,
     show: false,
-    center: true,
     backgroundColor: "#f7f7f9",
     title: "SpeakType",
     webPreferences: { preload, sandbox: false },
   });
+  // 保存的位置可能落在已拔掉的显示器上：完全不可见时回到主屏居中
+  if (saved?.x !== undefined && !screen.getAllDisplays().some((d) => intersects(win.getBounds(), d.workArea))) {
+    win.center();
+  }
+  if (saved?.maximized) win.maximize();
+  const persistBounds = (): void => {
+    if (win.isMinimized()) return;
+    const maximized = win.isMaximized();
+    const b = maximized ? win.getNormalBounds() : win.getBounds();
+    setWindowBounds({ x: b.x, y: b.y, width: b.width, height: b.height, maximized });
+  };
+  win.on("close", persistBounds);
   if (visible) win.on("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);

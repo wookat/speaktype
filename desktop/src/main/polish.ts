@@ -38,12 +38,53 @@ const CJK_RE = /[\u4e00-\u9fff]/;
 // 相邻两个标点之间超过这么多字就把逗号升级成句号，避免一逗到底
 const SENTENCE_SPAN = 30;
 
+// 英文断句：这些连接词在口语里通常开启新分句（SenseVoice 对英文基本不出句读）
+const EN_BREAK_WORDS = ["but", "so", "because", "however", "then", "also", "otherwise", "meanwhile", "anyway"];
+const EN_BREAK_SET = new Set(EN_BREAK_WORDS);
+// 距上个标点超过这么多词就在连接词处补句号，否则补逗号
+const EN_SENTENCE_WORDS = 12;
+
+/** 英文兜底断句：几乎无标点时按连接词补逗号/句号，并补首字母大写与句尾句号 */
+function addEnglishPunctuation(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length < 6) return text;
+  const punctCount = (text.match(/[.!?,;]/g) ?? []).length;
+  if (punctCount > words.length / 10) return text;
+  const out: string[] = [];
+  let sincePunct = 0;
+  let capitalizeNext = true;
+  for (let i = 0; i < words.length; i++) {
+    let word = words[i]!;
+    if (i > 0 && sincePunct >= 3 && EN_BREAK_SET.has(word.toLowerCase())) {
+      const prev = out[out.length - 1]!;
+      if (!/[.!?,;]$/.test(prev)) {
+        if (sincePunct >= EN_SENTENCE_WORDS) {
+          out[out.length - 1] = `${prev}.`;
+          capitalizeNext = true;
+        } else {
+          out[out.length - 1] = `${prev},`;
+        }
+        sincePunct = 0;
+      }
+    }
+    if (capitalizeNext && /^[a-z]/.test(word)) word = word[0]!.toUpperCase() + word.slice(1);
+    capitalizeNext = /[.!?]$/.test(word);
+    if (/[.!?,;]$/.test(word)) sincePunct = 0;
+    else sincePunct++;
+    out.push(word);
+  }
+  let result = out.join(" ");
+  if (/[a-zA-Z0-9]$/.test(result)) result += ".";
+  return result;
+}
+
 /**
  * 本地断句：流式 ASR（如豆包）常整段无标点，这里按口语连接词保守补逗号/句号。
  * 只在文本几乎没有标点时介入（whisper 等自带标点的通道不受影响）。
  */
 export function addLocalPunctuation(text: string): string {
-  if (!CJK_RE.test(text) || text.length < 16) return text;
+  if (!CJK_RE.test(text)) return addEnglishPunctuation(text);
+  if (text.length < 16) return text;
   const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
   if (punctCount > text.length / 25) return text;
   let out = text.replace(BREAK_RE, "，$1");

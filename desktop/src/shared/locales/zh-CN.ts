@@ -95,6 +95,7 @@ export const zhCN = {
   "settings.holdMouseHint": "按住鼠标侧键说话，松开落字。侧键原本的网页前进/后退仍会触发，介意可改用键盘键位。",
   "settings.holdCapture": "录一个键",
   "settings.holdCapturing": "请按任意键…（Esc 取消）",
+  "settings.holdCaptureUnsupported": "长按说话只支持单键（含鼠标侧键/中键），不支持组合键；免按模式可用 Alt+Q 等组合键。",
   "settings.rewriteKey": "改写选中文字",
   "settings.rewriteKeyOff": "关闭",
   "settings.rewriteKeyHint": "选中一段文字后按住 {{key}} 说出指令（如“翻译成英文”“改得正式一点”），松手即替换选区。需要在「润色模型」里配好模型。",
@@ -160,7 +161,7 @@ export const zhCN = {
   "settings.asrProvider": "识别服务商",
   "settings.asrProviderDoubao": "豆包（流式，需登录）",
   "settings.asrProviderOpenai": "OpenAI 兼容转写接口（Whisper 类）",
-  "settings.asrProviderLocal": "内置离线识别（whisper.cpp）",
+  "settings.asrProviderLocal": "内置离线识别（SenseVoice / whisper.cpp）",
   "settings.asrProviderChatgpt": "ChatGPT 网页转写（免密钥，需登录）",
   "settings.asrChatgptHint":
     "复用你自己的 ChatGPT 登录态，调用它自带的语音输入接口，不需要 API Key（免费账号也可用）。令牌只留在本机浏览器会话里；整句识别，录音中不显示实时文字。",
@@ -171,7 +172,7 @@ export const zhCN = {
   "settings.chatgptTestHint": "上传一段静音验证登录态与接口是否可用，失败会显示具体原因。",
   "settings.chatgptCodexHint": "若本机已登录 Codex CLI / Codex Desktop，会自动复用它的登录态，无需再登录。",
   "settings.asrLocalHint":
-    "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件；整句识别，录音中不显示实时文字。",
+    "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件。sensevoice 模型录音中实时显示字幕；whisper 系列为整句识别。",
   "settings.localModel": "本地模型",
   "settings.localModelHint": "中文推荐 sensevoice-small：准确率和速度都明显好于同体积 whisper，且自带标点。whisper 系列胜在语种更全：tiny 最快但易错，base 均衡，small 更准更慢。",
   "settings.localModelDownload": "下载模型",
