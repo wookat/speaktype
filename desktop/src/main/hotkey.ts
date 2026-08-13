@@ -136,7 +136,10 @@ export class HotkeyManager {
     uIOhook.stop();
   }
 
-  /** 录制下一次按键/鼠标侧键作为长按位；Esc 或超时取消，录制期间不触发热键 */
+  /**
+   * 录制下一次按键/鼠标侧键作为长按位；Esc 或超时取消，录制期间不触发热键。
+   * 不支持的键（长按位只收单键）返回 "unsupported"，由设置页就地提示而不是静默失败。
+   */
   captureNext(timeoutMs = 10000): Promise<string | null> {
     this.capture?.(null);
     return new Promise((resolve) => {
@@ -224,6 +227,8 @@ export class HotkeyManager {
         if (name) {
           this.captureSwallowKeycode = ev.keycode;
           this.capture(name);
+        } else {
+          this.capture("unsupported");
         }
       }
       return;

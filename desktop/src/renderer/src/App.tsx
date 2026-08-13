@@ -17,6 +17,7 @@ import {
   PenLine,
   Settings as SettingsIcon,
   Sparkles,
+  Square,
   SquareTerminal,
   Users,
   X,
@@ -195,12 +196,21 @@ export default function App() {
   return (
     <div className="flex h-full text-slate-800">
       {/* 顶部拖拽区 + 窗口按钮 */}
-      <div className="drag fixed inset-x-0 top-0 z-50 flex h-10 items-stretch justify-end">
+      <div
+        className="drag fixed inset-x-0 top-0 z-50 flex h-10 items-stretch justify-end"
+        onDoubleClick={() => void api.toggleMaximize()}
+      >
         <button
           className="no-drag flex w-12 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600"
           onClick={() => void api.minimize()}
         >
           <Minus className="h-4 w-4" />
+        </button>
+        <button
+          className="no-drag flex w-12 items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+          onClick={() => void api.toggleMaximize()}
+        >
+          <Square className="h-3.5 w-3.5" />
         </button>
         <button
           className="no-drag flex w-12 items-center justify-center text-slate-400 hover:bg-red-500 hover:text-white"
@@ -551,7 +561,7 @@ function History(props: {
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
                       {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
-                    <span className="hidden gap-3 group-hover:flex">
+                    <span className="flex gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
                         {t("history.copy")}
                       </button>
@@ -1054,12 +1064,15 @@ function GeneralTab(props: {
 }) {
   const { t, s, update } = props;
   const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState(false);
   const recordKey = (): void => {
     if (capturing) return;
     setCapturing(true);
+    setCaptureError(false);
     void api.captureHotkey().then((key) => {
       setCapturing(false);
-      if (key) update({ hotkeyHold: key });
+      if (key === "unsupported") setCaptureError(true);
+      else if (key) update({ hotkeyHold: key });
     });
   };
   const holdChoices = props.holdKeyChoices.includes(s.hotkeyHold)
@@ -1106,6 +1119,9 @@ function GeneralTab(props: {
               {capturing ? t("settings.holdCapturing") : t("settings.holdCapture")}
             </button>
           </div>
+          {captureError && (
+            <div className="mt-1 text-xs text-amber-600">{t("settings.holdCaptureUnsupported")}</div>
+          )}
         </Row>
         <Row
           label={t("settings.rewriteKey")}
@@ -1634,7 +1650,7 @@ function VoiceTab(props: {
           value={s.language}
           onChange={(e) => update({ language: e.target.value })}
         >
-          <option value="zh">中文</option>
+          <option value="zh">中文 Chinese</option>
           <option value="en">English</option>
         </select>
       </Row>

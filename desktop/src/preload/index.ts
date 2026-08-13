@@ -57,6 +57,7 @@ const api = {
   testPolish: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("polish:test"),
   testAsr: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("asr:test"),
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
+  toggleMaximize: (): Promise<void> => ipcRenderer.invoke("window:maximize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
   openLogs: (): Promise<void> => ipcRenderer.invoke("log:open"),

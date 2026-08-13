@@ -17,7 +17,7 @@ import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao"
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { LOCAL_MODELS, downloadLocalModel, localModelStatus, onLocalModelStatus, stopLocalServer } from "./localasr";
+import { LOCAL_MODELS, SENSEVOICE, downloadLocalModel, localModelStatus, onLocalModelStatus, prewarmSenseVoice, stopLocalServer } from "./localasr";
 import { downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
@@ -331,6 +331,12 @@ function registerIpc(): void {
     else win.webContents.send("recorder:stop");
   });
   ipcMain.handle("window:minimize", () => BrowserWindow.getFocusedWindow()?.minimize());
+  ipcMain.handle("window:maximize", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (!win) return;
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+  });
   ipcMain.handle("window:close", () => BrowserWindow.getFocusedWindow()?.close());
   ipcMain.handle("open:external", (_e, url: string) => shell.openExternal(url));
   ipcMain.handle("log:open", () => shell.showItemInFolder(log.transports.file.getFile().path));
@@ -378,6 +384,10 @@ void app.whenReady().then(() => {
   void applyLaunchAtLogin(settings.launchAtLogin);
   if (hasAppKey()) ensureBridge();
   if (settings.remoteMicEnabled) void syncRemoteMic(true);
+  // 启动后空闲预热离线模型，把 ONNX 冷启动成本移出用户第一句
+  if (settings.asrProvider === "local" && settings.localModel === SENSEVOICE) {
+    setTimeout(() => prewarmSenseVoice(getSettings().language), 3000);
+  }
 
   mainWin.on("close", (ev) => {
     // 关主窗口 = 收进托盘继续待命，从托盘退出才真正退出

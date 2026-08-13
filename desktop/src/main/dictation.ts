@@ -268,14 +268,7 @@ export class Dictation {
         this.muted = true;
         toggleSystemMute();
       }
-      const opening: Promise<DoubaoSession> =
-        settings.asrProvider === "openai"
-          ? Promise.resolve(startOpenAiAsrSession(settings))
-          : settings.asrProvider === "chatgpt"
-            ? Promise.resolve(startChatgptAsrSession(settings))
-            : settings.asrProvider === "local"
-              ? Promise.resolve(startLocalAsrSession(settings, (text) => this.setPartial(text)))
-              : startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      const opening = this.createSession(settings, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
@@ -294,6 +287,23 @@ export class Dictation {
       this.deps.recorder()?.webContents.send("recorder:stop");
       this.unmute();
       this.report("error", error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  /** provider→会话的唯一入口：启动/重试/历史重跑都走这里，避免分支拷贝分叉 */
+  private createSession(
+    settings: ReturnType<typeof getSettings>,
+    onPartial?: (text: string) => void,
+  ): Promise<DoubaoSession> {
+    switch (settings.asrProvider) {
+      case "openai":
+        return Promise.resolve(startOpenAiAsrSession(settings));
+      case "chatgpt":
+        return Promise.resolve(startChatgptAsrSession(settings));
+      case "local":
+        return Promise.resolve(startLocalAsrSession(settings, onPartial));
+      default:
+        return startDoubaoSession(settings.language, onPartial ?? (() => undefined));
     }
   }
 
@@ -353,14 +363,7 @@ export class Dictation {
     const settings = getSettings();
     try {
       this.report("connecting");
-      const session =
-        settings.asrProvider === "openai"
-          ? startOpenAiAsrSession(settings)
-          : settings.asrProvider === "chatgpt"
-            ? startChatgptAsrSession(settings)
-            : settings.asrProvider === "local"
-              ? startLocalAsrSession(settings)
-              : await startDoubaoSession(settings.language, (text) => this.setPartial(text));
+      const session = await this.createSession(settings, (text) => this.setPartial(text));
       for (const frame of failed.frames) session.pushPcm(frame);
       this.session = session;
       this.startedAt = Date.now() - failed.durationMs;
@@ -400,12 +403,7 @@ export class Dictation {
     const settings = getSettings();
     const persona = localizePersona(findPersona(settings.personaId), translator());
     try {
-      const session =
-        settings.asrProvider === "openai"
-          ? startOpenAiAsrSession(settings)
-          : settings.asrProvider === "local"
-            ? startLocalAsrSession(settings)
-            : await startDoubaoSession(settings.language, () => undefined);
+      const session = await this.createSession(settings);
       for (const frame of wavToFrames(entry.audioFile)) session.pushPcm(frame);
       const raw = await session.finish();
       if (!raw) return { ok: false, detail: t("toast.noSpeech") };

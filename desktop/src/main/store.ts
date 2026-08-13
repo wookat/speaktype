@@ -1,3 +1,6 @@
+import { renameSync } from "node:fs";
+import { join } from "node:path";
+import { app } from "electron";
 import Store from "electron-store";
 import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { HistoryItem, Persona, Settings, Stats } from "../shared/types";
@@ -45,6 +48,14 @@ export const DEFAULT_SETTINGS: Settings = {
   autoLearn: true,
 };
 
+export interface WindowBounds {
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
+  maximized?: boolean;
+}
+
 interface Schema {
   settings: Settings;
   personas: Persona[];
@@ -52,10 +63,13 @@ interface Schema {
   stats: Stats;
   onboarded: boolean;
   doubaoAppKeyCache: string;
+  mainWindowBounds: WindowBounds | null;
 }
 
-const store = new Store<Schema>({
+const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
   name: "speaktype",
+  // 配置文件损坏（BOM/截断）时回落默认值，不能让应用起不来
+  clearInvalidConfig: true,
   defaults: {
     settings: DEFAULT_SETTINGS,
     personas: [],
@@ -63,8 +77,34 @@ const store = new Store<Schema>({
     stats: { words: 0, durationMs: 0, sessions: 0 },
     onboarded: false,
     doubaoAppKeyCache: "",
+    mainWindowBounds: null,
   },
-});
+};
+
+function createStore(): Store<Schema> {
+  try {
+    return new Store<Schema>(STORE_OPTIONS);
+  } catch {
+    // clearInvalidConfig 只兜 JSON 解析失败；其它读取异常时把旧文件改名保留后用默认值重建
+    try {
+      const file = join(app.getPath("userData"), "speaktype.json");
+      renameSync(file, `${file}.bad`);
+    } catch {
+      /* 改名失败就只能靠重建覆盖 */
+    }
+    return new Store<Schema>(STORE_OPTIONS);
+  }
+}
+
+const store = createStore();
+
+export function getWindowBounds(): WindowBounds | null {
+  return store.get("mainWindowBounds");
+}
+
+export function setWindowBounds(bounds: WindowBounds): void {
+  store.set("mainWindowBounds", bounds);
+}
 
 export function getSettings(): Settings {
   const merged = { ...DEFAULT_SETTINGS, ...store.get("settings") };

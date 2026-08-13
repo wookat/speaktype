@@ -182,11 +182,21 @@ parentPort.on("message", (msg) => {
 `;
 
 let worker: Worker | null = null;
+let workerKey = "";
 let nextJobId = 1;
 const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
 
 function ensureWorker(model: string, tokens: string): Worker {
+  const key = `${model}|${tokens}`;
+  if (worker && workerKey !== key) {
+    // 模型文件换了：旧 worker 里的模型实例已过时，停掉重建
+    for (const job of pending.values()) job.reject(new Error("local model changed"));
+    pending.clear();
+    void worker.terminate();
+    worker = null;
+  }
   if (worker) return worker;
+  workerKey = key;
   const require = createRequire(import.meta.url);
   worker = new Worker(workerSource, {
     eval: true,
@@ -210,6 +220,15 @@ function ensureWorker(model: string, tokens: string): Worker {
   });
   log.info("sensevoice worker started");
   return worker;
+}
+
+/** 启动后空闲时预热 worker：用一小段静音触发模型加载，把 ONNX 冷启动成本移出用户第一句 */
+export function prewarmSenseVoice(language: string): void {
+  if (worker || !modelReady(SENSEVOICE)) return;
+  const silence = new Float32Array(3200); // 0.2s @ 16kHz
+  transcribeSenseVoice(silence, 16000, language).catch((error) => {
+    log.warn("sensevoice prewarm failed", error);
+  });
 }
 
 export async function transcribeSenseVoice(
