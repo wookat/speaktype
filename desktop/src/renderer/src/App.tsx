@@ -1110,7 +1110,7 @@ function GeneralTab(props: {
               ))}
             </select>
             <button
-              className={`rounded-xl border px-3 py-1.5 text-sm ${
+              className={`shrink-0 whitespace-nowrap rounded-xl border px-3 py-1.5 text-sm ${
                 capturing
                   ? "border-indigo-300 bg-indigo-50 text-indigo-600"
                   : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -1653,6 +1653,9 @@ function VoiceTab(props: {
         >
           <option value="zh">中文 Chinese</option>
           <option value="en">English</option>
+          <option value="ja">日本語 Japanese</option>
+          <option value="ko">한국어 Korean</option>
+          <option value="yue">粤语 Cantonese</option>
         </select>
       </Row>
     </section>

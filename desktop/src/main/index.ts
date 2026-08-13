@@ -40,6 +40,7 @@ import {
   setOnboarded,
   setSettings,
   updateHistoryItem,
+  wasStoreRecovered,
 } from "./store";
 import {
   createMainWindow,
@@ -387,6 +388,9 @@ void app.whenReady().then(() => {
   // 启动后空闲预热离线模型，把 ONNX 冷启动成本移出用户第一句
   if (settings.asrProvider === "local" && settings.localModel === SENSEVOICE) {
     setTimeout(() => prewarmSenseVoice(getSettings().language), 3000);
+  }
+  if (wasStoreRecovered()) {
+    setTimeout(() => showToast(t("toast.configRecovered"), t("toast.configRecoveredBody")), 1500);
   }
 
   mainWin.on("close", (ev) => {

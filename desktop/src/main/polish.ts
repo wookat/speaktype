@@ -55,6 +55,14 @@ function addEnglishPunctuation(text: string): string {
   let capitalizeNext = true;
   for (let i = 0; i < words.length; i++) {
     let word = words[i]!;
+    // ASR 保留的句首大写是最可靠的句界信号：大写开头（非 I/缩写）前补句号
+    if (i > 0 && sincePunct >= 3 && /^[A-Z][a-z]/.test(word) && word !== "I") {
+      const prev = out[out.length - 1]!;
+      if (!/[.!?,;]$/.test(prev)) {
+        out[out.length - 1] = `${prev}.`;
+        sincePunct = 0;
+      }
+    }
     if (i > 0 && sincePunct >= 3 && EN_BREAK_SET.has(word.toLowerCase())) {
       const prev = out[out.length - 1]!;
       if (!/[.!?,;]$/.test(prev)) {
@@ -114,7 +122,8 @@ export function localCleanup(text: string, selfCorrect = true): string {
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
   if (selfCorrect) out = addLocalPunctuation(out);
-  return out.replace(/[。．.]+$/, "");
+  // 去尾句号是中文语音输入习惯；英文句尾句号要保留，否则和 addEnglishPunctuation 互搏
+  return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
 }
 
 interface ChatResponse {
