@@ -561,7 +561,8 @@ function History(props: {
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
                       {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
-                    <span className="flex gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    {/* 不用 hover 门控：远程桌面/触屏 (hover:none) 下 group-hover 永不触发 */}
+                    <span className="flex gap-3">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
                         {t("history.copy")}
                       </button>
