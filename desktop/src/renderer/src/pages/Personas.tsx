@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { Persona, Settings } from "../../../shared/types";
@@ -18,6 +18,11 @@ function Personas(props: {
   const polishReady =
     props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl && props.settings.polishApiKey);
   const [editing, setEditing] = useState<Persona | null>(null);
+  // 正在运行的应用列表：规则输入框提供下拉建议，免得用户不知道进程名怎么写
+  const [apps, setApps] = useState<string[]>([]);
+  useEffect(() => {
+    void api.runningApps().then(setApps);
+  }, []);
   const current = props.settings.personaId;
   const currentPersona = props.localized.find((p) => p.id === current) ?? props.localized[0];
 
@@ -97,6 +102,7 @@ function Personas(props: {
                 <input
                   className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
                   placeholder={t("personas.appRulePlaceholder")}
+                  list="running-apps"
                   value={rule.match}
                   onChange={(e) => {
                     const next = props.settings.appPersonas.map((r, j) =>
@@ -132,6 +138,13 @@ function Personas(props: {
               </li>
             ))}
           </ul>
+        )}
+        {apps.length > 0 && (
+          <datalist id="running-apps">
+            {apps.map((app) => (
+              <option key={app} value={app} />
+            ))}
+          </datalist>
         )}
       </div>
 

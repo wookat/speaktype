@@ -39,6 +39,7 @@ export const ja: LocaleDict = {
   "history.clearYes": "消去",
   "history.empty": "履歴はまだありません",
   "history.noResults": "一致する履歴はありません。",
+  "history.export": "エクスポート",
   "history.showRaw": "認識原文を表示",
   "history.hideRaw": "認識原文を隠す",
   "history.showMore": "さらに表示（残り {{count}} 件）",

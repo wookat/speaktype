@@ -36,6 +36,7 @@ export const zhTW: LocaleDict = {
   "history.clearYes": "清空",
   "history.empty": "暫時沒有歷史記錄",
   "history.noResults": "沒有符合的記錄。",
+  "history.export": "匯出",
   "history.showRaw": "查看辨識原文",
   "history.hideRaw": "收起辨識原文",
   "history.showMore": "顯示更多（還有 {{count}} 條）",

@@ -37,6 +37,7 @@ export const zhCN = {
   "history.clearYes": "清空",
   "history.empty": "暂时没有历史记录",
   "history.noResults": "没有匹配的记录。",
+  "history.export": "导出",
   "history.showRaw": "查看识别原文",
   "history.hideRaw": "收起识别原文",
   "history.showMore": "显示更多（还有 {{count}} 条）",

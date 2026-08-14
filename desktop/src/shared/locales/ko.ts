@@ -39,6 +39,7 @@ export const ko: LocaleDict = {
   "history.clearYes": "지우기",
   "history.empty": "아직 기록이 없습니다",
   "history.noResults": "일치하는 기록이 없습니다.",
+  "history.export": "내보내기",
   "history.showRaw": "인식 원본 보기",
   "history.hideRaw": "인식 원본 숨기기",
   "history.showMore": "더 보기 (남은 {{count}}개)",

@@ -39,6 +39,7 @@ export const en: LocaleDict = {
   "history.clearYes": "Clear",
   "history.empty": "No history yet",
   "history.noResults": "No matches for this search.",
+  "history.export": "Export",
   "history.showRaw": "Show raw transcript",
   "history.hideRaw": "Hide raw transcript",
   "history.showMore": "Show more ({{count}} remaining)",
