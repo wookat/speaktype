@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
   id("com.android.application")
 }
 
@@ -10,12 +10,12 @@ android {
     applicationId = "com.speaktype.mic"
     minSdk = 24
     targetSdk = 34
-    versionCode = 2
-    versionName = "0.9.3"
+    versionCode = 3
+    versionName = "0.10.0"
   }
 
   signingConfigs {
-    // 未上架，用仓库外的本地密钥自签，保证任何人 build 出来就能装
+    // æœªä¸Šæž¶ï¼Œç”¨ä»“åº“å¤–çš„æœ¬åœ°å¯†é’¥è‡ªç­¾ï¼Œä¿è¯ä»»ä½•äºº build å‡ºæ¥å°±èƒ½è£…
     create("selfsigned") {
       storeFile = file(System.getenv("SPEAKTYPE_KEYSTORE") ?: "speaktype.keystore")
       storePassword = System.getenv("SPEAKTYPE_KEYSTORE_PASSWORD") ?: "speaktype"
@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-  // 对齐传递依赖里的 kotlin-stdlib 版本，避免 jdk7/jdk8 拆分包与新版重复类
+  // å¯¹é½ä¼ é€’ä¾èµ–é‡Œçš„ kotlin-stdlib ç‰ˆæœ¬ï¼Œé¿å… jdk7/jdk8 æ‹†åˆ†åŒ…ä¸Žæ–°ç‰ˆé‡å¤ç±»
   implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
   implementation("androidx.appcompat:appcompat:1.7.0")
 }
