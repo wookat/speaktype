@@ -80,6 +80,9 @@ function fmt(n: number): string {
   return String(n);
 }
 
+/** 前面紧跟数字字时不得从中间开匹（四五十个、七八百这类概数整体跳过） */
+const NOT_AFTER_NUM = "(?<![\u96f6\u3007\u4e00\u5e7a\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4ebf])";
+
 /** 中文口语数字 → 书面数字。只处理中文文本；转换失败的片段原样保留 */
 export function applyItn(text: string): string {
   let out = text;
@@ -91,31 +94,41 @@ export function applyItn(text: string): string {
     return frac ? `${n}.${cnToDigits(frac)}%` : `${n}%`;
   });
 
-  // 三点半/三点整/三点一刻/十点四十五分 → 3:30 / 3:00 / 3:15 / 10:45
+  // 三点半/三点整/三点一刻/十点四十五分 → 3:30 / 3:00 / 3:15 / 10:45；
+  // 小时也支持阿拉伯数字（SenseVoice 常直接出阿拉伯数字：3点半 → 3:30）
   out = out.replace(
-    /([两二三四五六七八九]|十[一二]?|二十[一二三四]?)点(半|整|一刻|三刻|[零一两二三四五六七八九十]{1,3}分)/g,
+    new RegExp(
+      `${NOT_AFTER_NUM}(?<![\\d:.])([\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d]|\u5341[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d]?|\u4e8c\u5341[\u4e00\u4e8c\u4e09\u56db]?|[01]?\\d|2[0-4])\u70b9(\u534a|\u6574|\u4e00\u523b|\u4e09\u523b|[\u96f6\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]{1,3}\u5206|[0-5]?\\d\u5206)`,
+      "g",
+    ),
     (m, h: string, rest: string) => {
-      const hour = parseCnInt(h === "两" ? "二" : h);
+      const hour = /^\d+$/.test(h) ? Number(h) : parseCnInt(h === "两" ? "二" : h);
       if (hour === null || hour > 24) return m;
       let minute: number | null = 0;
       if (rest === "半") minute = 30;
       else if (rest === "一刻") minute = 15;
       else if (rest === "三刻") minute = 45;
-      else if (rest !== "整") minute = parseCnInt(rest.slice(0, -1));
+      else if (rest !== "整") {
+        const body = rest.slice(0, -1);
+        minute = /^\d+$/.test(body) ? Number(body) : parseCnInt(body);
+      }
       if (minute === null || minute > 59) return m;
       return `${hour}:${String(minute).padStart(2, "0")}`;
     },
   );
 
   // 数量 + 量词：二十三岁 → 23岁、三千块 → 3000块
-  out = out.replace(new RegExp(`(${NUM_WITH_MAG})(${UNITS})`, "g"), (m, num: string, unit: string) => {
+  out = out.replace(new RegExp(`${NOT_AFTER_NUM}(${NUM_WITH_MAG})(${UNITS})`, "g"), (m, num: string, unit: string) => {
     const n = parseCnInt(num);
     return n === null ? m : `${fmt(n)}${unit}`;
   });
 
   // 含千/万/亿的大数（可带口语尾数）：花了两千五 → 花了2500、三万八 → 38000
   out = out.replace(
-    /[一两二三四五六七八九十]+[千万亿][零一两二三四五六七八九千百十万]*(?![零一二三四五六七八九十百千万亿])/g,
+    new RegExp(
+      `${NOT_AFTER_NUM}[\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+[\u5343\u4e07\u4ebf][\u96f6\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5343\u767e\u5341\u4e07]*(?![\u96f6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4ebf])`,
+      "g",
+    ),
     (m) => {
       const n = parseCnInt(m);
       return n === null || n < 1000 ? m : fmt(n);
