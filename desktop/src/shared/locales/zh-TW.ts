@@ -169,7 +169,7 @@ export const zhTW: LocaleDict = {
   "settings.asrProviderLocal": "內建離線識別（SenseVoice / whisper.cpp）",
   "settings.asrLocalHint": "完全在本機識別，不聯網、不需要賬號和金鑰，錄音不離開這臺電腦。首次使用需下載一個模型檔案。sensevoice 模型錄音中實時顯示字幕；whisper 系列為整句識別。",
   "settings.localModel": "本地模型",
-  "settings.localModelHint": "中文推薦 sensevoice-small：準確率與速度都明顯優於同體積 whisper，且自帶標點。whisper 系列勝在語種更全：tiny 最快但易錯，base 均衡，small 更準更慢。",
+  "settings.localModelHint": "中文推薦 sensevoice-small：準確率與速度都明顯優於同體積 whisper，且自帶標點。英語及歐洲語言推薦 parakeet-tdt-0.6b-v3（不支援中文）。whisper 系列勝在語種更全：tiny 最快但易錯，base 均衡，small 更準更慢。",
   "settings.localModelDownload": "下載模型",
   "settings.localModelDownloading": "下載中 {{progress}}%",
   "settings.localModelReady": "模型已就緒",

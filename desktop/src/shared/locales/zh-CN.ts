@@ -179,7 +179,7 @@ export const zhCN = {
   "settings.asrLocalHint":
     "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件。sensevoice 模型录音中实时显示字幕；whisper 系列为整句识别。",
   "settings.localModel": "本地模型",
-  "settings.localModelHint": "中文推荐 sensevoice-small：准确率和速度都明显好于同体积 whisper，且自带标点。whisper 系列胜在语种更全：tiny 最快但易错，base 均衡，small 更准更慢。",
+  "settings.localModelHint": "中文推荐 sensevoice-small：准确率和速度都明显好于同体积 whisper，且自带标点。英语及欧洲语言推荐 parakeet-tdt-0.6b-v3（不支持中文）。whisper 系列胜在语种更全：tiny 最快但易错，base 均衡，small 更准更慢。",
   "settings.localModelDownload": "下载模型",
   "settings.localModelDownloading": "下载中 {{progress}}%",
   "settings.localModelReady": "模型已就绪",

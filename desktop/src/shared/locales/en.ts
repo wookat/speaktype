@@ -183,7 +183,7 @@ export const en: LocaleDict = {
   "settings.asrLocalHint":
     "Runs fully on this machine — no internet, no account, no API key; audio never leaves this computer. Download a model file once. The sensevoice model shows live captions while you talk; whisper models transcribe the whole utterance at once.",
   "settings.localModel": "Local model",
-  "settings.localModelHint": "sensevoice-small is the pick for Chinese: more accurate and faster than a same-sized whisper model, with punctuation built in. The whisper models cover more languages: tiny is fastest but error-prone, base is balanced, small is slower and more accurate.",
+  "settings.localModelHint": "sensevoice-small is the pick for Chinese: more accurate and faster than a same-sized whisper model, with punctuation built in. For English and European languages, parakeet-tdt-0.6b-v3 is the most accurate (no Chinese support). The whisper models cover more languages: tiny is fastest but error-prone, base is balanced, small is slower and more accurate.",
   "settings.localModelDownload": "Download model",
   "settings.localModelDownloading": "Downloading {{progress}}%",
   "settings.localModelReady": "Model ready",

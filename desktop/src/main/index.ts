@@ -17,7 +17,7 @@ import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao"
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { LOCAL_MODELS, SENSEVOICE, downloadLocalModel, localModelStatus, onLocalModelStatus, prewarmSenseVoice, stopLocalServer } from "./localasr";
+import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, stopLocalServer } from "./localasr";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
@@ -400,8 +400,8 @@ void app.whenReady().then(() => {
   if (hasAppKey()) ensureBridge();
   if (settings.remoteMicEnabled) void syncRemoteMic(true);
   // 启动后空闲预热离线模型，把 ONNX 冷启动成本移出用户第一句
-  if (settings.asrProvider === "local" && settings.localModel === SENSEVOICE) {
-    setTimeout(() => prewarmSenseVoice(getSettings().language), 3000);
+  if (settings.asrProvider === "local" && isSherpaModel(settings.localModel)) {
+    setTimeout(() => prewarmSherpa(getSettings().localModel, getSettings().language), 3000);
   }
   if (wasStoreRecovered()) {
     setTimeout(() => showToast(t("toast.configRecovered"), t("toast.configRecoveredBody")), 1500);

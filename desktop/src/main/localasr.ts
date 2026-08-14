@@ -24,8 +24,20 @@ export const SENSEVOICE = "sensevoice-small";
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
 
+/** Parakeet TDT 0.6B v3（sherpa-onnx int8）：英语及 25 种欧洲语言，自动语种检测，不支持中文 */
+export const PARAKEET = "parakeet-tdt-0.6b-v3";
+
+const PARAKEET_BASE =
+  "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main";
+
+/** 走 sherpa-onnx 进程内推理的模型（否则走 whisper-server 子进程） */
+export function isSherpaModel(model: string): boolean {
+  return model === SENSEVOICE || model === PARAKEET;
+}
+
 export const LOCAL_MODELS = [
   { id: SENSEVOICE, size: "234MB" },
+  { id: PARAKEET, size: "660MB" },
   { id: "tiny-q5_1", size: "32MB" },
   { id: "base-q5_1", size: "60MB" },
   { id: "small-q5_1", size: "190MB" },
@@ -46,6 +58,15 @@ function modelFiles(model: string): Array<[string, string]> {
     return [
       [`${SENSEVOICE_BASE}/model.int8.onnx`, join(dir, "model.int8.onnx")],
       [`${SENSEVOICE_BASE}/tokens.txt`, join(dir, "tokens.txt")],
+    ];
+  }
+  if (model === PARAKEET) {
+    const dir = join(modelsDir(), PARAKEET);
+    return [
+      [`${PARAKEET_BASE}/encoder.int8.onnx`, join(dir, "encoder.int8.onnx")],
+      [`${PARAKEET_BASE}/decoder.int8.onnx`, join(dir, "decoder.int8.onnx")],
+      [`${PARAKEET_BASE}/joiner.int8.onnx`, join(dir, "joiner.int8.onnx")],
+      [`${PARAKEET_BASE}/tokens.txt`, join(dir, "tokens.txt")],
     ];
   }
   return [[`ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model)]];
@@ -108,9 +129,9 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
 }
 
 /**
- * SenseVoice 推理跑在 worker 线程里：sherpa-onnx 的解码是同步的，长句要几百毫秒到
+ * sherpa-onnx 离线推理跑在 worker 线程里：解码是同步的，长句要几百毫秒到
  * 一秒多，留在主进程会卡住整个 UI（实时字幕反复重解时尤其明显）。worker 里模型实例
- * 常驻，语言变化时重建。
+ * 常驻，语言变化时重建。SenseVoice 走 senseVoice 配置，Parakeet 走 NeMo transducer。
  */
 const workerSource = `
 const { parentPort, workerData } = require("worker_threads");
@@ -120,15 +141,23 @@ let lang = null;
 parentPort.on("message", (msg) => {
   try {
     if (!rec || lang !== msg.language) {
-      rec = new mod.OfflineRecognizer({
-        modelConfig: {
-          senseVoice: { model: workerData.model, language: msg.language, useInverseTextNormalization: 1 },
-          tokens: workerData.tokens,
-          numThreads: 2,
-          provider: "cpu",
-          debug: 0,
-        },
-      });
+      const modelConfig = workerData.engine === "transducer"
+        ? {
+            transducer: { encoder: workerData.encoder, decoder: workerData.decoder, joiner: workerData.joiner },
+            modelType: "nemo_transducer",
+            tokens: workerData.tokens,
+            numThreads: 2,
+            provider: "cpu",
+            debug: 0,
+          }
+        : {
+            senseVoice: { model: workerData.model, language: msg.language, useInverseTextNormalization: 1 },
+            tokens: workerData.tokens,
+            numThreads: 2,
+            provider: "cpu",
+            debug: 0,
+          };
+      rec = new mod.OfflineRecognizer({ modelConfig });
       lang = msg.language;
     }
     const stream = rec.createStream();
@@ -155,15 +184,18 @@ function scheduleIdleShutdown(): void {
     if (worker && pending.size === 0) {
       void worker.terminate();
       worker = null;
-      log.info("sensevoice worker stopped (idle)");
+      log.info("sherpa worker stopped (idle)");
     }
   }, WORKER_IDLE_MS);
   idleTimer.unref();
 }
 const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
 
-function ensureWorker(model: string, tokens: string): Worker {
-  const key = `${model}|${tokens}`;
+function ensureWorker(modelId: string): Worker {
+  const files = modelFiles(modelId);
+  const paths = files.map(([, p]) => p);
+  const tokens = paths[paths.length - 1]!;
+  const key = paths.join("|");
   if (worker && workerKey !== key) {
     // 模型文件换了：旧 worker 里的模型实例已过时，停掉重建
     for (const job of pending.values()) job.reject(new Error("local model changed"));
@@ -180,10 +212,18 @@ function ensureWorker(model: string, tokens: string): Worker {
   }
   workerKey = key;
   const require = createRequire(import.meta.url);
-  worker = new Worker(workerSource, {
-    eval: true,
-    workerData: { modulePath: require.resolve("sherpa-onnx-node"), model, tokens },
-  });
+  const workerData =
+    modelId === PARAKEET
+      ? {
+          modulePath: require.resolve("sherpa-onnx-node"),
+          engine: "transducer",
+          encoder: paths[0],
+          decoder: paths[1],
+          joiner: paths[2],
+          tokens,
+        }
+      : { modulePath: require.resolve("sherpa-onnx-node"), engine: "sensevoice", model: paths[0], tokens };
+  worker = new Worker(workerSource, { eval: true, workerData });
   worker.on("message", (msg: { id: number; text?: string; error?: string }) => {
     const job = pending.get(msg.id);
     if (!job) return;
@@ -193,7 +233,7 @@ function ensureWorker(model: string, tokens: string): Worker {
     if (pending.size === 0) scheduleIdleShutdown();
   });
   worker.on("error", (error) => {
-    log.warn("sensevoice worker error", error);
+    log.warn("sherpa worker error", error);
     for (const job of pending.values()) job.reject(error);
     pending.clear();
     worker = null;
@@ -201,29 +241,27 @@ function ensureWorker(model: string, tokens: string): Worker {
   worker.on("exit", () => {
     worker = null;
   });
-  log.info("sensevoice worker started");
+  log.info(`sherpa worker started (${modelId})`);
   return worker;
 }
 
 /** 启动后空闲时预热 worker：用一小段静音触发模型加载，把 ONNX 冷启动成本移出用户第一句 */
-export function prewarmSenseVoice(language: string): void {
-  if (worker || !modelReady(SENSEVOICE)) return;
+export function prewarmSherpa(model: string, language: string): void {
+  if (worker || !isSherpaModel(model) || !modelReady(model)) return;
   const silence = new Float32Array(3200); // 0.2s @ 16kHz
-  transcribeSenseVoice(silence, 16000, language).catch((error) => {
-    log.warn("sensevoice prewarm failed", error);
+  transcribeSherpa(model, silence, 16000, language).catch((error) => {
+    log.warn("sherpa prewarm failed", error);
   });
 }
 
-export async function transcribeSenseVoice(
+export async function transcribeSherpa(
+  modelId: string,
   samples: Float32Array,
   sampleRate: number,
   language: string,
 ): Promise<string> {
-  const files = modelFiles(SENSEVOICE);
-  const model = files[0]?.[1] ?? "";
-  const tokens = files[1]?.[1] ?? "";
-  if (!existsSync(model) || !existsSync(tokens)) throw new Error(t("error.localModelMissing"));
-  const w = ensureWorker(model, tokens);
+  if (!modelReady(modelId)) throw new Error(t("error.localModelMissing"));
+  const w = ensureWorker(modelId);
   const id = nextJobId++;
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });
