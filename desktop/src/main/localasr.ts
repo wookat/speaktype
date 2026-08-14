@@ -51,22 +51,22 @@ function modelPath(model: string): string {
   return join(modelsDir(), `ggml-${model}.bin`);
 }
 
-/** 一个模型需要的全部文件：[HuggingFace 仓内路径, 本地落盘路径] */
-function modelFiles(model: string): Array<[string, string]> {
+/** 一个模型需要的全部文件：[HuggingFace 仓内路径, 本地落盘路径, 文件字节数（多文件模型用于进度字节加权）] */
+function modelFiles(model: string): Array<[string, string, number?]> {
   if (model === SENSEVOICE) {
     const dir = join(modelsDir(), SENSEVOICE);
     return [
-      [`${SENSEVOICE_BASE}/model.int8.onnx`, join(dir, "model.int8.onnx")],
-      [`${SENSEVOICE_BASE}/tokens.txt`, join(dir, "tokens.txt")],
+      [`${SENSEVOICE_BASE}/model.int8.onnx`, join(dir, "model.int8.onnx"), 239_233_841],
+      [`${SENSEVOICE_BASE}/tokens.txt`, join(dir, "tokens.txt"), 315_894],
     ];
   }
   if (model === PARAKEET) {
     const dir = join(modelsDir(), PARAKEET);
     return [
-      [`${PARAKEET_BASE}/encoder.int8.onnx`, join(dir, "encoder.int8.onnx")],
-      [`${PARAKEET_BASE}/decoder.int8.onnx`, join(dir, "decoder.int8.onnx")],
-      [`${PARAKEET_BASE}/joiner.int8.onnx`, join(dir, "joiner.int8.onnx")],
-      [`${PARAKEET_BASE}/tokens.txt`, join(dir, "tokens.txt")],
+      [`${PARAKEET_BASE}/encoder.int8.onnx`, join(dir, "encoder.int8.onnx"), 652_184_281],
+      [`${PARAKEET_BASE}/decoder.int8.onnx`, join(dir, "decoder.int8.onnx"), 11_845_275],
+      [`${PARAKEET_BASE}/joiner.int8.onnx`, join(dir, "joiner.int8.onnx"), 6_355_277],
+      [`${PARAKEET_BASE}/tokens.txt`, join(dir, "tokens.txt"), 93_939],
     ];
   }
   return [[`ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model)]];
@@ -138,7 +138,7 @@ function push(patch: Partial<LocalModelStatus>): void {
   notify?.({ ...status });
 }
 
-/** 下载模型所需的全部文件到 userData\models，进度按文件个数均分 */
+/** 下载模型所需的全部文件到 userData\models，进度按文件字节加权 */
 export async function downloadLocalModel(model: string): Promise<LocalModelStatus> {
   if (status.downloading) return { ...status };
   if (modelReady(model)) return localModelStatus(model);
@@ -147,7 +147,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   const files = modelFiles(model);
   try {
     await downloadFiles(
-      files.map(([remote, dest]) => ({ sources: hfSources(remote), dest })),
+      files.map(([remote, dest, size]) => ({ sources: hfSources(remote), dest, size })),
       (percent) => push({ progress: percent }),
     );
     push({ downloading: false, downloaded: true, progress: 100, partial: undefined });

@@ -17,7 +17,7 @@ export const ja: LocaleDict = {
     "Doubao にログインし、内蔵の音声入力を一度使うと、SpeakType が App Key を自動取得します。設定で手動入力も可能です。",
   "home.activate.button": "設定する",
   "home.model.title": "オフライン音声モデルをダウンロード",
-  "home.model.desc": "初回のみダウンロード（約234MB）。以降は完全にローカルで動作し、API キー不要です。",
+  "home.model.desc": "初回のみダウンロード（約{{size}}）。以降は完全にローカルで動作し、API キー不要です。",
   "home.model.button": "ダウンロード",
   "home.ready": "音声認識の準備完了",
   "home.stat.sessions": "セッション",

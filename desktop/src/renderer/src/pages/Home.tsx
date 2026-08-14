@@ -23,10 +23,12 @@ function Home(props: {
 
   // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
   const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const [modelSize, setModelSize] = useState("");
   const localModel = props.settings.localModel || "sensevoice-small";
   useEffect(() => {
     if (props.settings.asrProvider !== "local") return;
     void api.localModelStatus(localModel).then(setLocal);
+    void api.localModels().then((models) => setModelSize(models.find((m) => m.id === localModel)?.size ?? ""));
     return api.onLocalModel(setLocal);
   }, [props.settings.asrProvider, localModel]);
   const needsModel = props.settings.asrProvider === "local" && local !== null && !local.downloaded;
@@ -47,7 +49,7 @@ function Home(props: {
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
           <div>
             <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
-            <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc")}</div>
+            <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc", { size: modelSize })}</div>
             {local?.error && <div className="mt-1 text-sm text-red-500">{humanDownloadError(local.error, t)}</div>}
           </div>
           <button
