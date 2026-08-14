@@ -46,6 +46,7 @@
 | 📖 **热词纠错** | 词典里加上人名、产品名，同音/近音误字自动替换；历史页手动纠错还会**一键学进词典** |
 | 🧠 **增强人声检测** | 可选下载 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准 |
 | 🔁 **失败可重试** | 识别失败的录音保留在本机（最多 20 段/7 天/50MB，可关），历史页一键重试，不用重说 |
+| 🌗 **暗色模式** | 实时跟随 Windows 深浅色设置，也可在设置中固定浅色/深色 |
 
 <div align="center">
 <img src="docs/assets/screenshot-personas.png" width="720" alt="人设风格" />
@@ -57,7 +58,7 @@
 <img src="docs/assets/screenshot-asr.png" width="720" alt="识别引擎设置" />
 </div>
 
-1. **内置离线识别**（默认推荐）：应用内一键下载模型——中文推荐 SenseVoice-Small（实测每句 0.27 秒、自带标点）或 whisper.cpp（tiny/base/small）；完全本机识别，不联网、不注册、零密钥。
+1. **内置离线识别**（默认推荐）：应用内一键下载模型——中文推荐 SenseVoice-Small（实测每句 0.27 秒、自带标点，兼顾英/日/韩/粤），英文及 25 种欧洲语言推荐 NVIDIA Parakeet TDT 0.6B v3（准确率更高），也可选 whisper.cpp（tiny/base/small）；完全本机识别，不联网、不注册、零密钥。
 2. **任意 OpenAI 兼容转写接口**：填 Base URL + API Key + 模型名即可，内置 OpenAI Whisper / Groq（有免费额度）/ Fireworks / Mistral Voxtral / SiliconFlow / 阿里云百炼 预设，带测试连接。
 3. **免 API Key 的网页通道**：ChatGPT 网页转写（免费账号也能用）或豆包语音，都是在应用内登录一次后复用你自己的会话。两条走的都是非公开接口，默认关闭，可能失效或与对方条款冲突，账号风险请自行判断，详见 [DISCLAIMER.md](DISCLAIMER.md)。
 
@@ -67,9 +68,9 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 
 
 | 平台 | 下载 | 状态 |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.9.3.exe](https://github.com/wookat/speaktype/releases/download/v0.9.3/SpeakType-Setup-0.9.3.exe)（~98MB） | ✅ 稳定 |
-| Windows 绿色免安装 | [SpeakType-0.9.3-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.9.3/SpeakType-0.9.3-portable.exe)（~87MB） | ✅ 稳定 |
-| Android（手机当麦克风） | [SpeakType-0.9.3.apk](https://github.com/wookat/speaktype/releases/download/v0.9.3/SpeakType-0.9.3.apk) | ✅ 可用 |
+| Windows 10/11 x64 | [SpeakType-Setup-0.10.0.exe](https://github.com/wookat/speaktype/releases/download/v0.10.0/SpeakType-Setup-0.10.0.exe)（~98MB） | ✅ 稳定 |
+| Windows 绿色免安装 | [SpeakType-0.10.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.10.0/SpeakType-0.10.0-portable.exe)（~87MB） | ✅ 稳定 |
+| Android（手机当麦克风） | [SpeakType-0.10.0.apk](https://github.com/wookat/speaktype/releases/download/v0.10.0/SpeakType-0.10.0.apk) | ✅ 可用 |
 | macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
 
 最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
@@ -104,7 +105,7 @@ npm run typecheck
 npm run pack       # NSIS 安装包 → release/
 ```
 
-技术栈：Electron + React 19 + Tailwind 4 + lucide-react；全局热键 uiohook-napi；落字 koffi SendInput；离线识别 SenseVoice / whisper.cpp；增强 VAD Silero + onnxruntime；手机麦克风走可自部署的 Cloudflare Worker 中转。详见 [desktop/README.md](desktop/README.md)。
+技术栈：Electron + React 19 + Tailwind 4 + lucide-react；全局热键 uiohook-napi；落字 koffi SendInput；离线识别 SenseVoice / Parakeet（sherpa-onnx）/ whisper.cpp；增强 VAD Silero + onnxruntime；手机麦克风走可自部署的 Cloudflare Worker 中转。详见 [desktop/README.md](desktop/README.md)。
 
 仓库里还有一个更早形态的 [Chrome 浏览器扩展](docs/browser-extension.md)（网页内按住说话落字）。
 
