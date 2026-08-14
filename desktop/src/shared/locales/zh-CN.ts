@@ -36,6 +36,7 @@ export const zhCN = {
   "history.clearConfirm": "清空全部历史？",
   "history.clearYes": "清空",
   "history.empty": "暂时没有历史记录",
+  "history.showMore": "显示更多（还有 {{count}} 条）",
   "history.emptyHint": "按住热键开始语音，这里会记录你的每一次输入",
   "history.copy": "复制",
   "history.delete": "删除",

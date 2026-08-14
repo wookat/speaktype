@@ -455,6 +455,8 @@ function ReviewDiff(props: { before: string; after: string }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 function History(props: {
   t: Translator;
   history: HistoryItem[];
@@ -469,6 +471,8 @@ function History(props: {
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const saveEdit = (item: HistoryItem): void => {
     if (!editing) return;
     const next = editing.text.trim();
@@ -497,7 +501,7 @@ function History(props: {
     : props.history;
 
   const groups: Array<{ label: string; items: HistoryItem[] }> = [];
-  for (const item of filtered) {
+  for (const item of filtered.slice(0, visible)) {
     const label = dayLabel(item.at, t);
     const last = groups[groups.length - 1];
     if (last && last.label === label) last.items.push(item);
@@ -550,7 +554,8 @@ function History(props: {
           <div className="mt-1 text-xs">{t("history.emptyHint")}</div>
         </div>
       ) : (
-        groups.map((group) => (
+        <>
+          {groups.map((group) => (
           <div key={group.label}>
             <div className="mt-6 text-sm font-medium text-slate-500">{group.label}</div>
             <ul className="mt-2 space-y-3">
@@ -656,7 +661,18 @@ function History(props: {
               ))}
             </ul>
           </div>
-        ))
+          ))}
+          {filtered.length > visible && (
+            <div className="mt-4 text-center">
+              <button
+                className="rounded-xl border border-slate-200 px-4 py-1.5 text-sm text-slate-500 hover:bg-slate-50"
+                onClick={() => setVisible((v) => v + PAGE_SIZE)}
+              >
+                {t("history.showMore", { count: filtered.length - visible })}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

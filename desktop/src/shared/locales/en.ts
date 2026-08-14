@@ -38,6 +38,7 @@ export const en: LocaleDict = {
   "history.clearConfirm": "Clear all history?",
   "history.clearYes": "Clear",
   "history.empty": "No history yet",
+  "history.showMore": "Show more ({{count}} remaining)",
   "history.emptyHint": "Hold the hotkey and speak — every entry will be recorded here",
   "history.copy": "Copy",
   "history.delete": "Delete",
