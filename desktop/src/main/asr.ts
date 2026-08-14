@@ -3,7 +3,7 @@ import type { Settings } from "../shared/types";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
 import { transcribeViaChatgpt } from "./chatgpt";
-import { SENSEVOICE, ensureLocalServer, transcribeSenseVoice } from "./localasr";
+import { ensureLocalServer, isSherpaModel, transcribeSherpa } from "./localasr";
 
 // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
 let t2cn: ((text: string) => string) | null = null;
@@ -174,12 +174,12 @@ export function startLocalAsrSession(
   const model = settings.localModel || "base-q5_1";
 
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
-  if (model !== SENSEVOICE) ensureLocalServer(model).catch(() => undefined);
+  if (!isSherpaModel(model)) ensureLocalServer(model).catch(() => undefined);
 
-  // SenseVoice 是整句模型，流式字幕靠定时重解已录部分近似；只在音频够长且
+  // sherpa 系是整句模型，流式字幕靠定时重解已录部分近似；只在音频够长且
   // 不过长时做，超过上限停掉预览留给最终识别
   let timer: NodeJS.Timeout | null = null;
-  if (onPartial && model === SENSEVOICE) {
+  if (onPartial && isSherpaModel(model)) {
     let inFlight = false;
     let nextAt = 0;
     timer = setInterval(() => {
@@ -188,7 +188,7 @@ export function startLocalAsrSession(
       if (Date.now() < nextAt) return;
       inFlight = true;
       const started = Date.now();
-      void transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto")
+      void transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto")
         .then((text) => {
           // 解码在 worker 里，但仍串行；按上次耗时拉开间隔，别让预览霸占识别线程
           nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, (Date.now() - started) * 2);
@@ -220,9 +220,9 @@ export function startLocalAsrSession(
     async finish(): Promise<string> {
       stopTimer();
       if (cancelled || frames.length === 0) return "";
-      if (model === SENSEVOICE) {
-        // SenseVoice 本就输出简体，不再过繁→简以免误伤专名
-        return transcribeSenseVoice(pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
+      if (isSherpaModel(model)) {
+        // sherpa 系直接出最终文本，不再过繁→简以免误伤专名
+        return transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
       }
       const url = await ensureLocalServer(model);
       const wav = pcmToWav(frames);

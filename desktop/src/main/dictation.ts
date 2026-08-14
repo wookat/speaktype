@@ -15,7 +15,7 @@ import {
 } from "./asr";
 import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
-import { SENSEVOICE, localModelStatus, prewarmSenseVoice } from "./localasr";
+import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { copySelection, pasteText, toggleSystemMute } from "./paste";
 import { polishText, rewriteSelection } from "./polish";
@@ -280,8 +280,8 @@ export class Dictation {
         throw new Error(t("error.localModelMissing"));
       }
       // 空闲释放后的冷启动在说话期间完成，不占用首句延迟
-      if (settings.asrProvider === "local" && settings.localModel === SENSEVOICE) {
-        prewarmSenseVoice(settings.language);
+      if (settings.asrProvider === "local" && isSherpaModel(settings.localModel)) {
+        prewarmSherpa(settings.localModel, settings.language);
       }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;

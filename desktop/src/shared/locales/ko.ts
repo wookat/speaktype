@@ -183,7 +183,7 @@ export const ko: LocaleDict = {
   "settings.asrLocalHint":
     "완전히 이 PC 에서 실행 — 인터넷, 계정, API 키 불필요. 오디오가 이 컴퓨터를 벗어나지 않습니다. 모델을 한 번 다운로드하면 사용 가능. sensevoice 모델은 녹음 중 실시간 자막을 표시하며, whisper 계열은 발화 전체를 한 번에 인식합니다.",
   "settings.localModel": "로컬 모델",
-  "settings.localModelHint": "중국어에는 sensevoice-small을 권장합니다. 같은 크기의 whisper보다 정확하고 빠르며 문장 부호도 자동으로 붙습니다. whisper 계열은 지원 언어가 더 많습니다: tiny는 가장 빠르지만 오류가 많고, base는 균형형, small은 느리지만 정확합니다.",
+  "settings.localModelHint": "중국어에는 sensevoice-small을 권장합니다. 같은 크기의 whisper보다 정확하고 빠르며 문장 부호도 자동으로 붙습니다. 영어와 유럽 언어에는 parakeet-tdt-0.6b-v3가 가장 정확합니다(중국어 미지원). whisper 계열은 지원 언어가 더 많습니다: tiny는 가장 빠르지만 오류가 많고, base는 균형형, small은 느리지만 정확합니다.",
   "settings.localModelDownload": "모델 다운로드",
   "settings.localModelDownloading": "다운로드 중 {{progress}}%",
   "settings.localModelReady": "모델 준비 완료",

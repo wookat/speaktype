@@ -183,7 +183,7 @@ export const ja: LocaleDict = {
   "settings.asrLocalHint":
     "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。sensevoice モデルは録音中にリアルタイム字幕を表示；whisper 系は発話全体をまとめて認識します。",
   "settings.localModel": "ローカルモデル",
-  "settings.localModelHint": "中国語には sensevoice-small が最適です。同サイズの whisper より高精度かつ高速で、句読点も付きます。whisper 系は対応言語が多く、tiny は最速だが誤りが多め、base はバランス型、small は低速で高精度です。",
+  "settings.localModelHint": "中国語には sensevoice-small が最適です。同サイズの whisper より高精度かつ高速で、句読点も付きます。英語と欧州言語には parakeet-tdt-0.6b-v3 が最も高精度です（中国語非対応）。whisper 系は対応言語が多く、tiny は最速だが誤りが多め、base はバランス型、small は低速で高精度です。",
   "settings.localModelDownload": "モデルをダウンロード",
   "settings.localModelDownloading": "ダウンロード中 {{progress}}%",
   "settings.localModelReady": "モデル準備完了",
