@@ -191,6 +191,7 @@ export const zhCN = {
   "settings.localModelHint": "中文推荐 sensevoice-small：准确率和速度都明显好于同体积 whisper，且自带标点。英语及欧洲语言推荐 parakeet-tdt-0.6b-v3（不支持中文）。whisper 系列胜在语种更全：tiny 最快但易错，base 均衡，small 更准更慢。",
   "settings.localModelDownload": "下载模型",
   "settings.localModelDownloading": "下载中 {{progress}}%",
+  "settings.localModelResume": "继续下载（已完成 {{progress}}%）",
   "settings.localModelReady": "模型已就绪",
   "settings.captionLines": "悬浮条字幕高度",
   "settings.captionLinesHint": "实时字幕最多显示的行数，超出自动滚动到最新。",

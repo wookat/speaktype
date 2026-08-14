@@ -195,6 +195,7 @@ export const ja: LocaleDict = {
   "settings.localModelHint": "中国語には sensevoice-small が最適です。同サイズの whisper より高精度かつ高速で、句読点も付きます。英語と欧州言語には parakeet-tdt-0.6b-v3 が最も高精度です（中国語非対応）。whisper 系は対応言語が多く、tiny は最速だが誤りが多め、base はバランス型、small は低速で高精度です。",
   "settings.localModelDownload": "モデルをダウンロード",
   "settings.localModelDownloading": "ダウンロード中 {{progress}}%",
+  "settings.localModelResume": "ダウンロードを再開（{{progress}}% 完了）",
   "settings.localModelReady": "モデル準備完了",
   "settings.captionLines": "字幕の高さ",
   "settings.captionLinesHint": "フローティングバーのリアルタイム字幕の最大行数。超えると最新にスクロールします。",

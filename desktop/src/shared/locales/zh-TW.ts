@@ -181,6 +181,7 @@ export const zhTW: LocaleDict = {
   "settings.localModelHint": "中文推薦 sensevoice-small：準確率與速度都明顯優於同體積 whisper，且自帶標點。英語及歐洲語言推薦 parakeet-tdt-0.6b-v3（不支援中文）。whisper 系列勝在語種更全：tiny 最快但易錯，base 均衡，small 更準更慢。",
   "settings.localModelDownload": "下載模型",
   "settings.localModelDownloading": "下載中 {{progress}}%",
+  "settings.localModelResume": "繼續下載（已完成 {{progress}}%）",
   "settings.localModelReady": "模型已就緒",
   "settings.captionLines": "懸浮條字幕高度",
   "settings.captionLinesHint": "即時字幕最多顯示的行數，超出自動滾動到最新。",
