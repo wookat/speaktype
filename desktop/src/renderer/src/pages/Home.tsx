@@ -47,6 +47,7 @@ function Home(props: {
           <div>
             <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
             <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc")}</div>
+            {local?.error && <div className="mt-1 text-sm text-red-500">{local.error}</div>}
           </div>
           <button
             className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
