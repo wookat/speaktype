@@ -228,6 +228,17 @@ function GeneralTab(props: {
             ))}
           </select>
         </Row>
+        <Row label={t("settings.theme")} hint={t("settings.themeHint")}>
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.theme}
+            onChange={(e) => update({ theme: e.target.value as Settings["theme"] })}
+          >
+            <option value="system">{t("settings.followSystem")}</option>
+            <option value="light">{t("settings.themeLight")}</option>
+            <option value="dark">{t("settings.themeDark")}</option>
+          </select>
+        </Row>
       </section>
 
       <MicSection t={t} s={s} update={props.update} />

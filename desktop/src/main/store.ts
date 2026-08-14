@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   minRecordMs: 300,
   language: "zh",
   uiLanguage: "system",
+  theme: "system",
   personaId: "default",
   autoPaste: true,
   launchAtLogin: false,

@@ -76,6 +76,18 @@ export default function App() {
     };
   }, []);
 
+  // 主题：跟随系统 / 浅色 / 深色；.dark 挂到 <html> 上，全站配色由 global.css 的调色板重映射生效
+  const theme = settings?.theme ?? "system";
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => {
+      document.documentElement.classList.toggle("dark", theme === "dark" || (theme === "system" && mq.matches));
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [theme]);
+
   const t = useMemo(
     () => (settings && init ? getT(settings.uiLanguage, init.systemLocale) : null),
     [settings?.uiLanguage, init?.systemLocale],

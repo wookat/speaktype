@@ -131,6 +131,10 @@ export const en: LocaleDict = {
   "settings.muteHint": "System audio is muted during voice input and restored afterwards.",
   "settings.uiLanguage": "Interface language",
   "settings.uiLanguageHint": "Takes effect immediately.",
+  "settings.theme": "Theme",
+  "settings.themeHint": "Follow system switches with the Windows light/dark setting.",
+  "settings.themeLight": "Light",
+  "settings.themeDark": "Dark",
   "settings.followSystem": "Follow system",
 
   "settings.audio": "Audio",

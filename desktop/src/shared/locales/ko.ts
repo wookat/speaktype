@@ -131,6 +131,10 @@ export const ko: LocaleDict = {
   "settings.muteHint": "음성 입력 중 시스템 오디오를 음소거하고 종료 후 복원합니다.",
   "settings.uiLanguage": "인터페이스 언어",
   "settings.uiLanguageHint": "즉시 적용됩니다.",
+  "settings.theme": "테마",
+  "settings.themeHint": "시스템 따르기는 Windows 라이트/다크 설정에 맞춰 전환됩니다.",
+  "settings.themeLight": "라이트",
+  "settings.themeDark": "다크",
   "settings.followSystem": "시스템 따르기",
 
   "settings.audio": "오디오",
