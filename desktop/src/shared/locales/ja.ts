@@ -38,6 +38,7 @@ export const ja: LocaleDict = {
   "history.clearConfirm": "履歴をすべて消去しますか？",
   "history.clearYes": "消去",
   "history.empty": "履歴はまだありません",
+  "history.noResults": "一致する履歴はありません。",
   "history.showRaw": "認識原文を表示",
   "history.hideRaw": "認識原文を隠す",
   "history.showMore": "さらに表示（残り {{count}} 件）",
@@ -70,6 +71,8 @@ export const ja: LocaleDict = {
   "personas.appRulesHint": "話し始めた時点の前面のウィンドウを見て、一致したペルソナで整形します。プロセス名とウィンドウタイトルのみを参照し、すべてローカルで処理します。",
   "personas.appRuleAdd": "ルールを追加",
   "personas.appRulePlaceholder": "部分一致（例: code.exe / slack / gmail）",
+  "personas.appRulesNoPolish": "ルールは AI ポリッシュモデル設定時のみ有効です。未設定のため出力は変わりません。",
+  "personas.appRulesNoPolishAction": "AI ポリッシュを設定",
   "personas.inUse": "使用中",
   "personas.use": "使用",
 

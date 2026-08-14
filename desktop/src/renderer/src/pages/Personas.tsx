@@ -11,8 +11,12 @@ function Personas(props: {
   setPersonas: (p: Persona[]) => void;
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
+  goModelSettings: () => void;
 }) {
   const { t } = props;
+  // 人设只在 AI 润色阶段生效，没配润色模型时规则不会改变落字
+  const polishReady =
+    props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl && props.settings.polishApiKey);
   const [editing, setEditing] = useState<Persona | null>(null);
   const current = props.settings.personaId;
   const currentPersona = props.localized.find((p) => p.id === current) ?? props.localized[0];
@@ -78,6 +82,14 @@ function Personas(props: {
             {t("personas.appRuleAdd")}
           </button>
         </div>
+        {props.settings.appPersonas.length > 0 && !polishReady && (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <span>{t("personas.appRulesNoPolish")}</span>
+            <button className="shrink-0 font-medium underline hover:text-amber-800" onClick={props.goModelSettings}>
+              {t("personas.appRulesNoPolishAction")}
+            </button>
+          </div>
+        )}
         {props.settings.appPersonas.length > 0 && (
           <ul className="mt-3 space-y-2">
             {props.settings.appPersonas.map((rule, i) => (

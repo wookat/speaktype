@@ -38,6 +38,7 @@ export const ko: LocaleDict = {
   "history.clearConfirm": "모든 기록을 지울까요?",
   "history.clearYes": "지우기",
   "history.empty": "아직 기록이 없습니다",
+  "history.noResults": "일치하는 기록이 없습니다.",
   "history.showRaw": "인식 원본 보기",
   "history.hideRaw": "인식 원본 숨기기",
   "history.showMore": "더 보기 (남은 {{count}}개)",
@@ -70,6 +71,8 @@ export const ko: LocaleDict = {
   "personas.appRulesHint": "말하기 시작 시 포그라운드 창을 확인해 일치하는 페르소나로 다듬습니다. 프로세스 이름과 창 제목만 읽으며 모두 로컬에서 처리됩니다.",
   "personas.appRuleAdd": "규칙 추가",
   "personas.appRulePlaceholder": "포함 문자, 예: code.exe / slack / gmail",
+  "personas.appRulesNoPolish": "규칙은 AI 다듬기 모델이 설정된 경우에만 적용됩니다. 현재 미설정이라 출력이 바뀌지 않습니다.",
+  "personas.appRulesNoPolishAction": "AI 다듬기 설정",
   "personas.inUse": "사용 중",
   "personas.use": "사용",
 

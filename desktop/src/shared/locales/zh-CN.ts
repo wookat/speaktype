@@ -36,6 +36,7 @@ export const zhCN = {
   "history.clearConfirm": "清空全部历史？",
   "history.clearYes": "清空",
   "history.empty": "暂时没有历史记录",
+  "history.noResults": "没有匹配的记录。",
   "history.showRaw": "查看识别原文",
   "history.hideRaw": "收起识别原文",
   "history.showMore": "显示更多（还有 {{count}} 条）",
@@ -67,6 +68,8 @@ export const zhCN = {
   "personas.appRulesHint": "开始说话时看当前窗口，命中关键词就用对应人设润色（如在 VS Code 用“简洁”、在微信用“口语”）。仅读进程名与窗口标题，不读窗口内容，全程本地。",
   "personas.appRuleAdd": "添加规则",
   "personas.appRulePlaceholder": "包含关键词，如 code.exe / 微信 / gmail",
+  "personas.appRulesNoPolish": "规则只在配置了 AI 润色模型后生效，当前未配置，落字不会变化。",
+  "personas.appRulesNoPolishAction": "去配置 AI 润色",
   "personas.inUse": "使用中",
   "personas.use": "设为当前",
 

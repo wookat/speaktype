@@ -185,7 +185,18 @@ export default function App() {
           <History t={t} history={history} setHistory={setHistory} settings={settings} update={update} />
         )}
         {page === "personas" && (
-          <Personas t={t} personas={personas} localized={localized} setPersonas={setPersonas} settings={settings} update={update} />
+          <Personas
+            t={t}
+            personas={personas}
+            localized={localized}
+            setPersonas={setPersonas}
+            settings={settings}
+            update={update}
+            goModelSettings={() => {
+              setSettingsJump("model");
+              setPage("settings");
+            }}
+          />
         )}
         {page === "dictionary" && <Dictionary t={t} settings={settings} update={update} />}
         {page === "settings" && (
