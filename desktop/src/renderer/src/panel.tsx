@@ -71,6 +71,11 @@ function Panel() {
       )}
       {(recording || working || status?.state === "error") && (
       <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#292929]/95 px-4 py-2 shadow-xl">
+        {recording && status?.appPersonaName && (
+          <span className="max-w-[120px] truncate rounded-full bg-violet-500/20 px-2 py-0.5 text-[11px] text-violet-300">
+            {status.appPersonaName}
+          </span>
+        )}
         {recording && (
           <div className="flex h-8 items-center gap-[3px]">
             {levels.map((v, i) => (

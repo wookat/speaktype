@@ -12,6 +12,7 @@ declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation } from "./dictation";
+import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
@@ -283,6 +284,7 @@ function registerIpc(): void {
     return next;
   });
   ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
+  ipcMain.handle("apps:running", () => runningApps());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
     setCustomPersonas(list);
     pushSettings();

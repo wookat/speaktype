@@ -147,6 +147,9 @@ export class Dictation {
       message: this.message,
       partial: this.partial,
       personaName: localizePersona(findPersona(settings.personaId), translator()).name,
+      appPersonaName: this.appPersonaId
+        ? localizePersona(findPersona(this.appPersonaId), translator()).name
+        : undefined,
       hotkeyHold: settings.hotkeyHold,
     };
   }

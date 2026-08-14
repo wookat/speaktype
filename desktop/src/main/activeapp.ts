@@ -76,6 +76,40 @@ if (isMac) {
   }, 2000).unref();
 }
 
+/** 列出当前有可见窗口的进程名（如 "code.exe"），供人设应用规则下拉选择 */
+export function runningApps(): Promise<string[]> {
+  return new Promise((resolve) => {
+    if (isMac) {
+      execFile(
+        "osascript",
+        ["-e", 'tell application "System Events" to name of every application process whose visible is true'],
+        (error, stdout) => {
+          if (error) return resolve([]);
+          resolve([...new Set(stdout.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean))].sort());
+        },
+      );
+      return;
+    }
+    execFile(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        "Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object -ExpandProperty ProcessName",
+      ],
+      (error, stdout) => {
+        if (error) return resolve([]);
+        const names = stdout
+          .split(/\r?\n/)
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+          .map((s) => `${s}.exe`);
+        resolve([...new Set(names)].sort());
+      },
+    );
+  });
+}
+
 export function activeApp(): { app: string; title: string } | null {
   if (isMac) return macCache;
   return win32?.activeApp() ?? null;

@@ -155,5 +155,7 @@ export interface StatusPayload {
   message?: string;
   partial?: string;
   personaName: string;
+  /** 本次录音命中按应用规则时，实际生效的人设名 */
+  appPersonaName?: string;
   hotkeyHold: string;
 }

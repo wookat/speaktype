@@ -48,6 +48,21 @@ function History(props: {
       props.setHistory(await api.history());
     });
   };
+  // 导出当前筛选结果为 Markdown（失败条目除外），浏览器下载通道落到本地文件
+  const exportHistory = (items: HistoryItem[]): void => {
+    const lines = items
+      .filter((h) => h.status !== "failed")
+      .map((h) => `- ${new Date(h.at).toLocaleString()} · ${h.personaName}\n\n  ${h.text}`);
+    const blob = new Blob([`# SpeakType History\n\n${lines.join("\n\n")}\n`], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `speaktype-history-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const q = query.toLowerCase();
   const filtered = q
     ? props.history.filter((h) => h.text.toLowerCase().includes(q) || h.raw.toLowerCase().includes(q))
@@ -90,6 +105,14 @@ function History(props: {
                 {t("common.cancel")}
               </button>
             </>
+          )}
+          {filtered.length > 0 && !confirmClear && (
+            <button
+              className="text-sm text-slate-400 hover:text-indigo-500"
+              onClick={() => exportHistory(filtered)}
+            >
+              {t("history.export")}
+            </button>
           )}
           {props.history.length > 0 && !confirmClear && (
             <button

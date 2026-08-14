@@ -36,6 +36,7 @@ const api = {
   updateSettings: (patch: Partial<Settings>): Promise<Settings> =>
     ipcRenderer.invoke("settings:update", patch),
   savePersonas: (list: Persona[]): Promise<Persona[]> => ipcRenderer.invoke("personas:save", list),
+  runningApps: (): Promise<string[]> => ipcRenderer.invoke("apps:running"),
   captureHotkey: (): Promise<string | null> => ipcRenderer.invoke("hotkey:capture"),
   history: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:list"),
   clearHistory: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:clear"),
