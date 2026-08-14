@@ -194,8 +194,8 @@ export const ko: LocaleDict = {
     "인식에 실패한 녹음을 이 PC 에 보관하여 기록에서 재시도할 수 있습니다 (최대 20개 / 7일 / 50MB, 업로드되지 않음).",
   "settings.enhancedVad": "향상된 음성 감지 (Silero VAD)",
   "settings.enhancedVadHint":
-    "신경망으로 사람 목소리와 소음을 구분하여 자동 종료와 환청 필터링이 더 정확해집니다. 약 35MB 추가 패키지 다운로드 필요, 완전히 로컬에서 실행.",
-  "settings.enhancedVadDownload": "추가 패키지 다운로드 (약 35MB)",
+    "신경망으로 사람 목소리와 소음을 구분하여 자동 종료와 환청 필터링이 더 정확해집니다. 약 3MB 추가 패키지 다운로드 필요, 완전히 로컬에서 실행.",
+  "settings.enhancedVadDownload": "추가 패키지 다운로드 (약 3MB)",
   "settings.enhancedVadDownloading": "다운로드 중 {{progress}}%",
   "settings.enhancedVadReady": "추가 패키지 준비 완료 — 음성 감지가 업그레이드되었습니다",
   "settings.enhancedVadFallback": "다운로드 완료 전까지는 음량 임계값으로 감지합니다",
