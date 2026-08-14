@@ -184,6 +184,22 @@ parentPort.on("message", (msg) => {
 let worker: Worker | null = null;
 let workerKey = "";
 let nextJobId = 1;
+// 模型常驻内存可观（数百 MB）：空闲一段时间后自动释放，下次使用重建
+const WORKER_IDLE_MS = 10 * 60 * 1000;
+let idleTimer: NodeJS.Timeout | null = null;
+
+function scheduleIdleShutdown(): void {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    idleTimer = null;
+    if (worker && pending.size === 0) {
+      void worker.terminate();
+      worker = null;
+      log.info("sensevoice worker stopped (idle)");
+    }
+  }, WORKER_IDLE_MS);
+  idleTimer.unref();
+}
 const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
 
 function ensureWorker(model: string, tokens: string): Worker {
@@ -195,7 +211,13 @@ function ensureWorker(model: string, tokens: string): Worker {
     void worker.terminate();
     worker = null;
   }
-  if (worker) return worker;
+  if (worker) {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+    return worker;
+  }
   workerKey = key;
   const require = createRequire(import.meta.url);
   worker = new Worker(workerSource, {
@@ -208,6 +230,7 @@ function ensureWorker(model: string, tokens: string): Worker {
     pending.delete(msg.id);
     if (msg.error) job.reject(new Error(msg.error));
     else job.resolve(msg.text ?? "");
+    if (pending.size === 0) scheduleIdleShutdown();
   });
   worker.on("error", (error) => {
     log.warn("sensevoice worker error", error);

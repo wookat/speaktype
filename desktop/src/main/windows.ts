@@ -52,6 +52,19 @@ export function createMainWindow(visible = true): BrowserWindow {
     setWindowBounds({ x: b.x, y: b.y, width: b.width, height: b.height, maximized });
   };
   win.on("close", persistBounds);
+  // 强杀/崩溃时 close 不触发：移动/缩放后延迟落盘一次
+  let boundsTimer: NodeJS.Timeout | null = null;
+  const persistLater = (): void => {
+    if (boundsTimer) clearTimeout(boundsTimer);
+    boundsTimer = setTimeout(() => {
+      boundsTimer = null;
+      if (!win.isDestroyed()) persistBounds();
+    }, 800);
+  };
+  win.on("resize", persistLater);
+  win.on("move", persistLater);
+  win.on("maximize", persistLater);
+  win.on("unmaximize", persistLater);
   if (visible) win.on("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);

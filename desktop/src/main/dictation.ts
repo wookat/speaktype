@@ -15,7 +15,7 @@ import {
 } from "./asr";
 import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
-import { localModelStatus } from "./localasr";
+import { SENSEVOICE, localModelStatus, prewarmSenseVoice } from "./localasr";
 import { t, translator } from "./i18n";
 import { copySelection, pasteText, toggleSystemMute } from "./paste";
 import { polishText, rewriteSelection } from "./polish";
@@ -263,6 +263,10 @@ export class Dictation {
       }
       if (settings.asrProvider === "local" && !localModelStatus(settings.localModel || "base-q5_1").downloaded) {
         throw new Error(t("error.localModelMissing"));
+      }
+      // 空闲释放后的冷启动在说话期间完成，不占用首句延迟
+      if (settings.asrProvider === "local" && settings.localModel === SENSEVOICE) {
+        prewarmSenseVoice(settings.language);
       }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;

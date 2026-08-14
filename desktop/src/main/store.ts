@@ -1,4 +1,4 @@
-import { renameSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
 import Store from "electron-store";
@@ -81,7 +81,32 @@ const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
   },
 };
 
+// clearInvalidConfig 会静默清空损坏文件：先预检 JSON，解不开就备份一份 .bad，用户数据还能找回
+function backupIfCorrupt(): boolean {
+  const file = join(app.getPath("userData"), "speaktype.json");
+  if (!existsSync(file)) return false;
+  try {
+    JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, ""));
+    return false;
+  } catch {
+    try {
+      copyFileSync(file, `${file}.bad`);
+    } catch {
+      /* 备份失败也继续：重建配置优先于保留残骸 */
+    }
+    return true;
+  }
+}
+
+let storeRecovered = false;
+
+/** 启动时配置文件损坏被重建了吗？用于首屏提示用户 .bad 备份位置 */
+export function wasStoreRecovered(): boolean {
+  return storeRecovered;
+}
+
 function createStore(): Store<Schema> {
+  storeRecovered = backupIfCorrupt();
   try {
     return new Store<Schema>(STORE_OPTIONS);
   } catch {
