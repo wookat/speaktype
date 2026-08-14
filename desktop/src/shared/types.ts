@@ -32,6 +32,8 @@ export interface Settings {
   language: string;
   /** 界面语言 */
   uiLanguage: UiLanguage;
+  /** 界面主题：跟随系统 / 浅色 / 深色 */
+  theme: "system" | "light" | "dark";
   personaId: string;
   autoPaste: boolean;
   launchAtLogin: boolean;

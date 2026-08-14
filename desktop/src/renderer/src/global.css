@@ -7,6 +7,52 @@ body,
   margin: 0;
 }
 
+/*
+ * 暗色模式：整站配色都来自 Tailwind 的 CSS 变量，这里在 .dark 作用域下整体重映射
+ * 调色板（slate 明度反转、白色变深色面板、彩色浅底变深底/深字变浅字），
+ * 各页面无需逐个加 dark: 类。
+ */
+.dark {
+  color-scheme: dark;
+  --color-white: #1c1f2a;
+  --color-slate-50: #232734;
+  --color-slate-100: #2b3040;
+  --color-slate-200: #363d4f;
+  --color-slate-300: #4a5268;
+  --color-slate-400: #7e88a0;
+  --color-slate-500: #99a3b9;
+  --color-slate-600: #b7c0d2;
+  --color-slate-700: #cfd5e3;
+  --color-slate-800: #e4e8f1;
+  --color-slate-900: #f0f3fa;
+  --color-indigo-50: #2b2e4d;
+  --color-indigo-100: #343864;
+  --color-indigo-200: #424879;
+  --color-indigo-600: oklch(71% 0.16 276.9);
+  --color-indigo-700: oklch(80% 0.11 274.7);
+  --color-emerald-50: #1c2f28;
+  --color-emerald-600: oklch(72% 0.13 163.2);
+  --color-amber-50: #332b1b;
+  --color-amber-600: oklch(76% 0.15 70);
+  --color-amber-700: oklch(80% 0.13 80);
+  --color-sky-50: #1c2a34;
+  --color-sky-600: oklch(72% 0.13 241.9);
+  --color-violet-50: #2e2742;
+  --color-violet-100: #383054;
+  --color-violet-600: oklch(72% 0.18 293);
+  --color-violet-700: oklch(79% 0.13 292.5);
+  --color-red-100: #3b2327;
+  --color-red-600: oklch(70% 0.19 22.2);
+}
+
+body {
+  background-color: #f7f7f9;
+}
+
+.dark body {
+  background-color: #14161d;
+}
+
 body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

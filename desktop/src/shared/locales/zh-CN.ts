@@ -127,6 +127,10 @@ export const zhCN = {
   "settings.muteHint": "开启后，语音输入时会静音系统音频，输入完成后自动恢复。",
   "settings.uiLanguage": "界面语言",
   "settings.uiLanguageHint": "切换后立即生效。",
+  "settings.theme": "主题",
+  "settings.themeHint": "跟随系统时随 Windows 深浅色自动切换。",
+  "settings.themeLight": "浅色",
+  "settings.themeDark": "深色",
   "settings.followSystem": "跟随系统",
 
   "settings.audio": "音频",

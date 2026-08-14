@@ -131,6 +131,10 @@ export const ja: LocaleDict = {
   "settings.muteHint": "音声入力中はシステム音声をミュートし、終了後に元に戻します。",
   "settings.uiLanguage": "表示言語",
   "settings.uiLanguageHint": "すぐに反映されます。",
+  "settings.theme": "テーマ",
+  "settings.themeHint": "システムに従う場合は Windows のライト/ダーク設定に連動します。",
+  "settings.themeLight": "ライト",
+  "settings.themeDark": "ダーク",
   "settings.followSystem": "システムに従う",
 
   "settings.audio": "オーディオ",
