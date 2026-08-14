@@ -601,8 +601,9 @@ export class Dictation {
       if (this.handsFreeSilentRounds >= HANDS_FREE_MAX_SILENT_ROUNDS) {
         this.handsFree = false;
         this.setPartial("");
+        // 返回 true 让调用方跳过 noSpeech toast，否则退出提示会被它覆盖
         this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndBody"));
-        return false;
+        return true;
       }
     } else {
       this.handsFreeSilentRounds = 0;
