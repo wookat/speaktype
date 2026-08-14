@@ -1,16 +1,32 @@
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import log from "electron-log";
 
 /**
  * 统一的按需下载：VAD 模型、本地 ASR 模型、增强标点模型共用。
- * 多源顺序回退（直连失败落镜像）、先落 .part 再改名、断点续传（Range + .part.json 元数据）、
- * sha256 完整性校验（HuggingFace LFS 的 ETag/X-Linked-ETag 即文件 sha256）。
+ * 多源顺序回退（直连失败落镜像再落 GitHub Releases 自托管）、先落 .part 再改名、
+ * 断点续传（Range + .part.json 元数据）、sha256 完整性校验（取 302 的 X-Linked-ETag）。
  */
 
-/** HuggingFace 仓内路径 → 直连 + 国内镜像两个候选 URL */
+/** 自托管镜像：models-v1 Release 里的资产名 = 仓名最后一段 + 文件路径拼平 */
+function ghAssetSource(path: string): string | null {
+  const [repo, file] = path.split("/resolve/main/");
+  if (!repo || !file) return null;
+  const asset = `${repo.split("/").pop()}-${file.replaceAll("/", "-")}`;
+  return `https://github.com/wookat/speaktype/releases/download/models-v1/${asset}`;
+}
+
+/**
+ * HuggingFace 仓内路径 → 直连 + 镜像 + GitHub Releases 自托管三个候选 URL。
+ * 注意 hf-mirror.com 对部分仓会 308 回源 huggingface.co（实测 2026-08），并非独立源，
+ * 所以附加自托管第三源兜底（不存在的资产 404 后正常报错）。
+ */
 export function hfSources(path: string): string[] {
-  return [`https://huggingface.co/${path}`, `https://hf-mirror.com/${path}`];
+  const sources = [`https://huggingface.co/${path}`, `https://hf-mirror.com/${path}`];
+  const gh = ghAssetSource(path);
+  if (gh) sources.push(gh);
+  return sources;
 }
 
 interface PartMeta {
@@ -154,6 +170,7 @@ export async function downloadFile(
       return;
     } catch (error) {
       lastError = error;
+      log.warn(`download source failed: ${url}`, error);
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
