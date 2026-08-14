@@ -9,12 +9,29 @@ import log from "electron-log";
  * 断点续传（Range + .part.json 元数据）、sha256 完整性校验（取 302 的 X-Linked-ETag）。
  */
 
+const GH_RELEASE_BASE = "https://github.com/wookat/speaktype/releases/download/models-v1/";
+
+/** models-v1 自托管资产的 sha256 清单（与上游 HF LFS oid 逐一核对）：GH 直链没有
+X-Linked-ETag，第三源恰是前两源都挂的兜底场景，更需要完整性保护 */
+const GH_ASSET_SHA256: Record<string, string> = {
+  "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17-model.int8.onnx": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51",
+  "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17-tokens.txt": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc",
+  "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8-encoder.int8.onnx": "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247",
+  "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8-decoder.int8.onnx": "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e",
+  "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8-joiner.int8.onnx": "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3",
+  "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8-tokens.txt": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d",
+};
+
+function knownSha256(url: string): string {
+  return url.startsWith(GH_RELEASE_BASE) ? GH_ASSET_SHA256[url.slice(GH_RELEASE_BASE.length)] || "" : "";
+}
+
 /** 自托管镜像：models-v1 Release 里的资产名 = 仓名最后一段 + 文件路径拼平 */
 function ghAssetSource(path: string): string | null {
   const [repo, file] = path.split("/resolve/main/");
   if (!repo || !file) return null;
   const asset = `${repo.split("/").pop()}-${file.replaceAll("/", "-")}`;
-  return `https://github.com/wookat/speaktype/releases/download/models-v1/${asset}`;
+  return `${GH_RELEASE_BASE}${asset}`;
 }
 
 /**
@@ -107,10 +124,24 @@ async function downloadFromUrl(
   const headers: Record<string, string> = {};
   if (meta && meta.url === url) {
     offset = statSync(part).size;
-    if (offset > 0) headers["range"] = `bytes=${offset}-`;
+    // 已下满但在校验/改名前被杀：直接本地收尾，不发 Range（服务端会回 416 被误判源失败）
+    if (meta.total > 0 && offset >= meta.total) {
+      const want = meta.etag || knownSha256(url);
+      if (offset === meta.total && (!want || (await hashFile(part)) === want)) {
+        rmSync(metaPath, { force: true });
+        renameSync(part, dest);
+        return;
+      }
+      rmSync(part, { force: true });
+      rmSync(metaPath, { force: true });
+      offset = 0;
+    } else if (offset > 0) {
+      headers["range"] = `bytes=${offset}-`;
+    }
   }
 
-  const { res, linkedSha256: expected } = await fetchFollow(url, headers);
+  const { res, linkedSha256 } = await fetchFollow(url, headers);
+  const expected = linkedSha256 || knownSha256(url);
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
 
   const resumed = res.status === 206 && offset > 0;

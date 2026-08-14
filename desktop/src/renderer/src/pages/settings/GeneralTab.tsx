@@ -228,7 +228,16 @@ function GeneralTab(props: {
             ))}
           </select>
         </Row>
-        <Row label={t("settings.theme")} hint={t("settings.themeHint")}>
+        <Row
+          label={t("settings.theme")}
+          hint={t(
+            s.theme === "light"
+              ? "settings.themeHintLight"
+              : s.theme === "dark"
+                ? "settings.themeHintDark"
+                : "settings.themeHintSystem",
+          )}
+        >
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.theme}

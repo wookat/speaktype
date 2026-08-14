@@ -4,6 +4,7 @@ import type { Translator } from "../i18n";
 import type { LocalModelStatus, Persona, Settings } from "../../../shared/types";
 import { PersonaIcon } from "../components/PersonaIcon";
 import { StatCard } from "../components/StatCard";
+import { humanDownloadError } from "../lib/downloadError";
 import { fmtDuration } from "../lib/format";
 
 function Home(props: {
@@ -47,7 +48,7 @@ function Home(props: {
           <div>
             <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
             <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc")}</div>
-            {local?.error && <div className="mt-1 text-sm text-red-500">{local.error}</div>}
+            {local?.error && <div className="mt-1 text-sm text-red-500">{humanDownloadError(local.error, t)}</div>}
           </div>
           <button
             className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
