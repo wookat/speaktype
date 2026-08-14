@@ -183,6 +183,9 @@ export class Dictation {
   }
 
   private setPartial(text: string): void {
+    // 全程无人声时不上屏 partial：纯静音下 ASR 偶发幻听短词（如「我。」）
+    const hadVoice = this.silero ? this.voicedMs > 0 : this.maxPeak >= VAD_SILENCE_PEAK;
+    if (text && !hadVoice) return;
     this.partial = text;
     this.deps.broadcast(this.status());
   }
