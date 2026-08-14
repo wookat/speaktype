@@ -107,6 +107,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 
 - PR #59 (Parakeet / multi-model sherpa) lesson: when verifying a new sherpa-family model, use main.log `sherpa worker started (<modelId>)` to prove which model the worker loaded (switching models must log a NEW line), and drive it with a fake-mic WAV in the model's language (English: b2.wav); transducer engines ignore the Recognition language setting, so no language-dropdown change is needed to verify.
 
+- PR #66 (site screenshots) lesson: to capture clean app screenshots for the website use CDP `Page.captureScreenshot` (script C:\Users\Administrator\tts\cdp_shot.cjs, with wincap.ps1 MoveWindow to set window size first) — this machine's screen is only 1280x720 and taskbar auto-hide doesn't work, so full-window GDI capture always includes the taskbar. Also: PowerShell variable names are case-insensitive ($h clobbers a $H parameter).
+
 - PR #64 (dark root-cause) lesson: verifying theme/palette fixes must NOT rely on screenshot impressions — dark cards can mask a still-light body background. Assert numerically with CDP `getComputedStyle(document.body).backgroundColor` (helper: C:\Users\Administrator\tts\cdp_eval.cjs against port 9222, index.html page). In dark mode also open every native select's popup: the popup is system-white and option text may inherit light theme variables → low contrast.
 
 - PR #61 (dark mode) lesson: to test "follow system" theme sync, flip the registry directly — `HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` values AppsUseLightTheme/SystemUsesLightTheme (0=dark/1=light); Electron matchMedia reacts live, no restart or Windows Settings UI needed. Restore both to 1 afterwards.
