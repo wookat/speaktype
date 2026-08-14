@@ -113,6 +113,8 @@ export const en: LocaleDict = {
   "settings.holdDelayHint": "Presses shorter than this are ignored as accidental.",
   "settings.personaHotkeys": "Persona hotkeys",
   "settings.personaHotkeysHint": "Switch personas quickly with Alt + digit.",
+  "settings.doubleTapHandsFree": "Double-tap for hands-free",
+  "settings.doubleTapHandsFreeHint": "Tap {{key}} twice quickly to enter continuous dictation; double-tap again to exit.",
   "settings.vadAutoStop": "Auto-stop on silence (hands-free)",
   "settings.vadAutoStopHint": "In toggle mode, recording ends automatically after you stop talking; push-to-talk is unaffected.",
   "settings.vadSilence": "Silence duration",
@@ -206,6 +208,8 @@ export const en: LocaleDict = {
   "settings.enhancedPunctDownloading": "Downloading {{progress}}%",
   "settings.enhancedPunctReady": "Add-on ready — punctuation upgraded",
   "settings.enhancedPunctFallback": "Rule-based punctuation is used until the download finishes",
+  "settings.itn": "Format spoken numbers (Chinese)",
+  "settings.itnHint": "Converts spoken Chinese numbers and times to digits: \u4e09\u70b9\u534a \u2192 3:30, \u4e24\u5343\u4e94 \u2192 2500, \u767e\u5206\u4e4b\u4e94 \u2192 5%.",
   "settings.localSimplified": "Force Simplified Chinese",
   "settings.localSimplifiedHint": "Whisper often outputs Traditional Chinese; converts to Simplified before typing (offline channel only).",
   "settings.asrOpenaiHint":

@@ -129,6 +129,12 @@ function GeneralTab(props: {
           </select>
         </Row>
         <Toggle
+          label={t("settings.doubleTapHandsFree")}
+          hint={t("settings.doubleTapHandsFreeHint", { key: s.hotkeyHold })}
+          value={s.doubleTapHandsFree}
+          onChange={(v) => update({ doubleTapHandsFree: v })}
+        />
+        <Toggle
           label={t("settings.personaHotkeys")}
           hint={t("settings.personaHotkeysHint")}
           value={s.personaHotkeysEnabled}

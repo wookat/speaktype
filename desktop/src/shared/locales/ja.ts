@@ -113,6 +113,8 @@ export const ja: LocaleDict = {
   "settings.holdDelayHint": "これより短い押下は誤操作として無視されます。",
   "settings.personaHotkeys": "ペルソナのショートカット",
   "settings.personaHotkeysHint": "Alt + 数字でペルソナを素早く切り替え。",
+  "settings.doubleTapHandsFree": "ダブルタップでハンズフリー",
+  "settings.doubleTapHandsFreeHint": "{{key}} を素早く 2 回押すと連続ディクテーションに入ります。もう一度ダブルタップで終了。",
   "settings.vadAutoStop": "無音で自動終了（ハンズフリー）",
   "settings.vadAutoStopHint": "ハンズフリーモードでは話し終わると自動的に録音を終了します。押しながら話すモードには影響しません。",
   "settings.vadSilence": "無音時間",
@@ -206,6 +208,8 @@ export const ja: LocaleDict = {
   "settings.enhancedPunctDownloading": "ダウンロード中 {{progress}}%",
   "settings.enhancedPunctReady": "アドオン準備完了 — 句読点がアップグレードされました",
   "settings.enhancedPunctFallback": "ダウンロード完了までは内蔵ルールで句読点を補います",
+  "settings.itn": "数字の正規化（中国語）",
+  "settings.itnHint": "中国語の話し言葉の数字と時刻を数字表記に変換：三点半 → 3:30、两千五 → 2500、百分之五 → 5%。",
   "settings.localSimplified": "簡体字に強制変換",
   "settings.localSimplifiedHint": "Whisper は繁体字を出力することが多いため、入力前に簡体字へ変換します（オフラインチャネルのみ）。",
   "settings.asrOpenaiHint":

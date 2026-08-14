@@ -38,6 +38,8 @@ export const DEFAULT_SETTINGS: Settings = {
   localSimplified: true,
   enhancedVad: false,
   enhancedPunct: false,
+  itn: true,
+  doubleTapHandsFree: true,
   keepFailedAudio: true,
   captionLines: 3,
   remoteMicEnabled: false,

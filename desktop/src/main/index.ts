@@ -162,6 +162,7 @@ const hotkeys = new HotkeyManager({
   onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => dictation.toggleHandsFree(),
+  onDoubleTap: () => dictation.toggleHandsFree(),
   onPersona: (index) => {
     const personas = getPersonas();
     const persona = personas[index];
@@ -180,6 +181,7 @@ function applyHotkeys(settings: Settings): void {
     settings.holdDelayMs,
     settings.personaHotkeysEnabled,
     settings.hotkeyRewrite,
+    settings.doubleTapHandsFree,
   );
 }
 
