@@ -195,6 +195,7 @@ export const en: LocaleDict = {
   "settings.localModelHint": "sensevoice-small is the pick for Chinese: more accurate and faster than a same-sized whisper model, with punctuation built in. For English and European languages, parakeet-tdt-0.6b-v3 is the most accurate (no Chinese support). The whisper models cover more languages: tiny is fastest but error-prone, base is balanced, small is slower and more accurate.",
   "settings.localModelDownload": "Download model",
   "settings.localModelDownloading": "Downloading {{progress}}%",
+  "settings.localModelResume": "Resume download ({{progress}}% done)",
   "settings.localModelReady": "Model ready",
   "settings.captionLines": "Caption height",
   "settings.captionLinesHint": "Max lines of live captions on the floating bar; scrolls to the latest text.",

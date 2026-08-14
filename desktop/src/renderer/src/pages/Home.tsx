@@ -57,7 +57,9 @@ function Home(props: {
           >
             {local?.downloading
               ? `${Math.round(local.progress)}%`
-              : t("home.model.button")}
+              : local?.partial != null
+                ? t("settings.localModelResume", { progress: String(local.partial) })
+                : t("home.model.button")}
           </button>
         </div>
       )}

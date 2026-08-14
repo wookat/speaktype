@@ -123,7 +123,9 @@ function VoiceTab(props: {
                 ? t("settings.localModelReady")
                 : local?.downloading
                   ? t("settings.localModelDownloading", { progress: String(local.progress) })
-                  : t("settings.localModelDownload")}
+                  : local?.partial != null
+                    ? t("settings.localModelResume", { progress: String(local.partial) })
+                    : t("settings.localModelDownload")}
             </button>
             {local?.downloading && (
               <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">

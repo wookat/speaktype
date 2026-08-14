@@ -123,6 +123,8 @@ export interface LocalModelStatus {
   downloading: boolean;
   /** 0-100 */
   progress: number;
+  /** 磁盘上已有可续传的半途数据时的完成百分比（0-99），无残片时不设 */
+  partial?: number;
   error?: string;
 }
 

@@ -1,13 +1,13 @@
 import { app } from "electron";
 import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import type { LocalModelStatus } from "../shared/types";
-import { downloadFiles, hfSources } from "./download";
+import { downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
 
 /**
@@ -98,7 +98,39 @@ export function onLocalModelStatus(cb: (s: LocalModelStatus) => void): void {
 
 export function localModelStatus(model: string): LocalModelStatus {
   if (status.downloading && status.model === model) return { ...status };
-  return { model, downloaded: modelReady(model), downloading: false, progress: 0 };
+  const downloaded = modelReady(model);
+  const s: LocalModelStatus = { model, downloaded, downloading: false, progress: 0 };
+  if (!downloaded) {
+    const partial = modelPartialPercent(model);
+    if (partial !== null) s.partial = partial;
+  }
+  return s;
+}
+
+/**
+ * 磁盘上已有可续传残片时的模型整体完成百分比；没有残片返回 null。
+ * 还没开始下的文件大小未知，按已知部分（已完成文件 + 残片元数据）估算，上限 99。
+ */
+function modelPartialPercent(model: string): number | null {
+  let got = 0;
+  let total = 0;
+  let hasPart = false;
+  for (const [, dest] of modelFiles(model)) {
+    if (existsSync(dest)) {
+      const size = statSync(dest).size;
+      got += size;
+      total += size;
+      continue;
+    }
+    const p = partialProgress(dest);
+    if (p) {
+      got += p.got;
+      total += p.total;
+      hasPart = true;
+    }
+  }
+  if (!hasPart || total <= 0) return null;
+  return Math.min(99, Math.floor((got / total) * 100));
 }
 
 function push(patch: Partial<LocalModelStatus>): void {
@@ -111,18 +143,24 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   if (status.downloading) return { ...status };
   if (modelReady(model)) return localModelStatus(model);
 
-  push({ model, downloading: true, downloaded: false, progress: 0, error: undefined });
+  push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, error: undefined });
   const files = modelFiles(model);
   try {
     await downloadFiles(
       files.map(([remote, dest]) => ({ sources: hfSources(remote), dest })),
       (percent) => push({ progress: percent }),
     );
-    push({ downloading: false, downloaded: true, progress: 100 });
+    push({ downloading: false, downloaded: true, progress: 100, partial: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    push({ downloading: false, downloaded: false, progress: 0, error: message });
+    push({
+      downloading: false,
+      downloaded: false,
+      progress: 0,
+      partial: modelPartialPercent(model) ?? undefined,
+      error: message,
+    });
     log.warn(`local model ${model} download failed`, error);
   }
   return { ...status };

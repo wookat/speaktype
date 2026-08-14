@@ -195,6 +195,7 @@ export const ko: LocaleDict = {
   "settings.localModelHint": "중국어에는 sensevoice-small을 권장합니다. 같은 크기의 whisper보다 정확하고 빠르며 문장 부호도 자동으로 붙습니다. 영어와 유럽 언어에는 parakeet-tdt-0.6b-v3가 가장 정확합니다(중국어 미지원). whisper 계열은 지원 언어가 더 많습니다: tiny는 가장 빠르지만 오류가 많고, base는 균형형, small은 느리지만 정확합니다.",
   "settings.localModelDownload": "모델 다운로드",
   "settings.localModelDownloading": "다운로드 중 {{progress}}%",
+  "settings.localModelResume": "다운로드 이어받기 ({{progress}}% 완료)",
   "settings.localModelReady": "모델 준비 완료",
   "settings.captionLines": "자막 높이",
   "settings.captionLinesHint": "플로팅 바 실시간 자막의 최대 줄 수. 초과 시 최신 내용으로 스크롤됩니다.",

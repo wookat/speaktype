@@ -188,6 +188,15 @@ async function downloadFromUrl(
   renameSync(part, dest);
 }
 
+/** dest 对应的可续传残片进度（字节）；没有残片或元数据不可信时返回 null */
+export function partialProgress(dest: string): { got: number; total: number } | null {
+  const part = `${dest}.part`;
+  if (!existsSync(part)) return null;
+  const meta = readMeta(`${part}.json`);
+  if (!meta || meta.total <= 0) return null;
+  return { got: Math.min(statSync(part).size, meta.total), total: meta.total };
+}
+
 /** 下载单个文件到 dest：依次尝试 sources 里的完整 URL，全部失败抛最后一个错误 */
 export async function downloadFile(
   sources: string[],
