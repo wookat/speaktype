@@ -19,7 +19,7 @@ import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, SENSEVOICE, downloadLocalModel, localModelStatus, onLocalModelStatus, prewarmSenseVoice, stopLocalServer } from "./localasr";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
-import { downloadVad, onVadStatus, vadStatus } from "./vad";
+import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
   broadcastToPhones,
@@ -388,6 +388,7 @@ void app.whenReady().then(() => {
   onVadStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
   });
+  cleanupLegacyVad();
   onPunctStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("punct:status", s);
   });

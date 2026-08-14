@@ -87,8 +87,10 @@ const NOT_AFTER_NUM = "(?<![\u96f6\u3007\u4e00\u5e7a\u4e24\u4e8c\u4e09\u56db\u4e
 export function applyItn(text: string): string {
   let out = text;
 
-  // 百分之三点五 → 3.5%
-  out = out.replace(/百分之([零一两二三四五六七八九十百]+)(?:点([零一二三四五六七八九]+))?/g, (m, int: string, frac?: string) => {
+  // 百分之三点五 → 3.5%；前面紧跟数字（两千五百分之五十）属歧义句，整体保留
+  out = out.replace(
+    new RegExp(`${NOT_AFTER_NUM}(?<!\\d)百分之([零一两二三四五六七八九十百]+)(?:点([零一二三四五六七八九]+))?`, "g"),
+    (m, int: string, frac?: string) => {
     const n = parseCnInt(int);
     if (n === null) return m;
     return frac ? `${n}.${cnToDigits(frac)}%` : `${n}%`;
@@ -126,7 +128,7 @@ export function applyItn(text: string): string {
   // 含千/万/亿的大数（可带口语尾数）：花了两千五 → 花了2500、三万八 → 38000
   out = out.replace(
     new RegExp(
-      `${NOT_AFTER_NUM}[\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+[\u5343\u4e07\u4ebf][\u96f6\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5343\u767e\u5341\u4e07]*(?![\u96f6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4ebf])`,
+      `${NOT_AFTER_NUM}[\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+[\u5343\u4e07\u4ebf][\u96f6\u4e00\u4e24\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5343\u767e\u5341\u4e07]*(?![\u96f6\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4ebf\u5206])`,
       "g",
     ),
     (m) => {
