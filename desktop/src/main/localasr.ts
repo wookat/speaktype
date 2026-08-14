@@ -1,12 +1,13 @@
 import { app } from "electron";
 import { type ChildProcess, spawn } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import type { LocalModelStatus } from "../shared/types";
+import { downloadFiles, hfSources } from "./download";
 import { t } from "./i18n";
 
 /**
@@ -84,42 +85,6 @@ function push(patch: Partial<LocalModelStatus>): void {
   notify?.({ ...status });
 }
 
-/** 下载单个文件（先落 .part 再改名），直连 HuggingFace 失败时落到镜像源 */
-export async function fetchFile(path: string, dest: string, onProgress: (bytes: number, total: number) => void): Promise<void> {
-  const hosts = ["https://huggingface.co", "https://hf-mirror.com"];
-  let res: Response | null = null;
-  let lastError: unknown = null;
-  for (const host of hosts) {
-    try {
-      const r = await fetch(`${host}/${path}`);
-      if (r.ok && r.body) {
-        res = r;
-        break;
-      }
-      lastError = new Error(`HTTP ${r.status} (${host})`);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  if (!res || !res.body) throw lastError instanceof Error ? lastError : new Error(String(lastError));
-
-  const part = `${dest}.part`;
-  const total = Number(res.headers.get("content-length")) || 0;
-  let got = 0;
-  const out = createWriteStream(part);
-  const reader = res.body.getReader();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const buf = Buffer.from(value);
-    got += buf.length;
-    if (!out.write(buf)) await new Promise<void>((r) => out.once("drain", () => r()));
-    onProgress(got, total);
-  }
-  await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
-  renameSync(part, dest);
-}
-
 /** 下载模型所需的全部文件到 userData\models，进度按文件个数均分 */
 export async function downloadLocalModel(model: string): Promise<LocalModelStatus> {
   if (status.downloading) return { ...status };
@@ -128,18 +93,13 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   push({ model, downloading: true, downloaded: false, progress: 0, error: undefined });
   const files = modelFiles(model);
   try {
-    for (const [index, [remote, dest]] of files.entries()) {
-      mkdirSync(join(dest, ".."), { recursive: true });
-      if (existsSync(dest)) continue;
-      await fetchFile(remote, dest, (got, total) => {
-        if (!total) return;
-        push({ progress: Math.floor(((index + got / total) / files.length) * 100) });
-      });
-    }
+    await downloadFiles(
+      files.map(([remote, dest]) => ({ sources: hfSources(remote), dest })),
+      (percent) => push({ progress: percent }),
+    );
     push({ downloading: false, downloaded: true, progress: 100 });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
-    for (const [, dest] of files) rmSync(`${dest}.part`, { force: true });
     const message = error instanceof Error ? error.message : String(error);
     push({ downloading: false, downloaded: false, progress: 0, error: message });
     log.warn(`local model ${model} download failed`, error);

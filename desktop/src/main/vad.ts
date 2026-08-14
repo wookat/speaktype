@@ -1,9 +1,10 @@
 import { app } from "electron";
-import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import log from "electron-log/main.js";
 import type { VadStatus } from "../shared/types";
+import { downloadFiles } from "./download";
 
 /**
  * 增强人声检测（Silero VAD v5，走 sherpa-onnx 内建 VAD）。
@@ -68,20 +69,6 @@ function push(patch: Partial<VadStatus>): void {
   notify?.({ ...status });
 }
 
-async function fetchFirst(file: string): Promise<Response> {
-  let lastError: unknown = null;
-  for (const src of SOURCES) {
-    try {
-      const r = await fetch(`${src}/${file}`);
-      if (r.ok && r.body) return r;
-      lastError = new Error(`HTTP ${r.status} (${src})`);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
-
 /** 按需下载 VAD 模型（约 2.3MB） */
 export async function downloadVad(): Promise<VadStatus> {
   if (!SUPPORTED || status.downloading) return { ...status };
@@ -89,37 +76,10 @@ export async function downloadVad(): Promise<VadStatus> {
 
   push({ downloading: true, downloaded: false, progress: 0, error: undefined });
   try {
-    mkdirSync(vadDir(), { recursive: true });
-    const totals: number[] = [];
-    const gots: number[] = [];
-    for (let i = 0; i < FILES.length; i++) {
-      const file = FILES[i]!;
-      const dest = join(vadDir(), file);
-      if (existsSync(dest)) continue;
-      const part = `${dest}.part`;
-      const res = await fetchFirst(file);
-      totals[i] = Number(res.headers.get("content-length")) || 0;
-      gots[i] = 0;
-      const out = createWriteStream(part);
-      const reader = res.body!.getReader();
-      try {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const buf = Buffer.from(value);
-          gots[i]! += buf.length;
-          if (!out.write(buf)) await new Promise<void>((r) => out.once("drain", () => r()));
-          const total = totals.reduce((a, b) => a + (b || 0), 0);
-          const got = gots.reduce((a, b) => a + (b || 0), 0);
-          if (total) push({ progress: Math.floor((got / total) * 100) });
-        }
-        await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
-        renameSync(part, dest);
-      } catch (error) {
-        rmSync(part, { force: true });
-        throw error;
-      }
-    }
+    await downloadFiles(
+      FILES.map((file) => ({ sources: SOURCES.map((src) => `${src}/${file}`), dest: join(vadDir(), file) })),
+      (percent) => push({ progress: percent }),
+    );
     sessionFailed = false;
     push({ downloading: false, downloaded: true, progress: 100 });
     log.info("vad pack downloaded");

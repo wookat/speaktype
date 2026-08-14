@@ -1,11 +1,11 @@
 import { app } from "electron";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import type { VadStatus } from "../shared/types";
-import { fetchFile } from "./localasr";
+import { downloadFile, hfSources } from "./download";
 
 /**
  * 增强标点（ct-transformer 中英标点模型，sherpa-onnx OfflinePunctuation）。
@@ -52,15 +52,13 @@ export async function downloadPunct(): Promise<VadStatus> {
 
   push({ downloading: true, downloaded: false, progress: 0, error: undefined });
   try {
-    mkdirSync(punctDir(), { recursive: true });
-    await fetchFile(MODEL_REMOTE, modelPath(), (got, total) => {
+    await downloadFile(hfSources(MODEL_REMOTE), modelPath(), (got, total) => {
       if (total) push({ progress: Math.floor((got / total) * 100) });
     });
     workerFailed = false;
     push({ downloading: false, downloaded: true, progress: 100 });
     log.info("punct model downloaded");
   } catch (error) {
-    rmSync(`${modelPath()}.part`, { force: true });
     const message = error instanceof Error ? error.message : String(error);
     push({ downloading: false, downloaded: false, progress: 0, error: message });
     log.warn("punct model download failed", error);
