@@ -50,6 +50,12 @@
 - [ ] F8 录音期间悬浮条**不显示**按应用命中的人设徽标（改写不走人设，显示会误导）（第 26 轮）
 - [ ] 未配润色模型时按 F8 → toast + 直达设置→模型 tab（同免按节最后一条）
 
+## 窄窗口基线（第 27 轮固化）
+主窗口缩到 700×560 逐页走查：
+- [ ] 历史卡片头部 Copy/Correct/Delete 保持单行（长人设名被截断而非按钮换行）
+- [ ] 人设卡片右侧操作按钮保持单行
+- [ ] 侧栏/设置项自适应，无横向滚动条、无控件重叠
+
 ## 增强标点英文边界句基线（第 16 轮固化，ct-transformer 模型级限制，不投工程修）
 以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
 - [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号

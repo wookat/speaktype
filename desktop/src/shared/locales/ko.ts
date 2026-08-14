@@ -140,6 +140,7 @@ export const ko: LocaleDict = {
   "settings.themeHintLight": "Windows 설정과 관계없이 항상 라이트 테마를 사용합니다.",
   "settings.themeHintDark": "Windows 설정과 관계없이 항상 다크 테마를 사용합니다.",
   "download.errNetwork": "다운로드 실패: 네트워크에 연결할 수 없습니다. 연결을 확인한 후 다시 시도하세요.",
+  "download.errStorage": "다운로드 실패: 모델 폴더에 쓸 수 없습니다. 디스크 공간과 폴더 권한을 확인하세요.",
   "download.errChecksum": "다운로드 실패: 파일 무결성 검사를 통과하지 못했습니다. 다시 시도하세요.",
   "settings.themeLight": "라이트",
   "settings.themeDark": "다크",

@@ -137,13 +137,13 @@ function History(props: {
             <ul className="mt-2 space-y-3">
               {group.items.map((item) => (
                 <li key={item.id} className="group rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>
+                  <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+                    <span className="min-w-0 truncate">
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
                       {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
                     {/* 不用 hover 门控：远程桌面/触屏 (hover:none) 下 group-hover 永不触发 */}
-                    <span className="flex gap-3">
+                    <span className="flex shrink-0 gap-3 whitespace-nowrap">
                       <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
                         {t("history.copy")}
                       </button>

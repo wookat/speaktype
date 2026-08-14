@@ -156,12 +156,12 @@ function Personas(props: {
         {props.localized.map((persona, index) => (
           <li
             key={persona.id}
-            className={`flex cursor-pointer items-center justify-between rounded-2xl border bg-white p-4 ${
+            className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border bg-white p-4 ${
               current === persona.id ? "border-indigo-400 ring-1 ring-indigo-200" : "border-slate-200"
             }`}
             onClick={() => props.update({ personaId: persona.id })}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50/60">
                 <PersonaIcon name={persona.icon} className="h-4.5 w-4.5 text-indigo-500" />
               </div>
@@ -178,7 +178,7 @@ function Personas(props: {
                 <div className="mt-1 max-w-lg text-xs text-slate-500">{persona.prompt}</div>
               </div>
             </div>
-            <div className="flex gap-2 text-xs text-slate-400">
+            <div className="flex shrink-0 gap-2 whitespace-nowrap text-xs text-slate-400">
               {persona.builtin ? (
                 <button
                   className="hover:text-indigo-500"
