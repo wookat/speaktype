@@ -15,6 +15,7 @@
 - [ ] `today is a beautiful day and I am testing speech recognition` → 整句不拆，不得出现 "and. I am"（第 4 轮）
 - [ ] `Please send the invite to Alice` → 整句不拆，不得出现 "to. Alice"（第 4 轮）
 - [ ] `we should invite Peter Johnson to the meeting tomorrow` → 整句不拆，不得出现 "invite. Peter"（第 5 轮）
+- 已知限制（第 6 轮记录）：起句词白名单化后，句首为人名/开放词的真句界不再拆（如 "…the budget John said it looks fine" 保持整句）。少拆比误拆伤害小，属有意折衷；根治依赖 ct-transformer 标点模型（见 docs/reviews/round6.md 专项 a），不再继续扩词表。
 
 ## 配置自愈（store.ts backupIfCorrupt）
 - [ ] speaktype.json 截断损坏 → 启动生成 .bad 备份 + "配置已重建" toast（第 2 轮）
@@ -38,5 +39,6 @@
 - [ ] 再按一次 Alt+Q → 立即退出连续听写
 - [ ] 连续听写英文多句 → 句与句之间有空格分隔，不得出现 "test.And here" 顶格拼接；中文句间不插英文空格（第 5 轮）
 - [ ] 连续听写进行中按长按键/F8 → 退出免按并显示“免按模式已退出（其他热键）” toast，不得静默退出（第 5 轮）
+- [ ] 免按聆听中**未说话**时按长按键/F8 退出 → 只显示退出 toast，不得被“没听清”toast 覆盖（第 6 轮）
 - [ ] 全程不说话 → 约 1 分钟后自动退出 + “免按模式已退出” toast
 - [ ] 未配润色模型时按 F8 → toast + 主窗口自动打开并直达 设置→模型 tab
