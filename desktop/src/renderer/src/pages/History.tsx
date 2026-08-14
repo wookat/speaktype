@@ -48,8 +48,9 @@ function History(props: {
       props.setHistory(await api.history());
     });
   };
-  const filtered = query
-    ? props.history.filter((h) => h.text.includes(query) || h.raw.includes(query))
+  const q = query.toLowerCase();
+  const filtered = q
+    ? props.history.filter((h) => h.text.toLowerCase().includes(q) || h.raw.toLowerCase().includes(q))
     : props.history;
 
   const groups: Array<{ label: string; items: HistoryItem[] }> = [];
@@ -102,8 +103,8 @@ function History(props: {
       </div>
       {filtered.length === 0 ? (
         <div className="mt-16 text-center text-sm text-slate-400">
-          {t("history.empty")}
-          <div className="mt-1 text-xs">{t("history.emptyHint")}</div>
+          {q ? t("history.noResults") : t("history.empty")}
+          {!q && <div className="mt-1 text-xs">{t("history.emptyHint")}</div>}
         </div>
       ) : (
         <>

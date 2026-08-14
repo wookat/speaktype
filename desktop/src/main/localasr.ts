@@ -90,6 +90,8 @@ let procModel = "";
 let ready: Promise<void> | null = null;
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
+// 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
+const lastError = new Map<string, string>();
 let notify: ((s: LocalModelStatus) => void) | null = null;
 
 export function onLocalModelStatus(cb: (s: LocalModelStatus) => void): void {
@@ -103,6 +105,8 @@ export function localModelStatus(model: string): LocalModelStatus {
   if (!downloaded) {
     const partial = modelPartialPercent(model);
     if (partial !== null) s.partial = partial;
+    const err = lastError.get(model);
+    if (err) s.error = err;
   }
   return s;
 }
@@ -143,6 +147,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   if (status.downloading) return { ...status };
   if (modelReady(model)) return localModelStatus(model);
 
+  lastError.delete(model);
   push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, error: undefined });
   const files = modelFiles(model);
   try {
@@ -154,6 +159,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
     log.info(`local model ${model} downloaded`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    lastError.set(model, message);
     push({
       downloading: false,
       downloaded: false,

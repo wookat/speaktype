@@ -38,6 +38,7 @@ export const en: LocaleDict = {
   "history.clearConfirm": "Clear all history?",
   "history.clearYes": "Clear",
   "history.empty": "No history yet",
+  "history.noResults": "No matches for this search.",
   "history.showRaw": "Show raw transcript",
   "history.hideRaw": "Hide raw transcript",
   "history.showMore": "Show more ({{count}} remaining)",
@@ -70,6 +71,8 @@ export const en: LocaleDict = {
   "personas.appRulesHint": "When you start speaking, SpeakType checks the foreground window and uses the matching persona (e.g. concise in VS Code, casual in chat apps). Only the process name and window title are read — never window contents, and never leaves your machine.",
   "personas.appRuleAdd": "Add rule",
   "personas.appRulePlaceholder": "Contains, e.g. code.exe / slack / gmail",
+  "personas.appRulesNoPolish": "Rules only take effect with an AI polish model configured — set one up first.",
+  "personas.appRulesNoPolishAction": "Set up AI polish",
   "personas.inUse": "In use",
   "personas.use": "Use",
 
