@@ -19,6 +19,7 @@ function VoiceTab(props: {
   const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
   const localModel = s.localModel || "base-q5_1";
+  const parakeetActive = s.asrProvider === "local" && localModel === "parakeet-tdt-0.6b-v3";
 
   useEffect(() => {
     void api.localModels().then(setLocalModels);
@@ -237,10 +238,14 @@ function VoiceTab(props: {
           </div>
         </div>
       )}
-      <Row label={t("settings.asrLanguage")}>
+      <Row
+        label={t("settings.asrLanguage")}
+        hint={parakeetActive ? t("settings.asrLanguageParakeetHint") : undefined}
+      >
         <select
-          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm disabled:opacity-40"
           value={s.language}
+          disabled={parakeetActive}
           onChange={(e) => update({ language: e.target.value })}
         >
           <option value="zh">中文 Chinese</option>
