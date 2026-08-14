@@ -12,10 +12,13 @@
 - [ ] `I booked the room for Friday afternoon, I will prepare the slides tonight` → ", I will" 处分句；"Friday" 不误断（第 3 轮）
 - [ ] `can you check the numbers before the meeting` → 句尾 "?"（第 3 轮）
 - [ ] `hello world` → 不动；已有标点文本 → 不动；中文 → 保留原有中文标点策略
+- [ ] `today is a beautiful day and I am testing speech recognition` → 整句不拆，不得出现 "and. I am"（第 4 轮）
+- [ ] `Please send the invite to Alice` → 整句不拆，不得出现 "to. Alice"（第 4 轮）
 
 ## 配置自愈（store.ts backupIfCorrupt）
 - [ ] speaktype.json 截断损坏 → 启动生成 .bad 备份 + "配置已重建" toast（第 2 轮）
 - [ ] speaktype.json 加 UTF-8 BOM → 启动后**数据完好**（剥 BOM 写回修复，不重建不清空）（第 3 轮）
+- [ ] 历史/统计已拆到独立 history.json：旧版 speaktype.json 里的历史启动后自动迁入 history.json 且主配置里清空；历史/统计不丢（第 4 轮）
 
 ## SenseVoice worker（localasr.ts）
 - [ ] 启动 ~3s 预热 log；空闲 10min → "worker stopped (idle)" + 内存回落数百 MB；再次录音瞬时重建、首句无额外等待（第 2/3 轮）
@@ -26,3 +29,10 @@
 - [ ] 识别语言下拉恰好 5 项（中/英/日/韩/粤）（第 2 轮）
 - [ ] 历史 >50 条 → 分页显示"显示更多"；搜索正常（第 3 轮）
 - [ ] 历史卡片操作按钮在 hover:none（远程桌面/触屏）环境可见（第 1 轮）
+- [ ] 历史卡片 raw≠text 时默认收起 diff，点“查看识别原文”才展开（第 4 轮）
+
+## 免按模式（第 4 轮）
+- [ ] Alt+Q → 说一句 → 停顿 → 自动落字后**继续聆听**，可连续口述多句
+- [ ] 再按一次 Alt+Q → 立即退出连续听写
+- [ ] 全程不说话 → 约 1 分钟后自动退出 + “免按模式已退出” toast
+- [ ] 未配润色模型时按 F8 → toast + 主窗口自动打开并直达 设置→模型 tab

@@ -116,6 +116,10 @@ const dictation = new Dictation({
   broadcast,
   pushSettings: () => pushSettings(),
   showToast,
+  openModelSettings: () => {
+    showMain();
+    mainWin?.webContents.send("goto", { page: "settings", tab: "model" });
+  },
 });
 
 configureRemoteMic({
@@ -155,10 +159,7 @@ const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
   onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
   onHoldEnd: () => void dictation.stop(),
-  onToggle: () => {
-    if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start("toggle");
-  },
+  onToggle: () => dictation.toggleHandsFree(),
   onPersona: (index) => {
     const personas = getPersonas();
     const persona = personas[index];
@@ -298,10 +299,7 @@ function registerIpc(): void {
   ipcMain.handle("chatgpt:login", () => showChatgptLogin());
   ipcMain.handle("chatgpt:test", () => testChatgpt());
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
-  ipcMain.handle("record:toggle", () => {
-    if (dictation.isRecording()) void dictation.stop();
-    else void dictation.start("toggle");
-  });
+  ipcMain.handle("record:toggle", () => dictation.toggleHandsFree());
   ipcMain.handle("record:cancel", () => dictation.cancel());
   ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
   ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));

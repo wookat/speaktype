@@ -104,6 +104,11 @@ const api = {
     ipcRenderer.on("level", listener);
     return () => ipcRenderer.removeListener("level", listener);
   },
+  onGoto: (fn: (payload: { page: string; tab?: string }) => void) => {
+    const listener = (_e: unknown, payload: { page: string; tab?: string }) => fn(payload);
+    ipcRenderer.on("goto", listener);
+    return () => ipcRenderer.removeListener("goto", listener);
+  },
   onToast: (fn: (payload: { title: string; body: string }) => void) => {
     const listener = (_e: unknown, payload: { title: string; body: string }) => fn(payload);
     ipcRenderer.on("toast", listener);
