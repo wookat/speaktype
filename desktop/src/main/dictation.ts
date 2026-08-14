@@ -268,7 +268,8 @@ export class Dictation {
     this.allFrames = [];
     this.startedAt = Date.now();
     this.lastVoiceAt = Date.now();
-    this.appPersonaId = personaForActiveApp(getSettings().appPersonas);
+    // 改写模式不走人设润色，命中的人设徽标只会误导用户
+    this.appPersonaId = this.rewriteTarget ? null : personaForActiveApp(getSettings().appPersonas);
     this.maxPeak = 0;
     this.voicedMs = 0;
     const settings = getSettings();

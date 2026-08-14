@@ -43,6 +43,13 @@
 - [ ] 全程不说话 → 约 1 分钟后自动退出 + “免按模式已退出” toast
 - [ ] 未配润色模型时按 F8 → toast + 主窗口自动打开并直达 设置→模型 tab
 
+## F8 改写全链路（第 26 轮固化，mock 端点免真实 key）
+1. `node desktop/scripts/mock-rewrite-server.mjs`（127.0.0.1:18099）
+2. 设置→模型：Base URL=`http://127.0.0.1:18099/v1`，API Key=`mock`，Model=`mock`
+- [ ] 记事本选中一整行 → 按住 F8 口述指令 → 松键 → 选区被替换为 `MOCK-REWRITE: ...`（含指令与原文大写内容）
+- [ ] F8 录音期间悬浮条**不显示**按应用命中的人设徽标（改写不走人设，显示会误导）（第 26 轮）
+- [ ] 未配润色模型时按 F8 → toast + 直达设置→模型 tab（同免按节最后一条）
+
 ## 增强标点英文边界句基线（第 16 轮固化，ct-transformer 模型级限制，不投工程修）
 以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
 - [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号
