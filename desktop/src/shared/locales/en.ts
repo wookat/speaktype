@@ -17,7 +17,7 @@ export const en: LocaleDict = {
     "Sign in to Doubao and use its built-in voice input once — SpeakType will capture the app key automatically. You can also enter it manually in Settings.",
   "home.activate.button": "Set up",
   "home.model.title": "Download the offline speech model",
-  "home.model.desc": "One-time download (~234MB). After that everything runs on your machine — no network, no API key.",
+  "home.model.desc": "One-time download (~{{size}}). After that everything runs on your machine — no network, no API key.",
   "home.model.button": "Download",
   "home.ready": "Speech recognition is ready",
   "home.stat.sessions": "Sessions",

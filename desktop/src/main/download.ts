@@ -216,15 +216,27 @@ export async function downloadFile(
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-/** 下载一组文件（已存在的跳过），总进度按文件个数均分 */
+/** 下载一组文件（已存在的跳过）；全部文件带 size 时总进度按字节加权，否则按文件个数均分 */
 export async function downloadFiles(
-  files: Array<{ sources: string[]; dest: string }>,
+  files: Array<{ sources: string[]; dest: string; size?: number }>,
   onProgress: (percent: number) => void,
 ): Promise<void> {
+  const weighted = files.every((f) => f.size && f.size > 0);
+  const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+  let doneBytes = 0;
   for (const [index, file] of files.entries()) {
-    if (existsSync(file.dest)) continue;
+    if (existsSync(file.dest)) {
+      doneBytes += file.size || 0;
+      continue;
+    }
     await downloadFile(file.sources, file.dest, (got, total) => {
-      if (total) onProgress(Math.floor(((index + got / total) / files.length) * 100));
+      if (!total) return;
+      const percent =
+        weighted && totalBytes > 0
+          ? ((doneBytes + (got / total) * (file.size || 0)) / totalBytes) * 100
+          : ((index + got / total) / files.length) * 100;
+      onProgress(Math.floor(percent));
     });
+    doneBytes += file.size || 0;
   }
 }
