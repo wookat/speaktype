@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { humanDownloadError } from "../../lib/downloadError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { LocalModelStatus, Settings } from "../../../../shared/types";
@@ -129,14 +130,16 @@ function VoiceTab(props: {
                 <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
               </div>
             )}
-            {local?.error && <span className="text-sm text-red-500">{local.error}</span>}
+            {local?.error && <span className="text-sm text-red-500">{humanDownloadError(local.error, t)}</span>}
           </div>
-          <Toggle
-            label={t("settings.localSimplified")}
-            hint={t("settings.localSimplifiedHint")}
-            value={s.localSimplified !== false}
-            onChange={(v) => update({ localSimplified: v })}
-          />
+          {!parakeetActive && (
+            <Toggle
+              label={t("settings.localSimplified")}
+              hint={t("settings.localSimplifiedHint")}
+              value={s.localSimplified !== false}
+              onChange={(v) => update({ localSimplified: v })}
+            />
+          )}
         </div>
       ) : s.asrProvider === "chatgpt" ? (
         <>

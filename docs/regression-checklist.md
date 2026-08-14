@@ -42,3 +42,8 @@
 - [ ] 免按聆听中**未说话**时按长按键/F8 退出 → 只显示退出 toast，不得被“没听清”toast 覆盖（第 6 轮）
 - [ ] 全程不说话 → 约 1 分钟后自动退出 + “免按模式已退出” toast
 - [ ] 未配润色模型时按 F8 → toast + 主窗口自动打开并直达 设置→模型 tab
+
+## 增强标点英文边界句基线（第 16 轮固化，ct-transformer 模型级限制，不投工程修）
+以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
+- [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号
+- [ ] "what time is the meeting tomorrow and who is joining" → 疑问句可能收句号而非问号
