@@ -1,7 +1,12 @@
-import { BrowserWindow, screen, shell } from "electron";
+import { BrowserWindow, nativeTheme, screen, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getWindowBounds, setWindowBounds } from "./store";
+import { getSettings, getWindowBounds, setWindowBounds } from "./store";
+
+function isDarkTheme(): boolean {
+  const theme = getSettings().theme;
+  return theme === "dark" || (theme === "system" && nativeTheme.shouldUseDarkColors);
+}
 
 const dir = fileURLToPath(new URL(".", import.meta.url));
 const preload = join(dir, "../preload/index.mjs");
@@ -36,7 +41,7 @@ export function createMainWindow(visible = true): BrowserWindow {
     minHeight: 560,
     frame: false,
     show: false,
-    backgroundColor: "#f7f7f9",
+    backgroundColor: isDarkTheme() ? "#14161d" : "#f7f7f9",
     title: "SpeakType",
     webPreferences: { preload, sandbox: false },
   });

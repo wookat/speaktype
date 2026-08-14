@@ -45,6 +45,8 @@ body,
   --color-red-600: oklch(70% 0.19 22.2);
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 body {
   background-color: #f7f7f9;
 }
