@@ -171,6 +171,7 @@ export const ja: LocaleDict = {
   "settings.asrAppKey": "Doubao App Key",
   "settings.asrAppKeyPlaceholder": "空欄で自動取得したキーを使用",
   "settings.asrLanguage": "認識言語",
+  "settings.asrLanguageParakeetHint": "Parakeet は英語と欧州 25 言語を自動検出します。中国語/日本語/韓国語/広東語は非対応のため、モデルを sensevoice-small に切り替えてください。",
   "settings.asrProvider": "プロバイダー",
   "settings.asrProviderDoubao": "Doubao（ストリーミング、要ログイン）",
   "settings.asrProviderOpenai": "OpenAI 互換文字起こし（Whisper 系）",
