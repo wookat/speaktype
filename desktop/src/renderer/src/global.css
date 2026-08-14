@@ -55,6 +55,11 @@ body {
   background-color: #14161d;
 }
 
+.dark select option {
+  background-color: #232734;
+  color: #e4e8f1;
+}
+
 body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
