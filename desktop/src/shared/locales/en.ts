@@ -140,6 +140,7 @@ export const en: LocaleDict = {
   "settings.themeHintLight": "Always uses the light look, regardless of the Windows setting.",
   "settings.themeHintDark": "Always uses the dark look, regardless of the Windows setting.",
   "download.errNetwork": "Download failed: network error — check your connection and try again.",
+  "download.errStorage": "Download failed: cannot write to the models folder — check disk space and file permissions.",
   "download.errChecksum": "Download failed: file integrity check did not pass — please retry.",
   "settings.themeLight": "Light",
   "settings.themeDark": "Dark",

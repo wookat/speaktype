@@ -136,6 +136,7 @@ export const zhCN = {
   "settings.themeHintLight": "始终使用浅色外观，不随 Windows 设置变化。",
   "settings.themeHintDark": "始终使用深色外观，不随 Windows 设置变化。",
   "download.errNetwork": "下载失败：网络连不上，请检查网络后重试。",
+  "download.errStorage": "下载失败：无法写入模型目录，请检查磁盘空间与文件夹权限。",
   "download.errChecksum": "下载失败：文件校验未通过，请重试。",
   "settings.themeLight": "浅色",
   "settings.themeDark": "深色",

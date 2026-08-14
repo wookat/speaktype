@@ -140,6 +140,7 @@ export const ja: LocaleDict = {
   "settings.themeHintLight": "Windows の設定に関わらず、常にライト外観を使用します。",
   "settings.themeHintDark": "Windows の設定に関わらず、常にダーク外観を使用します。",
   "download.errNetwork": "ダウンロード失敗：ネットワークに接続できません。接続を確認して再試行してください。",
+  "download.errStorage": "ダウンロード失敗：モデルフォルダに書き込めません。ディスク容量とアクセス権を確認してください。",
   "download.errChecksum": "ダウンロード失敗：ファイルの整合性チェックに失敗しました。再試行してください。",
   "settings.themeLight": "ライト",
   "settings.themeDark": "ダーク",

@@ -130,6 +130,7 @@ export const zhTW: LocaleDict = {
   "settings.themeHintLight": "始終使用淺色外觀，不隨 Windows 設定變化。",
   "settings.themeHintDark": "始終使用深色外觀，不隨 Windows 設定變化。",
   "download.errNetwork": "下載失敗：網路連不上，請檢查網路後重試。",
+  "download.errStorage": "下載失敗：無法寫入模型目錄，請檢查磁碟空間與資料夾權限。",
   "download.errChecksum": "下載失敗：檔案校驗未通過，請重試。",
   "settings.themeLight": "淺色",
   "settings.themeDark": "深色",
