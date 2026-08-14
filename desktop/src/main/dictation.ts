@@ -565,11 +565,10 @@ export class Dictation {
 
     let failed: string | undefined;
     if (settings.autoPaste || rewriteTarget) {
-      // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接
+      // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
+      // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字
       const glue =
-        this.handsFree && this.mode === "toggle" && this.handsFreeTyped && /^[A-Za-z0-9]/.test(text)
-          ? " "
-          : "";
+        this.mode === "toggle" && this.handsFreeTyped && /^[A-Za-z0-9]/.test(text) ? " " : "";
       try {
         // 改写模式：选区还选着，直接粘贴就是替换
         await pasteText(glue + text);
