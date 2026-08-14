@@ -1,5 +1,6 @@
 import type { Persona, Settings } from "../shared/types";
 import { correctHotwords } from "./hotwords";
+import { applyItn } from "./itn";
 import { t } from "./i18n";
 import { punctuate } from "./punct";
 
@@ -310,6 +311,7 @@ export async function polishText(
   const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl && settings.polishApiKey);
   let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct);
   if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base);
+  if (settings.itn) base = applyItn(base);
   const cleaned = correctHotwords(base, settings.hotwords);
   if (!useLlm || !cleaned) return cleaned;
 

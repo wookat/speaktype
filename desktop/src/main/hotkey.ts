@@ -13,6 +13,8 @@ export interface HotkeyHandlers {
   onHoldStart(rewrite: boolean): void;
   onHoldEnd(rewrite: boolean): void;
   onToggle(): void;
+  /** 双击长按键（两次短敲）：进入/退出免按连续听写 */
+  onDoubleTap(): void;
   onPersona(index: number): void;
   /** 按下瞬间就回调（判定时长之前），用于抢跑建联 */
   onWarmUp(): void;
@@ -67,6 +69,9 @@ export const REWRITE_KEY_CHOICES = ["Off", ...HOLD_KEY_CHOICES];
 
 export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "Alt+Space", "F9", "F10"];
 
+/** 两次短敲的最大间隔（按第一次松开到第二次松开） */
+const DOUBLE_TAP_MS = 400;
+
 const DIGIT_KEYCODES: number[] = [
   UiohookKey[1],
   UiohookKey[2],
@@ -88,6 +93,8 @@ export class HotkeyManager {
   private toggleKeycode: number = UiohookKey.Space;
   private holdDelayMs = 120;
   private personaHotkeys = true;
+  private doubleTapEnabled = true;
+  private lastTapAt = 0;
   private holdTimer: NodeJS.Timeout | null = null;
   private holdActive = false;
   private holdPressed = false;
@@ -107,7 +114,9 @@ export class HotkeyManager {
     holdDelayMs: number,
     personaHotkeys = true,
     hotkeyRewrite = "Off",
+    doubleTapHandsFree = true,
   ): void {
+    this.doubleTapEnabled = doubleTapHandsFree;
     this.holdMouseButton = MOUSE_BUTTONS[hotkeyHold] ?? 0;
     this.holdKeycode = this.holdMouseButton ? -1 : (KEY_NAMES[hotkeyHold] ?? UiohookKey.CtrlRight);
     const rewriteOff = !hotkeyRewrite || hotkeyRewrite === "Off" || hotkeyRewrite === hotkeyHold;
@@ -178,6 +187,7 @@ export class HotkeyManager {
     this.holdTimer = setTimeout(() => {
       this.holdTimer = null;
       this.holdActive = true;
+      this.lastTapAt = 0;
       this.handlers.onHoldStart(false);
     }, this.holdDelayMs);
   }
@@ -185,9 +195,16 @@ export class HotkeyManager {
   private releaseHold(): void {
     this.holdPressed = false;
     if (this.holdTimer) {
-      // 按住不满判定时长：误触，撤掉待启动的录音
+      // 按住不满判定时长：单次算误触撤销；连续两次短敲算双击，进免按连续听写
       clearTimeout(this.holdTimer);
       this.holdTimer = null;
+      const now = Date.now();
+      if (this.doubleTapEnabled && now - this.lastTapAt <= DOUBLE_TAP_MS) {
+        this.lastTapAt = 0;
+        this.handlers.onDoubleTap();
+      } else {
+        this.lastTapAt = now;
+      }
       return;
     }
     if (this.holdActive) {

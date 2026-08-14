@@ -113,6 +113,8 @@ export const ko: LocaleDict = {
   "settings.holdDelayHint": "이보다 짧은 누름은 실수로 간주하여 무시합니다.",
   "settings.personaHotkeys": "페르소나 단축키",
   "settings.personaHotkeysHint": "Alt + 숫자로 페르소나를 빠르게 전환.",
+  "settings.doubleTapHandsFree": "더블 탭으로 핸즈프리",
+  "settings.doubleTapHandsFreeHint": "{{key}} 를 빠르게 두 번 누르면 연속 받아쓰기로 진입합니다. 다시 더블 탭하면 종료.",
   "settings.vadAutoStop": "무음 시 자동 종료 (핸즈프리)",
   "settings.vadAutoStopHint": "핸즈프리 모드에서 말이 끝나면 자동으로 녹음을 종료합니다. 누르고 말하기 모드에는 영향이 없습니다.",
   "settings.vadSilence": "무음 시간",
@@ -206,6 +208,8 @@ export const ko: LocaleDict = {
   "settings.enhancedPunctDownloading": "다운로드 중 {{progress}}%",
   "settings.enhancedPunctReady": "추가 패키지 준비 완료 — 문장 부호가 업그레이드되었습니다",
   "settings.enhancedPunctFallback": "다운로드 완료 전까지는 내장 규칙으로 문장 부호를 보완합니다",
+  "settings.itn": "숫자 정규화 (중국어)",
+  "settings.itnHint": "중국어 구어체 숫자와 시간을 숫자 표기로 변환: 三点半 → 3:30, 两千五 → 2500, 百分之五 → 5%.",
   "settings.localSimplified": "간체자 강제 변환",
   "settings.localSimplifiedHint": "Whisper 는 번체자를 출력하는 경우가 많아 입력 전에 간체자로 변환합니다 (오프라인 채널만 해당).",
   "settings.asrOpenaiHint":

@@ -251,6 +251,12 @@ function VoiceTab(props: {
         </select>
       </Row>
       <EnhancedPunct t={t} s={s} update={update} />
+      <Toggle
+        label={t("settings.itn")}
+        hint={t("settings.itnHint")}
+        value={s.itn}
+        onChange={(v) => update({ itn: v })}
+      />
     </section>
   );
 }

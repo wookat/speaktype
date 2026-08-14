@@ -109,6 +109,8 @@ export const zhCN = {
   "settings.holdDelayHint": "短于此时长视为误触，不会起录。",
   "settings.personaHotkeys": "快捷键切换人设",
   "settings.personaHotkeysHint": "可通过 Alt + 数字快速切换人设。",
+  "settings.doubleTapHandsFree": "双击进入免按模式",
+  "settings.doubleTapHandsFreeHint": "快速连敲两下 {{key}} 进入连续听写；再双击一次退出。",
   "settings.vadAutoStop": "免按模式静音自动结束",
   "settings.vadAutoStopHint": "点按开关模式下，说完后保持安静即自动结束识别；长按说话不受影响。",
   "settings.vadSilence": "静音判定时长",
@@ -200,6 +202,8 @@ export const zhCN = {
   "settings.enhancedPunctDownloading": "下载中 {{progress}}%",
   "settings.enhancedPunctReady": "增强包已就绪，标点已升级",
   "settings.enhancedPunctFallback": "下载完成前暂按内置规则补标点",
+  "settings.itn": "数字规范化（中文）",
+  "settings.itnHint": "把口语数字和时间转成书面数字：三点半 → 3:30，两千五 → 2500，百分之五 → 5%。",
   "settings.localSimplified": "强制简体输出",
   "settings.localSimplifiedHint": "whisper 中文识别常出繁体，开启后落字前自动繁→简（仅对离线通道生效）。",
   "settings.asrOpenaiHint":
