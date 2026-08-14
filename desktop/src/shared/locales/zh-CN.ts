@@ -193,6 +193,13 @@ export const zhCN = {
   "settings.enhancedVadDownloading": "下载中 {{progress}}%",
   "settings.enhancedVadReady": "增强包已就绪，人声检测已升级",
   "settings.enhancedVadFallback": "下载完成前暂按音量门槛检测",
+  "settings.enhancedPunct": "增强标点（AI 模型）",
+  "settings.enhancedPunctHint":
+    "用标点模型（ct-transformer，中英双语）补逗号、句号和问号，比内置规则准得多。需下载约 281MB 增强包，完全在本机运行。开启 AI 润色时不生效。",
+  "settings.enhancedPunctDownload": "下载增强包（约 281MB）",
+  "settings.enhancedPunctDownloading": "下载中 {{progress}}%",
+  "settings.enhancedPunctReady": "增强包已就绪，标点已升级",
+  "settings.enhancedPunctFallback": "下载完成前暂按内置规则补标点",
   "settings.localSimplified": "强制简体输出",
   "settings.localSimplifiedHint": "whisper 中文识别常出繁体，开启后落字前自动繁→简（仅对离线通道生效）。",
   "settings.asrOpenaiHint":

@@ -199,6 +199,13 @@ export const en: LocaleDict = {
   "settings.enhancedVadDownloading": "Downloading {{progress}}%",
   "settings.enhancedVadReady": "Add-on ready — voice detection upgraded",
   "settings.enhancedVadFallback": "Volume-threshold detection is used until the download finishes",
+  "settings.enhancedPunct": "Enhanced punctuation (AI model)",
+  "settings.enhancedPunctHint":
+    "Uses a punctuation model (ct-transformer, Chinese + English) to restore commas, periods and question marks — much better than the built-in rules. Requires a ~281MB add-on download; runs fully on this machine. Skipped when AI polish is enabled.",
+  "settings.enhancedPunctDownload": "Download add-on (~281MB)",
+  "settings.enhancedPunctDownloading": "Downloading {{progress}}%",
+  "settings.enhancedPunctReady": "Add-on ready — punctuation upgraded",
+  "settings.enhancedPunctFallback": "Rule-based punctuation is used until the download finishes",
   "settings.localSimplified": "Force Simplified Chinese",
   "settings.localSimplifiedHint": "Whisper often outputs Traditional Chinese; converts to Simplified before typing (offline channel only).",
   "settings.asrOpenaiHint":

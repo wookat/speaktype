@@ -85,7 +85,7 @@ function push(patch: Partial<LocalModelStatus>): void {
 }
 
 /** 下载单个文件（先落 .part 再改名），直连 HuggingFace 失败时落到镜像源 */
-async function fetchFile(path: string, dest: string, onProgress: (bytes: number, total: number) => void): Promise<void> {
+export async function fetchFile(path: string, dest: string, onProgress: (bytes: number, total: number) => void): Promise<void> {
   const hosts = ["https://huggingface.co", "https://hf-mirror.com"];
   let res: Response | null = null;
   let lastError: unknown = null;

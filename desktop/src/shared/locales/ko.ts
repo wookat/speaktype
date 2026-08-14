@@ -199,6 +199,13 @@ export const ko: LocaleDict = {
   "settings.enhancedVadDownloading": "다운로드 중 {{progress}}%",
   "settings.enhancedVadReady": "추가 패키지 준비 완료 — 음성 감지가 업그레이드되었습니다",
   "settings.enhancedVadFallback": "다운로드 완료 전까지는 음량 임계값으로 감지합니다",
+  "settings.enhancedPunct": "향상된 문장 부호 (AI 모델)",
+  "settings.enhancedPunctHint":
+    "문장 부호 모델(ct-transformer, 중국어+영어)로 쉼표·마침표·물음표를 복원합니다. 내장 규칙보다 훨씬 정확합니다. 약 281MB 추가 패키지 다운로드 필요, 완전히 로컬에서 실행. AI 다듬기가 켜져 있으면 적용되지 않습니다.",
+  "settings.enhancedPunctDownload": "추가 패키지 다운로드 (약 281MB)",
+  "settings.enhancedPunctDownloading": "다운로드 중 {{progress}}%",
+  "settings.enhancedPunctReady": "추가 패키지 준비 완료 — 문장 부호가 업그레이드되었습니다",
+  "settings.enhancedPunctFallback": "다운로드 완료 전까지는 내장 규칙으로 문장 부호를 보완합니다",
   "settings.localSimplified": "간체자 강제 변환",
   "settings.localSimplifiedHint": "Whisper 는 번체자를 출력하는 경우가 많아 입력 전에 간체자로 변환합니다 (오프라인 채널만 해당).",
   "settings.asrOpenaiHint":

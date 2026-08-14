@@ -62,6 +62,8 @@ export interface Settings {
   localSimplified: boolean;
   /** 增强人声检测（Silero VAD，需先在设置中下载增强包） */
   enhancedVad: boolean;
+  /** 增强标点（ct-transformer 中英标点模型，需先在设置中下载增强包）；未下载/加载失败时回退规则断句 */
+  enhancedPunct: boolean;
   /** 识别失败时把录音保存在本机供重试（最多 20 段 / 7 天 / 50MB） */
   keepFailedAudio: boolean;
   /** 悬浮条实时字幕最大行数（1/3/6），超出滚动到最新 */

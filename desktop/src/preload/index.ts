@@ -88,6 +88,15 @@ const api = {
       ipcRenderer.removeListener("vad:status", listener);
     };
   },
+  punctStatus: (): Promise<VadStatus> => ipcRenderer.invoke("punct:status"),
+  punctDownload: (): Promise<VadStatus> => ipcRenderer.invoke("punct:download"),
+  onPunctStatus: (fn: (s: VadStatus) => void) => {
+    const listener = (_e: unknown, s: VadStatus) => fn(s);
+    ipcRenderer.on("punct:status", listener);
+    return () => {
+      ipcRenderer.removeListener("punct:status", listener);
+    };
+  },
 
   onStatus: (fn: (payload: StatusPayload) => void) => {
     const listener = (_e: unknown, payload: StatusPayload) => fn(payload);
