@@ -255,6 +255,8 @@ export class HotkeyManager {
       this.pressHold();
       return;
     }
+    // 其他键按下说明是组合键（如 Ctrl+C 连按两次），取消双击判定
+    this.lastTapAt = 0;
     if (ev.keycode === this.rewriteKeycode) {
       this.pressRewrite();
       return;

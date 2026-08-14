@@ -31,6 +31,26 @@ export function vadDownloaded(): boolean {
   return FILES.every((f) => existsSync(join(vadDir(), f)));
 }
 
+// 旧版 VAD 增强包独立带过一套 ORT runtime（约 33MB），现已不加载，启动时顺手清掉
+const LEGACY_FILES = [
+  "onnxruntime.dll",
+  "onnxruntime_providers_shared.dll",
+  "DirectML.dll",
+  "msvcp140_1.dll",
+  "msvcp140_2.dll",
+  "onnxruntime_binding.node",
+];
+
+export function cleanupLegacyVad(): void {
+  for (const f of LEGACY_FILES) {
+    try {
+      rmSync(join(vadDir(), f), { force: true });
+    } catch (error) {
+      log.warn("vad: failed to remove legacy file", f, error);
+    }
+  }
+}
+
 const status: VadStatus = { supported: SUPPORTED, downloaded: false, downloading: false, progress: 0 };
 let notify: ((s: VadStatus) => void) | null = null;
 
