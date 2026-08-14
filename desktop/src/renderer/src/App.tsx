@@ -141,6 +141,8 @@ export default function App() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [doubaoReady, setDoubaoReady] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
+  // 主进程引导跳转（如改写缺润色模型时直达 设置→模型）
+  const [settingsJump, setSettingsJump] = useState<string | null>(null);
 
   useEffect(() => {
     void api.init().then((data) => {
@@ -165,9 +167,14 @@ export default function App() {
       setPersonas(p);
       void api.doubaoReady().then(setDoubaoReady);
     });
+    const offGoto = api.onGoto(({ page: p, tab }) => {
+      setPage(p as Page);
+      if (tab) setSettingsJump(tab);
+    });
     return () => {
       offStatus();
       offSettings();
+      offGoto();
     };
   }, []);
 
@@ -282,6 +289,8 @@ export default function App() {
             doubaoReady={doubaoReady}
             version={init.version}
             commit={init.commit}
+            jumpTab={settingsJump}
+            clearJump={() => setSettingsJump(null)}
           />
         )}
       </main>
@@ -471,6 +480,8 @@ function History(props: {
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  // 本地断句/标点后几乎每条 raw≠text，常显 diff 是满屏红字噪音；收进“查看原文”按需展开
+  const [diffOpen, setDiffOpen] = useState<string | null>(null);
   // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
   const [visible, setVisible] = useState(PAGE_SIZE);
   const saveEdit = (item: HistoryItem): void => {
@@ -649,7 +660,16 @@ function History(props: {
                   )}
                   {item.status !== "failed" && item.raw !== item.text && (
                     <div className="mt-1 text-xs leading-relaxed text-slate-400">
-                      <ReviewDiff before={item.raw} after={item.text} />
+                      {diffOpen === item.id ? (
+                        <ReviewDiff before={item.raw} after={item.text} />
+                      ) : (
+                        <button
+                          className="text-slate-300 hover:text-slate-500"
+                          onClick={() => setDiffOpen(item.id)}
+                        >
+                          {t("history.showRaw")}
+                        </button>
+                      )}
                     </div>
                   )}
                   {item.failed && (
@@ -1024,9 +1044,16 @@ function SettingsPage(props: {
   doubaoReady: boolean;
   version: string;
   commit: string;
+  jumpTab: string | null;
+  clearJump: () => void;
 }) {
   const { t, settings: s } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
+  useEffect(() => {
+    if (!props.jumpTab) return;
+    setTab(props.jumpTab as SettingsTab);
+    props.clearJump();
+  }, [props.jumpTab]);
 
   const TABS: Array<{ id: SettingsTab; label: string }> = [
     { id: "general", label: t("settings.tab.general") },

@@ -55,6 +55,13 @@ const EN_I_AUX_SET = new Set([
   "should", "shall", "did", "do", "think", "need", "want", "hope",
 ]);
 
+// 前一词是连接词/介词/冠词/所有格时，后面的大写词几乎必然是句中专有名词或从句延续，不能断句
+const EN_NO_BREAK_AFTER = new Set([
+  "and", "but", "or", "so", "because", "that", "if", "when", "while", "as", "than",
+  "to", "for", "with", "at", "in", "on", "of", "by", "from", "about", "into", "over",
+  "the", "a", "an", "my", "your", "his", "her", "its", "our", "their",
+]);
+
 // 句中天然大写的常见专有名词（星期/月份），不能当句界信号
 const EN_PROPER_SET = new Set([
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
@@ -89,10 +96,14 @@ function addEnglishPunctuation(text: string): string {
       (word === "I" && EN_I_AUX_SET.has((words[i + 1] ?? "").toLowerCase()));
     if (i > 0 && isCapitalStarter) {
       const prev = out[out.length - 1]!;
+      const prevWord = prev.toLowerCase().replace(/[^a-z']/g, "");
+      // "day and I am" / "invite to Alice"：连接词/介词后的大写词不是句首
+      const noBreak = EN_NO_BREAK_AFTER.has(prevWord) && !/[,;]$/.test(prev);
       // 逗号升级句号要求前面从句够长，避免把 "yesterday, John…" 这类前置短语拆散
       if (
-        (/[,;]$/.test(prev) && out.length - sentenceStart >= 4) ||
-        (sincePunct >= 3 && !/[.!?,;]$/.test(prev))
+        !noBreak &&
+        ((/[,;]$/.test(prev) && out.length - sentenceStart >= 4) ||
+          (sincePunct >= 3 && !/[.!?,;]$/.test(prev)))
       ) {
         closeSentence();
       }

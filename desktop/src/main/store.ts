@@ -59,11 +59,18 @@ export interface WindowBounds {
 interface Schema {
   settings: Settings;
   personas: Persona[];
+  /** 已迁到独立 history store；保留字段仅为旧版数据一次性迁移 */
   history: HistoryItem[];
   stats: Stats;
   onboarded: boolean;
   doubaoAppKeyCache: string;
   mainWindowBounds: WindowBounds | null;
+}
+
+// 高频大体积的历史/统计单独存：改设置/存窗口位置不再重写 500 条历史，配置损坏时历史也不陪葬
+interface HistorySchema {
+  history: HistoryItem[];
+  stats: Stats;
 }
 
 const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
@@ -81,9 +88,18 @@ const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
   },
 };
 
+const HISTORY_STORE_OPTIONS: ConstructorParameters<typeof Store<HistorySchema>>[0] = {
+  name: "history",
+  clearInvalidConfig: true,
+  defaults: {
+    history: [],
+    stats: { words: 0, durationMs: 0, sessions: 0 },
+  },
+};
+
 // clearInvalidConfig 会静默清空损坏文件：先预检 JSON，解不开就备份一份 .bad，用户数据还能找回
-function backupIfCorrupt(): boolean {
-  const file = join(app.getPath("userData"), "speaktype.json");
+function backupIfCorrupt(name: string): boolean {
+  const file = join(app.getPath("userData"), `${name}.json`);
   if (!existsSync(file)) return false;
   // 预检必须和 electron-store 的解析器同样严格：它不剥 BOM，带 BOM 一样算损坏
   const raw = readFileSync(file, "utf8");
@@ -117,7 +133,7 @@ export function wasStoreRecovered(): boolean {
 }
 
 function createStore(): Store<Schema> {
-  storeRecovered = backupIfCorrupt();
+  storeRecovered = backupIfCorrupt("speaktype");
   try {
     return new Store<Schema>(STORE_OPTIONS);
   } catch {
@@ -133,6 +149,28 @@ function createStore(): Store<Schema> {
 }
 
 const store = createStore();
+
+function createHistoryStore(): Store<HistorySchema> {
+  backupIfCorrupt("history");
+  const hs = new Store<HistorySchema>(HISTORY_STORE_OPTIONS);
+  // 旧版历史/统计还在主配置里：一次性迁入独立 store 后从主配置删掉
+  const legacy = store.get("history");
+  if (legacy.length > 0 && hs.get("history").length === 0) {
+    hs.set("history", legacy);
+    hs.set("stats", store.get("stats"));
+    store.set("history", []);
+  }
+  // 历史被清过但统计还在旧位置的情况也要迁
+  if (hs.get("stats").sessions === 0 && store.get("stats").sessions > 0) {
+    hs.set("stats", store.get("stats"));
+  }
+  if (store.get("stats").sessions > 0) {
+    store.set("stats", { words: 0, durationMs: 0, sessions: 0 });
+  }
+  return hs;
+}
+
+const historyStore = createHistoryStore();
 
 export function getWindowBounds(): WindowBounds | null {
   return store.get("mainWindowBounds");
@@ -176,15 +214,15 @@ export function findPersona(id: string): Persona {
 }
 
 export function getHistory(): HistoryItem[] {
-  return store.get("history");
+  return historyStore.get("history");
 }
 
 export function addHistory(item: HistoryItem): void {
-  store.set("history", [item, ...getHistory()].slice(0, 500));
+  historyStore.set("history", [item, ...getHistory()].slice(0, 500));
 }
 
 export function clearHistory(): void {
-  store.set("history", []);
+  historyStore.set("history", []);
 }
 
 export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): HistoryItem | null {
@@ -193,25 +231,25 @@ export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): Hist
   if (idx < 0) return null;
   const next = { ...list[idx]!, ...patch };
   list[idx] = next;
-  store.set("history", list);
+  historyStore.set("history", list);
   return next;
 }
 
 export function deleteHistory(ids: string[]): void {
   const drop = new Set(ids);
-  store.set(
+  historyStore.set(
     "history",
     getHistory().filter((h) => !drop.has(h.id)),
   );
 }
 
 export function getStats(): Stats {
-  return store.get("stats");
+  return historyStore.get("stats");
 }
 
 export function addStats(words: number, durationMs: number): void {
   const current = getStats();
-  store.set("stats", {
+  historyStore.set("stats", {
     words: current.words + words,
     durationMs: current.durationMs + durationMs,
     sessions: current.sessions + 1,

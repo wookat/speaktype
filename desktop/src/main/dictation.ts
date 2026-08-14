@@ -33,6 +33,8 @@ const VAD_MIN_RECORD_MS = 1500;
 const NO_SPEECH_PEAK = 250;
 // 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
+// 免按模式连续这么多轮无人声（每轮约 10s）自动退出，避免忘关后麦克风常开
+const HANDS_FREE_MAX_SILENT_ROUNDS = 6;
 // 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足门槛时视为无有效人声，不送 ASR
 const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
 const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
@@ -96,6 +98,8 @@ export interface DictationDeps {
   showToast: (title: string, body: string) => void;
   /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
   pushSettings: () => void;
+  /** 打开主窗口并跳到 设置→模型 tab（改写缺润色模型时引导用户去配） */
+  openModelSettings: () => void;
 }
 
 export class Dictation {
@@ -112,6 +116,9 @@ export class Dictation {
   private lastWarmUp = 0;
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
+  /** 免按模式：一句落字后自动继续聆听，直到用户再按一次或长时间无人声 */
+  private handsFree = false;
+  private handsFreeSilentRounds = 0;
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
@@ -213,7 +220,7 @@ export class Dictation {
     // 静音倒计时只在检到过人声后才按 vadSilenceMs 判停；开口前给更长宽限
     const hadVoice = this.silero ? this.voicedMs > 0 : this.maxPeak >= VAD_SILENCE_PEAK;
     const silenceMs = hadVoice ? settings.vadSilenceMs : VAD_NO_VOICE_TIMEOUT_MS;
-    if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.stop();
+    if (this.lastVoiceAt && now - this.lastVoiceAt >= silenceMs) void this.autoStop();
   }
 
   /**
@@ -225,6 +232,7 @@ export class Dictation {
     const settings = getSettings();
     if (!settings.polishBaseUrl || !settings.polishApiKey) {
       this.deps.showToast(t("toast.rewriteNoModel"), t("toast.rewriteNoModelBody"));
+      this.deps.openModelSettings();
       return;
     }
     const selection = await copySelection();
@@ -317,7 +325,30 @@ export class Dictation {
     toggleSystemMute();
   }
 
+  /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
+  toggleHandsFree(): void {
+    if (this.busy || this.handsFree) {
+      this.handsFree = false;
+      void this.stop();
+      return;
+    }
+    this.handsFree = true;
+    this.handsFreeSilentRounds = 0;
+    void this.start("toggle");
+  }
+
+  /** VAD 静音自动收尾：不退出免按模式，落字后继续聆听下一句 */
+  private async autoStop(): Promise<void> {
+    if (!this.busy) return;
+    if (!this.session) {
+      this.pendingEnd = "stop";
+      return;
+    }
+    await this.finalize();
+  }
+
   async stop(): Promise<void> {
+    this.handsFree = false;
     if (!this.busy) return;
     if (!this.session) {
       this.pendingEnd = "stop";
@@ -327,6 +358,7 @@ export class Dictation {
   }
 
   cancel(): void {
+    this.handsFree = false;
     this.rewriteTarget = null;
     if (!this.busy) return;
     if (!this.session) {
@@ -458,6 +490,7 @@ export class Dictation {
       this.busy = false;
       this.partial = "";
       this.report("idle");
+      if (this.maybeContinueHandsFree(true)) return;
       this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
       return;
     }
@@ -484,6 +517,7 @@ export class Dictation {
         provider: settings.asrProvider,
       });
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
+      this.handsFree = false;
       this.busy = false;
       this.report("error", `${message} · ${t("error.retryHint")}`);
       return;
@@ -496,6 +530,7 @@ export class Dictation {
       this.busy = false;
       this.partial = "";
       this.report("idle");
+      if (this.maybeContinueHandsFree(true)) return;
       if (!raw) this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
       return;
     }
@@ -552,8 +587,29 @@ export class Dictation {
     this.busy = false;
     this.setPartial(text);
     this.report("idle");
+    if (this.maybeContinueHandsFree(false)) return;
     setTimeout(() => {
       if (this.state === "idle") this.setPartial("");
     }, 1200);
+  }
+
+  /** 免按模式未退出时自动开启下一句；连续多轮无人声（约 1 分钟）才自动退出 */
+  private maybeContinueHandsFree(silent: boolean): boolean {
+    if (!this.handsFree || this.mode !== "toggle") return false;
+    if (silent) {
+      this.handsFreeSilentRounds++;
+      if (this.handsFreeSilentRounds >= HANDS_FREE_MAX_SILENT_ROUNDS) {
+        this.handsFree = false;
+        this.setPartial("");
+        this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndBody"));
+        return false;
+      }
+    } else {
+      this.handsFreeSilentRounds = 0;
+    }
+    setTimeout(() => {
+      if (this.handsFree && !this.busy) void this.start("toggle");
+    }, 150);
+    return true;
   }
 }
