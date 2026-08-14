@@ -126,10 +126,16 @@ function backupIfCorrupt(name: string): boolean {
 }
 
 let storeRecovered = false;
+let historyRecovered = false;
 
 /** 启动时配置文件损坏被重建了吗？用于首屏提示用户 .bad 备份位置 */
 export function wasStoreRecovered(): boolean {
   return storeRecovered;
+}
+
+/** 启动时历史文件损坏被重建了吗？提示文案与主配置区分（history.json.bad） */
+export function wasHistoryRecovered(): boolean {
+  return historyRecovered;
 }
 
 function createStore(): Store<Schema> {
@@ -151,7 +157,7 @@ function createStore(): Store<Schema> {
 const store = createStore();
 
 function createHistoryStore(): Store<HistorySchema> {
-  backupIfCorrupt("history");
+  historyRecovered = backupIfCorrupt("history");
   const hs = new Store<HistorySchema>(HISTORY_STORE_OPTIONS);
   // 旧版历史/统计还在主配置里：一次性迁入独立 store 后从主配置删掉
   const legacy = store.get("history");

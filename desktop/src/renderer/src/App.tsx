@@ -661,7 +661,15 @@ function History(props: {
                   {item.status !== "failed" && item.raw !== item.text && (
                     <div className="mt-1 text-xs leading-relaxed text-slate-400">
                       {diffOpen === item.id ? (
-                        <ReviewDiff before={item.raw} after={item.text} />
+                        <>
+                          <ReviewDiff before={item.raw} after={item.text} />
+                          <button
+                            className="mt-1 text-slate-300 hover:text-slate-500"
+                            onClick={() => setDiffOpen(null)}
+                          >
+                            {t("history.hideRaw")}
+                          </button>
+                        </>
                       ) : (
                         <button
                           className="text-slate-300 hover:text-slate-500"

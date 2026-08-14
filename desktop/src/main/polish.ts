@@ -62,11 +62,15 @@ const EN_NO_BREAK_AFTER = new Set([
   "the", "a", "an", "my", "your", "his", "her", "its", "our", "their",
 ]);
 
-// 句中天然大写的常见专有名词（星期/月份），不能当句界信号
-const EN_PROPER_SET = new Set([
-  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-  "january", "february", "march", "april", "may", "june", "july",
-  "august", "september", "october", "november", "december",
+// 能当句首信号的常见大写起句词：开放词表的人名/专名（Peter、Alice…）永远枚举不完，
+// 改用白名单：只有这些闭集起句词才允许触发断句
+const EN_STARTER_SET = new Set([
+  "we", "he", "she", "they", "it", "you",
+  "this", "that", "these", "those", "there", "the",
+  "let", "please", "now", "then", "also", "however", "meanwhile", "anyway",
+  "today", "tomorrow", "yesterday",
+  "what", "when", "where", "who", "why", "how", "which",
+  "can", "could", "would", "will", "should", "do", "does", "did", "is", "are",
 ]);
 
 /** 英文兜底断句：几乎无标点时按连接词补逗号/句号，并补首字母大写与句尾句号/问号 */
@@ -90,9 +94,9 @@ function addEnglishPunctuation(text: string): string {
   };
   for (let i = 0; i < words.length; i++) {
     let word = words[i]!;
-    // ASR 保留的句首大写是最可靠的句界信号；"逗号+大写开头"直接把逗号升级成句号
+    // ASR 保留的句首大写是句界信号，但人名等专名也大写：只认闭集起句词
     const isCapitalStarter =
-      (/^[A-Z][a-z]/.test(word) && !EN_PROPER_SET.has(word.toLowerCase())) ||
+      (/^[A-Z][a-z]/.test(word) && EN_STARTER_SET.has(word.toLowerCase())) ||
       (word === "I" && EN_I_AUX_SET.has((words[i + 1] ?? "").toLowerCase()));
     if (i > 0 && isCapitalStarter) {
       const prev = out[out.length - 1]!;

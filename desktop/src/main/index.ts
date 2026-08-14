@@ -40,6 +40,7 @@ import {
   setOnboarded,
   setSettings,
   updateHistoryItem,
+  wasHistoryRecovered,
   wasStoreRecovered,
 } from "./store";
 import {
@@ -243,6 +244,12 @@ function showMain(): void {
     mainWin.show();
     mainWin.focus();
   }
+  // Windows 前台锁会让窗口在当前应用后面打开：短暂置顶再放下，保证引导可见
+  const win = mainWin;
+  win.setAlwaysOnTop(true);
+  setTimeout(() => {
+    if (!win.isDestroyed()) win.setAlwaysOnTop(false);
+  }, 800);
 }
 
 function registerIpc(): void {
@@ -389,6 +396,9 @@ void app.whenReady().then(() => {
   }
   if (wasStoreRecovered()) {
     setTimeout(() => showToast(t("toast.configRecovered"), t("toast.configRecoveredBody")), 1500);
+  }
+  if (wasHistoryRecovered()) {
+    setTimeout(() => showToast(t("toast.historyRecovered"), t("toast.historyRecoveredBody")), 2600);
   }
 
   mainWin.on("close", (ev) => {
