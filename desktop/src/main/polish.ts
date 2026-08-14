@@ -200,6 +200,8 @@ function toEnglishPunct(text: string): string {
     .replace(/、/g, ",")
     .replace(/：/g, ":");
   out = out.replace(/\s+([,.?!;:])/g, "$1").replace(/([,.?!;:])(?=[A-Za-z])/g, "$1 ");
+  // 原文句尾已有标点时模型会再补一个（"tonight.." ）：连续终止标点只留第一个
+  out = out.replace(/([.?!])[.?!]+/g, "$1");
   out = out.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, ch: string) => pre + ch.toUpperCase());
   return out.trim();
 }
