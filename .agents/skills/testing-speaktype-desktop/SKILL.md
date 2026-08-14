@@ -17,6 +17,12 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - WHY `--no-proxy-server`: Electron follows Windows system proxy (registry points at socks 127.0.0.1:1080 which is NOT listening here) → doubao.com fails with `ERR_PROXY_CONNECTION_FAILED`. Chrome on this box is launched without proxy so it works; Electron needs the explicit override.
 - Fake mic works exactly like Chrome; the wav loops, sentence: 「帮我跟老板说那个方案需要再改一下明天上午之前给他答复」.
 
+## Crafting fake-mic WAVs (PR #44 lessons)
+
+- System.Speech WAVs contain a LIST chunk after `fmt ` — the `data` chunk is NOT at offset 44. Naively rewriting sizes at offsets 4/40 yields a file Chrome's fake capture plays as pure silence (dictation logs `maxPeak=0 voicedMs=0`). Parse chunks, extract the `data` PCM, and rebuild a canonical 44-byte-header wav (see `C:\Users\Administrator\tts\makehf2.ps1`).
+- Continuous hands-free (Alt+Q) can be tested deterministically: fake-capture loops the file, so a wav of `speech + ~4s trailing silence` makes every loop one auto-finalized sentence (silence > vadSilenceMs=2000 triggers finalize, hands-free auto-restarts). A pure-silence wav drives the 6×10s no-voice rounds → auto-exit toast in ~62s.
+- Verify toasts objectively with CDP polling of the toast.html target (`C:\Users\Administrator\tts\toastpoll44.cjs`, needs `--remote-debugging-port`).
+
 ## Doubao login inside Electron (independent cookie jar)
 
 - No doubao credentials on the box. Workaround: copy Chrome's doubao.com cookies into the Electron session via CDP (`C:\Users\Administrator\tts\cookie_xfer.js`: reads Chrome's cookies on port 29229/2513, writes via Electron's 9333 using Storage.setCookies). Reload the bridge window after injecting.

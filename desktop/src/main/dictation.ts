@@ -119,6 +119,8 @@ export class Dictation {
   /** 免按模式：一句落字后自动继续聆听，直到用户再按一次或长时间无人声 */
   private handsFree = false;
   private handsFreeSilentRounds = 0;
+  /** 本次免按会话内已落过字：后续句子若以拉丁字母/数字开头需补一个空格分隔 */
+  private handsFreeTyped = false;
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
@@ -334,6 +336,7 @@ export class Dictation {
     }
     this.handsFree = true;
     this.handsFreeSilentRounds = 0;
+    this.handsFreeTyped = false;
     void this.start("toggle");
   }
 
@@ -348,7 +351,11 @@ export class Dictation {
   }
 
   async stop(): Promise<void> {
-    this.handsFree = false;
+    if (this.handsFree) {
+      // 免按聆听中按了长按/改写热键：明确告知已退出，避免用户以为还在听
+      this.handsFree = false;
+      this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+    }
     if (!this.busy) return;
     if (!this.session) {
       this.pendingEnd = "stop";
@@ -358,7 +365,10 @@ export class Dictation {
   }
 
   cancel(): void {
-    this.handsFree = false;
+    if (this.handsFree) {
+      this.handsFree = false;
+      this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+    }
     this.rewriteTarget = null;
     if (!this.busy) return;
     if (!this.session) {
@@ -555,9 +565,15 @@ export class Dictation {
 
     let failed: string | undefined;
     if (settings.autoPaste || rewriteTarget) {
+      // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接
+      const glue =
+        this.handsFree && this.mode === "toggle" && this.handsFreeTyped && /^[A-Za-z0-9]/.test(text)
+          ? " "
+          : "";
       try {
         // 改写模式：选区还选着，直接粘贴就是替换
-        await pasteText(text);
+        await pasteText(glue + text);
+        if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
         this.deps.showToast(t("toast.pasteFailed"), text.slice(0, 40));
