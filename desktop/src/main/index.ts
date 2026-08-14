@@ -18,6 +18,7 @@ import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManage
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, SENSEVOICE, downloadLocalModel, localModelStatus, onLocalModelStatus, prewarmSenseVoice, stopLocalServer } from "./localasr";
+import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
@@ -313,6 +314,8 @@ function registerIpc(): void {
   ipcMain.handle("local:download", (_e, model: string) => downloadLocalModel(model));
   ipcMain.handle("vad:status", () => vadStatus());
   ipcMain.handle("vad:download", () => downloadVad());
+  ipcMain.handle("punct:status", () => punctStatus());
+  ipcMain.handle("punct:download", () => downloadPunct());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
   ipcMain.handle("remotemic:info", () => remoteMicInfo());
   ipcMain.handle("asr:test", () => testAsr(getSettings()));
@@ -382,6 +385,9 @@ void app.whenReady().then(() => {
   });
   onVadStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
+  });
+  onPunctStatus((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("punct:status", s);
   });
 
   const settings = getSettings();

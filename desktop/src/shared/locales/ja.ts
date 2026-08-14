@@ -199,6 +199,13 @@ export const ja: LocaleDict = {
   "settings.enhancedVadDownloading": "ダウンロード中 {{progress}}%",
   "settings.enhancedVadReady": "アドオン準備完了 — 音声検出がアップグレードされました",
   "settings.enhancedVadFallback": "ダウンロード完了までは音量しきい値で検出します",
+  "settings.enhancedPunct": "高精度な句読点（AI モデル）",
+  "settings.enhancedPunctHint":
+    "句読点モデル（ct-transformer、中国語＋英語）で読点・句点・疑問符を補います。内蔵ルールよりはるかに正確。約 281MB のアドオンをダウンロードし、完全にローカルで実行。AI 推敲が有効な場合は適用されません。",
+  "settings.enhancedPunctDownload": "アドオンをダウンロード（約 281MB）",
+  "settings.enhancedPunctDownloading": "ダウンロード中 {{progress}}%",
+  "settings.enhancedPunctReady": "アドオン準備完了 — 句読点がアップグレードされました",
+  "settings.enhancedPunctFallback": "ダウンロード完了までは内蔵ルールで句読点を補います",
   "settings.localSimplified": "簡体字に強制変換",
   "settings.localSimplifiedHint": "Whisper は繁体字を出力することが多いため、入力前に簡体字へ変換します（オフラインチャネルのみ）。",
   "settings.asrOpenaiHint":

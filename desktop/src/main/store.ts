@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   localModel: "sensevoice-small",
   localSimplified: true,
   enhancedVad: false,
+  enhancedPunct: false,
   keepFailedAudio: true,
   captionLines: 3,
   remoteMicEnabled: false,

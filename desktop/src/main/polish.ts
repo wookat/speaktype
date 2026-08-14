@@ -1,6 +1,7 @@
 import type { Persona, Settings } from "../shared/types";
 import { correctHotwords } from "./hotwords";
 import { t } from "./i18n";
+import { punctuate } from "./punct";
 
 const FILLERS = [/嗯+/g, /呃+/g, /那个那个/g, /就是就是/g, /然后然后/g];
 
@@ -162,16 +163,60 @@ export function addLocalPunctuation(text: string): string {
 /**
  * 本地口语清理：删语气词、自我纠正、压重复、断句补标点、去尾句号。
  * 本地自我纠正是保守的子句替换（会丢前缀语义），润色通道开启时交给 LLM 处理。
+ * rulePunct=false 时跳过规则断句（由调用方用标点模型补，见 applyModelPunctuation）。
  */
-export function localCleanup(text: string, selfCorrect = true): string {
+export function localCleanup(text: string, selfCorrect = true, rulePunct = true): string {
   let out = text.trim();
   for (const re of FILLERS) out = out.replace(re, "");
   if (selfCorrect) out = out.replace(SELF_CORRECTION, "");
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
-  if (selfCorrect) out = addLocalPunctuation(out);
+  if (selfCorrect && rulePunct) out = addLocalPunctuation(out);
   // 去尾句号是中文语音输入习惯；英文句尾句号要保留，否则和 addEnglishPunctuation 互搏
   return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+}
+
+/** 与 addLocalPunctuation/addEnglishPunctuation 同口径的介入门槛：文本几乎没标点才补 */
+function needsPunctuation(text: string): boolean {
+  if (!CJK_RE.test(text)) {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 6) return false;
+    const endPunct = (text.match(/[.!?]/g) ?? []).length;
+    return endPunct <= words.length / 10;
+  }
+  if (text.length < 16) return false;
+  const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
+  return punctCount <= text.length / 25;
+}
+
+/** 标点模型对英文也出全角标点且不大写：转半角、补标点后空格、句首大写 */
+function toEnglishPunct(text: string): string {
+  let out = text
+    .replace(/，/g, ",")
+    .replace(/[。．]/g, ".")
+    .replace(/？/g, "?")
+    .replace(/！/g, "!")
+    .replace(/；/g, ";")
+    .replace(/、/g, ",")
+    .replace(/：/g, ":");
+  out = out.replace(/\s+([,.?!;:])/g, "$1").replace(/([,.?!;:])(?=[A-Za-z])/g, "$1 ");
+  out = out.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, ch: string) => pre + ch.toUpperCase());
+  return out.trim();
+}
+
+/**
+ * 增强标点：用 ct-transformer 模型补标点，未下载/加载失败时回退规则断句。
+ * 输入应是 localCleanup(text, true, false) 后的文本（已清理、未补标点）。
+ */
+export async function applyModelPunctuation(text: string): Promise<string> {
+  if (!needsPunctuation(text)) return text;
+  const modeled = await punctuate(text);
+  if (modeled === null) {
+    const out = addLocalPunctuation(text);
+    return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+  }
+  if (!CJK_RE.test(modeled)) return toEnglishPunct(modeled);
+  return modeled.replace(/[。．.]+$/, "").replace(/^[，。]/, "");
 }
 
 interface ChatResponse {
@@ -261,7 +306,9 @@ export async function polishText(
   transcript: string,
 ): Promise<string> {
   const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl && settings.polishApiKey);
-  const cleaned = correctHotwords(localCleanup(transcript, !useLlm), settings.hotwords);
+  let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct);
+  if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base);
+  const cleaned = correctHotwords(base, settings.hotwords);
   if (!useLlm || !cleaned) return cleaned;
 
   const url = chatUrl(settings.polishBaseUrl);

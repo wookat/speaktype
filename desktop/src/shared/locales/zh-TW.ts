@@ -183,6 +183,13 @@ export const zhTW: LocaleDict = {
   "settings.enhancedVadDownloading": "下載中 {{progress}}%",
   "settings.enhancedVadReady": "增強包已就緒，人聲檢測已升級",
   "settings.enhancedVadFallback": "下載完成前暫按音量門檻檢測",
+  "settings.enhancedPunct": "增強標點（AI 模型）",
+  "settings.enhancedPunctHint":
+    "用標點模型（ct-transformer，中英雙語）補逗號、句號和問號，比內建規則準得多。需下載約 281MB 增強包，完全在本機執行。開啟 AI 潤色時不生效。",
+  "settings.enhancedPunctDownload": "下載增強包（約 281MB）",
+  "settings.enhancedPunctDownloading": "下載中 {{progress}}%",
+  "settings.enhancedPunctReady": "增強包已就緒，標點已升級",
+  "settings.enhancedPunctFallback": "下載完成前暫按內建規則補標點",
   "settings.localSimplified": "強制簡體輸出",
   "settings.localSimplifiedHint": "whisper 中文識別常出繁體，開啟後落字前自動繁→簡（僅對離線通道生效）。",
   "settings.asrOpenaiHint": "任意相容 /audio/transcriptions 的服務都能接（OpenAI / SiliconFlow / Groq / 本地 Whisper 等），金鑰只存本機。整句識別，錄音中不顯示實時文字。",

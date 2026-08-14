@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { LocalModelStatus, Settings } from "../../../../shared/types";
+import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 import { ASR_PRESETS } from "../../constants";
@@ -249,6 +250,7 @@ function VoiceTab(props: {
           <option value="yue">粤语 Cantonese</option>
         </select>
       </Row>
+      <EnhancedPunct t={t} s={s} update={update} />
     </section>
   );
 }
