@@ -27,10 +27,37 @@ function readMeta(metaPath: string): PartMeta | null {
   }
 }
 
-/** HF LFS 的 ETag/X-Linked-ETag 是文件 sha256（64 位十六进制）；其他情况返回空 */
+/**
+ * HF LFS 文件真正的 sha256 只在 302 重定向响应的 X-Linked-ETag 里（与 /raw/main LFS pointer
+ * 的 oid 一致）；跟随跳转后 CDN 终端响应的 etag 可能恰好是 64 位 hex 却不是文件 sha256
+ *（xet 桥对象 etag），绝不能当期望值。因此只认 X-Linked-ETag。
+ */
 function sha256FromHeaders(headers: Headers): string {
-  const raw = (headers.get("x-linked-etag") || headers.get("etag") || "").replaceAll('"', "").replace(/^W\//, "");
+  const raw = (headers.get("x-linked-etag") || "").replaceAll('"', "").replace(/^W\//, "");
   return /^[0-9a-f]{64}$/i.test(raw) ? raw.toLowerCase() : "";
+}
+
+/** 手动跟随重定向，沿途捕获 X-Linked-ETag（fetch 自动跟随会吞掉 302 响应头） */
+async function fetchFollow(
+  url: string,
+  headers: Record<string, string>,
+): Promise<{ res: Response; linkedSha256: string }> {
+  let current = url;
+  let linkedSha256 = "";
+  for (let hop = 0; hop < 8; hop++) {
+    const res = await fetch(current, { headers, redirect: "manual" });
+    if (res.status >= 300 && res.status < 400) {
+      linkedSha256 ||= sha256FromHeaders(res.headers);
+      const location = res.headers.get("location");
+      await res.body?.cancel();
+      if (!location) return { res, linkedSha256 };
+      current = new URL(location, current).toString();
+      continue;
+    }
+    linkedSha256 ||= sha256FromHeaders(res.headers);
+    return { res, linkedSha256 };
+  }
+  throw new Error(`too many redirects (${new URL(url).host})`);
 }
 
 async function hashFile(path: string): Promise<string> {
@@ -67,12 +94,11 @@ async function downloadFromUrl(
     if (offset > 0) headers["range"] = `bytes=${offset}-`;
   }
 
-  const res = await fetch(url, { headers });
+  const { res, linkedSha256: expected } = await fetchFollow(url, headers);
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
 
   const resumed = res.status === 206 && offset > 0;
   if (!resumed) offset = 0;
-  const expected = sha256FromHeaders(res.headers);
   if (resumed && meta && expected && meta.etag && meta.etag !== expected) {
     // 服务端文件已变化，续传无意义：从头重下
     rmSync(part, { force: true });
