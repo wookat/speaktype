@@ -121,6 +121,8 @@ export class Dictation {
   private handsFreeSilentRounds = 0;
   /** 本次免按会话内已落过字：后续句子若以拉丁字母/数字开头需补一个空格分隔 */
   private handsFreeTyped = false;
+  /** 免按被其他热键结束：本次收尾的静音分支不再叠加「没听清」toast 覆盖退出提示 */
+  private handsFreeEndedByKey = false;
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
@@ -354,6 +356,7 @@ export class Dictation {
     if (this.handsFree) {
       // 免按聆听中按了长按/改写热键：明确告知已退出，避免用户以为还在听
       this.handsFree = false;
+      this.handsFreeEndedByKey = true;
       this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
     }
     if (!this.busy) return;
@@ -487,6 +490,8 @@ export class Dictation {
       translator(),
     );
     const durationMs = Date.now() - this.startedAt;
+    const endedByKey = this.handsFreeEndedByKey;
+    this.handsFreeEndedByKey = false;
 
     this.deps.recorder()?.webContents.send("recorder:stop");
     this.unmute();
@@ -501,7 +506,7 @@ export class Dictation {
       this.partial = "";
       this.report("idle");
       if (this.maybeContinueHandsFree(true)) return;
-      this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
+      if (!endedByKey) this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
       return;
     }
 
