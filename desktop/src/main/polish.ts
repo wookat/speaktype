@@ -43,36 +43,69 @@ const EN_BREAK_WORDS = ["but", "so", "because", "however", "then", "also", "othe
 const EN_BREAK_SET = new Set(EN_BREAK_WORDS);
 // 距上个标点超过这么多词就在连接词处补句号，否则补逗号
 const EN_SENTENCE_WORDS = 12;
+// 疑问句起始词：整句以它开头时句尾给 "?" 而不是 "."
+const EN_QUESTION_SET = new Set([
+  "can", "could", "would", "will", "should", "shall",
+  "do", "does", "did", "is", "are", "was", "were",
+  "what", "when", "where", "who", "why", "how", "which",
+]);
+// "I" 后面跟这些助动/常用动词时按新句句首处理（"…, I will…" 是极高频句界）
+const EN_I_AUX_SET = new Set([
+  "will", "would", "can", "could", "am", "was", "have", "had",
+  "should", "shall", "did", "do", "think", "need", "want", "hope",
+]);
 
-/** 英文兜底断句：几乎无标点时按连接词补逗号/句号，并补首字母大写与句尾句号 */
+// 句中天然大写的常见专有名词（星期/月份），不能当句界信号
+const EN_PROPER_SET = new Set([
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  "january", "february", "march", "april", "may", "june", "july",
+  "august", "september", "october", "november", "december",
+]);
+
+/** 英文兜底断句：几乎无标点时按连接词补逗号/句号，并补首字母大写与句尾句号/问号 */
 function addEnglishPunctuation(text: string): string {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length < 6) return text;
-  const punctCount = (text.match(/[.!?,;]/g) ?? []).length;
-  if (punctCount > words.length / 10) return text;
+  // 只统计句末标点：ASR 常拿逗号占位句界，不能因逗号多就整体放弃
+  const endPunct = (text.match(/[.!?]/g) ?? []).length;
+  if (endPunct > words.length / 10) return text;
   const out: string[] = [];
   let sincePunct = 0;
   let capitalizeNext = true;
+  let sentenceStart = 0;
+  const closeSentence = (): void => {
+    const first = out[sentenceStart]?.toLowerCase().replace(/[^a-z']/g, "") ?? "";
+    const mark = EN_QUESTION_SET.has(first) ? "?" : ".";
+    out[out.length - 1] = out[out.length - 1]!.replace(/[,;]$/, "") + mark;
+    sentenceStart = out.length;
+    sincePunct = 0;
+    capitalizeNext = true;
+  };
   for (let i = 0; i < words.length; i++) {
     let word = words[i]!;
-    // ASR 保留的句首大写是最可靠的句界信号：大写开头（非 I/缩写）前补句号
-    if (i > 0 && sincePunct >= 3 && /^[A-Z][a-z]/.test(word) && word !== "I") {
+    // ASR 保留的句首大写是最可靠的句界信号；"逗号+大写开头"直接把逗号升级成句号
+    const isCapitalStarter =
+      (/^[A-Z][a-z]/.test(word) && !EN_PROPER_SET.has(word.toLowerCase())) ||
+      (word === "I" && EN_I_AUX_SET.has((words[i + 1] ?? "").toLowerCase()));
+    if (i > 0 && isCapitalStarter) {
       const prev = out[out.length - 1]!;
-      if (!/[.!?,;]$/.test(prev)) {
-        out[out.length - 1] = `${prev}.`;
-        sincePunct = 0;
+      // 逗号升级句号要求前面从句够长，避免把 "yesterday, John…" 这类前置短语拆散
+      if (
+        (/[,;]$/.test(prev) && out.length - sentenceStart >= 4) ||
+        (sincePunct >= 3 && !/[.!?,;]$/.test(prev))
+      ) {
+        closeSentence();
       }
     }
     if (i > 0 && sincePunct >= 3 && EN_BREAK_SET.has(word.toLowerCase())) {
       const prev = out[out.length - 1]!;
       if (!/[.!?,;]$/.test(prev)) {
         if (sincePunct >= EN_SENTENCE_WORDS) {
-          out[out.length - 1] = `${prev}.`;
-          capitalizeNext = true;
+          closeSentence();
         } else {
           out[out.length - 1] = `${prev},`;
+          sincePunct = 0;
         }
-        sincePunct = 0;
       }
     }
     if (capitalizeNext && /^[a-z]/.test(word)) word = word[0]!.toUpperCase() + word.slice(1);
@@ -80,10 +113,10 @@ function addEnglishPunctuation(text: string): string {
     if (/[.!?,;]$/.test(word)) sincePunct = 0;
     else sincePunct++;
     out.push(word);
+    if (/[.!?]$/.test(word)) sentenceStart = out.length;
   }
-  let result = out.join(" ");
-  if (/[a-zA-Z0-9]$/.test(result)) result += ".";
-  return result;
+  if (/[a-zA-Z0-9,;]$/.test(out[out.length - 1]!)) closeSentence();
+  return out.join(" ");
 }
 
 /**

@@ -38,6 +38,7 @@ export const ko: LocaleDict = {
   "history.clearConfirm": "모든 기록을 지울까요?",
   "history.clearYes": "지우기",
   "history.empty": "아직 기록이 없습니다",
+  "history.showMore": "더 보기 (남은 {{count}}개)",
   "history.emptyHint": "단축키를 누른 채 말하면 여기에 기록됩니다",
   "history.copy": "복사",
   "history.delete": "삭제",

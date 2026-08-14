@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, readFileSync, renameSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
 import Store from "electron-store";
@@ -85,8 +85,19 @@ const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
 function backupIfCorrupt(): boolean {
   const file = join(app.getPath("userData"), "speaktype.json");
   if (!existsSync(file)) return false;
+  // 预检必须和 electron-store 的解析器同样严格：它不剥 BOM，带 BOM 一样算损坏
+  const raw = readFileSync(file, "utf8");
   try {
-    JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, ""));
+    JSON.parse(raw);
+    return false;
+  } catch {
+    /* 继续走修复/备份 */
+  }
+  // 仅带 BOM（记事本另存的常见形态）：剥掉后写回即可修复，数据零丢失
+  try {
+    const stripped = raw.replace(/^\uFEFF/, "");
+    JSON.parse(stripped);
+    writeFileSync(file, stripped, "utf8");
     return false;
   } catch {
     try {
