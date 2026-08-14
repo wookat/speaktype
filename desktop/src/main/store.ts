@@ -5,6 +5,10 @@ import Store from "electron-store";
 import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { HistoryItem, Persona, Settings, Stats } from "../shared/types";
 
+// 系统语言决定默认本地模型：中日韩粵用 SenseVoice；英语/欧洲语系用 Parakeet（这些语言准确率更高）。只影响全新用户默认值
+const SYS_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
+const CJK_LOCALE = /^(zh|ja|ko|yue)/.test(SYS_LOCALE);
+
 export const DEFAULT_SETTINGS: Settings = {
   // Alt+Space 是 Windows 系统菜单键，会让目标窗口进入菜单模态吃掉 Ctrl+V，默认避开
   hotkeyToggle: "Alt+Q",
@@ -12,7 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hotkeyRewrite: "F8",
   holdDelayMs: 120,
   minRecordMs: 300,
-  language: "zh",
+  language: CJK_LOCALE ? (SYS_LOCALE.startsWith("yue") ? "yue" : SYS_LOCALE.slice(0, 2)) : "en",
   uiLanguage: "system",
   theme: "system",
   personaId: "default",
@@ -35,7 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   asrBaseUrl: "",
   asrApiKey: "",
   asrModel: "",
-  localModel: "sensevoice-small",
+  localModel: CJK_LOCALE ? "sensevoice-small" : "parakeet-tdt-0.6b-v3",
   localSimplified: true,
   enhancedVad: false,
   enhancedPunct: false,

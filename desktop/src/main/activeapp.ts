@@ -76,6 +76,20 @@ if (isMac) {
   }, 2000).unref();
 }
 
+// Windows 系统壳进程：有窗口句柄但用户不会拿它当落字目标，下拉里只是噪音
+const SYSTEM_APPS = new Set([
+  "applicationframehost.exe",
+  "dwm.exe",
+  "shellexperiencehost.exe",
+  "shutdown.exe",
+  "searchhost.exe",
+  "startmenuexperiencehost.exe",
+  "systemsettings.exe",
+  "taskmgr.exe",
+  "textinputhost.exe",
+  "speaktype.exe",
+]);
+
 /** 列出当前有可见窗口的进程名（如 "code.exe"），供人设应用规则下拉选择 */
 export function runningApps(): Promise<string[]> {
   return new Promise((resolve) => {
@@ -103,7 +117,8 @@ export function runningApps(): Promise<string[]> {
           .split(/\r?\n/)
           .map((s) => s.trim().toLowerCase())
           .filter(Boolean)
-          .map((s) => `${s}.exe`);
+          .map((s) => `${s}.exe`)
+          .filter((s) => !SYSTEM_APPS.has(s));
         resolve([...new Set(names)].sort());
       },
     );
