@@ -194,8 +194,8 @@ export const en: LocaleDict = {
     "When recognition fails, keep the recording on this machine so it can be retried from History (max 20 clips / 7 days / 50MB; never uploaded).",
   "settings.enhancedVad": "Enhanced voice detection (Silero VAD)",
   "settings.enhancedVadHint":
-    "Uses a neural network to tell speech from noise — more accurate auto-stop and hallucination filtering. Requires a ~35MB add-on download; runs fully on this machine.",
-  "settings.enhancedVadDownload": "Download add-on (~35MB)",
+    "Uses a neural network to tell speech from noise — more accurate auto-stop and hallucination filtering. Requires a ~3MB add-on download; runs fully on this machine.",
+  "settings.enhancedVadDownload": "Download add-on (~3MB)",
   "settings.enhancedVadDownloading": "Downloading {{progress}}%",
   "settings.enhancedVadReady": "Add-on ready — voice detection upgraded",
   "settings.enhancedVadFallback": "Volume-threshold detection is used until the download finishes",

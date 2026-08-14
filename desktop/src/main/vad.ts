@@ -6,20 +6,13 @@ import log from "electron-log/main.js";
 import type { VadStatus } from "../shared/types";
 
 /**
- * 增强人声检测（Silero VAD v5 + onnxruntime，win-x64）。
- * 运行库与模型不进安装包（体积红线 100MB），首次启用时按需下载到 userData\vad，
+ * 增强人声检测（Silero VAD v5，走 sherpa-onnx 内建 VAD）。
+ * 与 SenseVoice/增强标点共用同一套 onnxruntime，避免双 ORT 版本冲突；
+ * 模型（~2.3MB）不进安装包，首次启用时按需下载到 userData\vad，
  * 未下载或加载失败时上层回退到峰值门槛。
  */
 
-// msvcp140_1/_2：干净机无 VC redist 时 onnxruntime 的加载依赖（msvcp140/vcruntime 已随 whisper 入安装包）
-const FILES = [
-  "onnxruntime.dll",
-  "DirectML.dll",
-  "msvcp140_1.dll",
-  "msvcp140_2.dll",
-  "onnxruntime_binding.node",
-  "silero_vad.onnx",
-] as const;
+const FILES = ["silero_vad.onnx"] as const;
 // 与安装包同一发布分支托管；jsdelivr 作为国内可达的镜像源
 const SOURCES = [
   "https://github.com/wookat/speaktype/raw/dist-v0.1.0/vad",
@@ -27,7 +20,7 @@ const SOURCES = [
 ];
 const WINDOW = 512; // silero v5 @16kHz 固定 512 样本（32ms）
 const SPEECH_PROB = 0.5;
-// 增强包目前只打包了 win-x64 的 onnxruntime 运行库；其他平台回退峰值门槛
+// sherpa-onnx 预编译产物目前只随包带了 win-x64；其他平台回退峰值门槛
 const SUPPORTED = process.platform === "win32" && process.arch === "x64";
 
 function vadDir(): string {
@@ -69,7 +62,7 @@ async function fetchFirst(file: string): Promise<Response> {
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-/** 按需下载 VAD 增强包（约 35MB），进度按多个文件合并计算 */
+/** 按需下载 VAD 模型（约 2.3MB） */
 export async function downloadVad(): Promise<VadStatus> {
   if (!SUPPORTED || status.downloading) return { ...status };
   if (vadDownloaded()) return vadStatus();
@@ -118,23 +111,18 @@ export async function downloadVad(): Promise<VadStatus> {
   return { ...status };
 }
 
-interface OrtBinding {
-  InferenceSession: new () => {
-    loadModel(path: string, options: object): void;
-    run(
-      feeds: Record<string, { type: string; data: Float32Array | BigInt64Array; dims: number[] }>,
-      fetches: Record<string, null>,
-      options: object,
-    ): Record<string, { data: Float32Array; dims: number[] }>;
-  };
+interface SherpaVad {
+  acceptWaveform(samples: Float32Array): void;
+  isDetected(): boolean;
+  isEmpty(): boolean;
+  pop(): void;
 }
 
 let sessionFailed = false; // 加载失败只报一次；重新下载成功后重置
 
-/** 流式 Silero 检测器：喂 16k PCM，按 512 样本窗口输出人声概率 */
+/** 流式 Silero 检测器：喂 16k PCM，按 512 样本窗口统计人声毫秒 */
 export class SileroVad {
-  private session: InstanceType<OrtBinding["InferenceSession"]> | null = null;
-  private state: Float32Array<ArrayBufferLike> = new Float32Array(2 * 128);
+  private vad: SherpaVad | null = null;
   private pending = new Float32Array(WINDOW);
   private pendingLen = 0;
 
@@ -142,11 +130,27 @@ export class SileroVad {
     if (sessionFailed || !vadDownloaded()) return null;
     try {
       const require2 = createRequire(import.meta.url);
-      const binding = require2(join(vadDir(), "onnxruntime_binding.node")) as OrtBinding;
-      const vad = new SileroVad();
-      vad.session = new binding.InferenceSession();
-      vad.session.loadModel(join(vadDir(), "silero_vad.onnx"), {});
-      return vad;
+      const mod = require2("sherpa-onnx-node") as {
+        Vad: new (config: object, bufferSizeInSeconds: number) => SherpaVad;
+      };
+      const instance = new SileroVad();
+      instance.vad = new mod.Vad(
+        {
+          sileroVad: {
+            model: join(vadDir(), "silero_vad.onnx"),
+            threshold: SPEECH_PROB,
+            minSpeechDuration: 0.1,
+            minSilenceDuration: 0.25,
+            maxSpeechDuration: 30,
+            windowSize: WINDOW,
+          },
+          sampleRate: 16000,
+          numThreads: 1,
+          debug: 0,
+        },
+        10,
+      );
+      return instance;
     } catch (error) {
       sessionFailed = true; // 加载失败只报一次，之后回退峰值门槛
       log.warn("silero vad load failed, falling back to peak threshold", error);
@@ -156,7 +160,7 @@ export class SileroVad {
 
   /** 返回本次新增的人声毫秒数（凑不满一个窗口的余量留到下次） */
   push(frame: Int16Array): number {
-    if (!this.session) return 0;
+    if (!this.vad) return 0;
     let voicedMs = 0;
     let idx = 0;
     while (idx < frame.length) {
@@ -167,20 +171,12 @@ export class SileroVad {
       if (this.pendingLen === WINDOW) {
         this.pendingLen = 0;
         try {
-          const out = this.session.run(
-            {
-              input: { type: "float32", data: this.pending.slice(), dims: [1, WINDOW] },
-              state: { type: "float32", data: this.state, dims: [2, 1, 128] },
-              sr: { type: "int64", data: BigInt64Array.from([16000n]), dims: [] },
-            },
-            { output: null, stateN: null },
-            {},
-          );
-          this.state = out.stateN!.data;
-          if (out.output!.data[0]! >= SPEECH_PROB) voicedMs += 32;
+          this.vad.acceptWaveform(this.pending.slice());
+          if (this.vad.isDetected()) voicedMs += 32;
+          while (!this.vad.isEmpty()) this.vad.pop(); // 只要检测不要分段，及时排空避免积压
         } catch (error) {
           log.warn("silero vad inference failed", error);
-          this.session = null;
+          this.vad = null;
           return 0;
         }
       }

@@ -4,7 +4,7 @@ import type { Translator } from "../i18n";
 import type { Settings, VadStatus } from "../../../shared/types";
 import { Toggle } from "./Toggle";
 
-/** 增强人声检测：Silero VAD 增强包按需下载（~35MB，不占安装包体积），未下载时开关先引导下载 */
+/** 增强人声检测：Silero VAD 增强包按需下载（~3MB，不占安装包体积），未下载时开关先引导下载 */
 function EnhancedVad(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
   const { t, s, update } = props;
   const [vad, setVad] = useState<VadStatus | null>(null);

@@ -333,6 +333,7 @@ export class Dictation {
   toggleHandsFree(): void {
     if (this.busy || this.handsFree) {
       this.handsFree = false;
+      this.handsFreeEndedByKey = true; // 用户主动退出：本轮静音不再弹「没听清」
       void this.stop();
       return;
     }

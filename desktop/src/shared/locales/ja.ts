@@ -194,8 +194,8 @@ export const ja: LocaleDict = {
     "認識に失敗した録音をこの PC に保存し、履歴から再試行できます（最大 20 件 / 7 日 / 50MB、アップロードされません）。",
   "settings.enhancedVad": "高精度音声検出（Silero VAD）",
   "settings.enhancedVadHint":
-    "ニューラルネットワークで人の声とノイズを区別し、自動終了と幻聴フィルタの精度が向上します。約 35MB のアドオンをダウンロード、完全にローカルで動作。",
-  "settings.enhancedVadDownload": "アドオンをダウンロード（約 35MB）",
+    "ニューラルネットワークで人の声とノイズを区別し、自動終了と幻聴フィルタの精度が向上します。約 3MB のアドオンをダウンロード、完全にローカルで動作。",
+  "settings.enhancedVadDownload": "アドオンをダウンロード（約 3MB）",
   "settings.enhancedVadDownloading": "ダウンロード中 {{progress}}%",
   "settings.enhancedVadReady": "アドオン準備完了 — 音声検出がアップグレードされました",
   "settings.enhancedVadFallback": "ダウンロード完了までは音量しきい値で検出します",
