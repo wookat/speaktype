@@ -105,14 +105,26 @@ function broadcast(payload: StatusPayload): void {
   }
 }
 
-function showToast(title: string, body: string): void {
+let toastAction: (() => void) | null = null;
+
+function showToast(title: string, body: string, action?: { label: string; run: () => void }): void {
   if (!toastWin || toastWin.isDestroyed()) return;
-  toastWin.webContents.send("toast", { title, body });
+  toastAction = action?.run ?? null;
+  toastWin.webContents.send("toast", { title, body, actionLabel: action?.label });
   dockToast(toastWin);
   toastWin.showInactive();
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastWin?.hide(), 2600);
+  // 带操作按钮的 toast 停留久一点，给用户点击时间
+  toastTimer = setTimeout(() => toastWin?.hide(), action ? 6000 : 2600);
 }
+
+ipcMain.on("toast:action", () => {
+  const run = toastAction;
+  toastAction = null;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastWin?.hide();
+  run?.();
+});
 
 const dictation = new Dictation({
   recorder: () => recorderWin,

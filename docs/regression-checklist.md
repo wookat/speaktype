@@ -89,3 +89,8 @@
 ## 纯大小写不学 + 预拨日志（第 35 轮固化）
 - [ ] 英文落字后只改大小写（"report"→"Report"）→ 无 auto-learn、词典不新增（此前会误学并全局强制大写）
 - [ ] 启动约 5 秒后 log 出现 "latest release prefetched: vX.Y.Z"（离线/限流则无此行且不报错）
+
+## 学词 toast 可撤销 + 官网部署抽查（第 36 轮固化）
+- [ ] 自动学词 toast 出现「撤销」按钮，6 秒内点击 → 词从词典移除、历史文本还原、弹「已撤销」确认
+- [ ] 不点撤销 → 6 秒后 toast 自动消失，词保留在词典
+- [ ] docs/ 变更合并到 main 后：wrangler pages deploy docs --project-name=speaktype 手动部署，并线上抽查 speaktype.zalize.com 英/中页新文案已生效

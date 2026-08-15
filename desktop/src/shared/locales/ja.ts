@@ -295,6 +295,9 @@ export const ja: LocaleDict = {
   "toast.polishFallbackBody": "推敲なしの原文を入力しました",
   "toast.learned": "新しい語を学習しました",
   "toast.learnedBody": "「{{word}}」を辞書に追加しました。次回から自動訂正されます",
+  "toast.undo": "元に戻す",
+  "toast.undone": "取り消しました",
+  "toast.undoneBody": "「{{word}}」を辞書から削除しました",
 
   "tray.open": "SpeakType を開く",
   "tray.activate": "音声認識を設定",
