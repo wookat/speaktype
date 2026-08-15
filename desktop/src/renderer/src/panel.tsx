@@ -16,6 +16,7 @@ function Panel() {
   const [levels, setLevels] = useState<number[]>(() => new Array(BAR_COUNT).fill(0.08));
   const [lang, setLang] = useState<{ ui: UiLanguage; system: string }>({ ui: "system", system: "zh-CN" });
   const [captionLines, setCaptionLines] = useState(3);
+  const [captionOverflow, setCaptionOverflow] = useState(false);
   const levelRef = useRef(0);
   const captionRef = useRef<HTMLDivElement | null>(null);
 
@@ -46,8 +47,10 @@ function Panel() {
   // 实时字幕总是滚到最新一个字
   useEffect(() => {
     const el = captionRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [status?.partial]);
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    setCaptionOverflow(el.scrollHeight > el.clientHeight + 1);
+  }, [status?.partial, captionLines]);
 
   const t = getT(lang.ui, lang.system);
 
@@ -64,7 +67,13 @@ function Panel() {
         <div
           ref={captionRef}
           className="mb-2 max-w-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-[#292929]/95 px-4 py-2 text-[13px] leading-snug text-slate-100 shadow-lg [scrollbar-width:none]"
-          style={{ maxHeight: captionLines * CAPTION_LINE_PX + 16 }}
+          style={{
+            maxHeight: captionLines * CAPTION_LINE_PX + 16,
+            // 滚动溢出时顶部渐隐，避免上一行露出半截裁切文字
+            maskImage: captionOverflow
+              ? "linear-gradient(to bottom, transparent 0, black 16px, black 100%)"
+              : undefined,
+          }}
         >
           {status.partial}
         </div>
