@@ -173,6 +173,7 @@ export const ko: LocaleDict = {
   "settings.remoteRelayUrlHint": "기본값은 공식 중계(오디오는 중계만 되며 저장되지 않음). 직접 배포한 Cloudflare Worker로 교체 가능.",
   "settings.remoteMicStepsRelay": "휴대폰으로 QR을 스캔(어느 네트워크든 가능)하고 둥근 버튼을 누른 채 말하고 떼면 입력됩니다. 홈 화면에 추가하면 앱처럼 쓸 수 있고, 아래 페어링 코드를 입력해도 됩니다.",
   "settings.remoteMicPairCode": "페어링 코드(휴대폰 앱에 입력):",
+  "settings.remoteMicRelayError": "릴레이 서버에 연결할 수 없습니다. 릴레이 주소와 네트워크를 확인하세요. 재시도 중…",
 
   "settings.asr": "음성 인식 서비스",
   "settings.asrHint":

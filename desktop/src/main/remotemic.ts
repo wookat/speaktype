@@ -9,6 +9,7 @@ import QRCode from "qrcode";
 import selfsigned from "selfsigned";
 import { WebSocketServer, WebSocket } from "ws";
 import type { RemoteMicInfo, StatusPayload } from "../shared/types";
+import { currentLanguage, t } from "./i18n";
 
 const PORT_BASE = 43117;
 const PORT_TRIES = 10;
@@ -32,6 +33,9 @@ let relayRoom = "";
 let relayBase = "";
 let relayStopped = true;
 let relayPhoneConnected = false;
+/** 中转连续建联失败计数：达到阈值后在设置页显示可见错误，成功建联即清零 */
+let relayFails = 0;
+const RELAY_FAIL_VISIBLE = 3;
 let info: RemoteMicInfo = { running: false, url: "", qrDataUrl: "", clients: 0 };
 /** 当前持有录音会话的手机连接：只有它能推流/结束，避免多台手机互相打架 */
 let activeWs: WebSocket | null = null;
@@ -65,9 +69,46 @@ async function loadCert(): Promise<{ key: string; cert: string }> {
   return { key: pems.private, cert: pems.cert };
 }
 
+/** 配对页文案：跟随桌面端界面语言（中文界面给中文，其余给英文） */
+function pageStrings(): Record<string, string> {
+  const zh = currentLanguage().startsWith("zh");
+  return zh
+    ? {
+        lang: "zh",
+        connecting: "连接中…",
+        connected: "已连接电脑",
+        reconnecting: "连接断开，正在重连…",
+        transcribing: "转写中…",
+        polishing: "润色中…",
+        error: "出错了",
+        busy: "电脑端正在录音，请稍候",
+        hold: "按住说话",
+        release: "松手结束",
+        recording: "录音中…",
+        micDenied: "麦克风权限被拒绝",
+        footer: "松手后文字会落到电脑光标处 · 音频仅经局域网传输",
+      }
+    : {
+        lang: "en",
+        connecting: "Connecting…",
+        connected: "Connected to your PC",
+        reconnecting: "Disconnected, reconnecting…",
+        transcribing: "Transcribing…",
+        polishing: "Polishing…",
+        error: "Something went wrong",
+        busy: "Your PC is recording, please wait",
+        hold: "Hold to talk",
+        release: "Release to finish",
+        recording: "Recording…",
+        micDenied: "Microphone permission denied",
+        footer: "Text lands at your PC cursor on release · audio stays on your local network",
+      };
+}
+
 function page(): string {
+  const L = pageStrings();
   return `<!doctype html>
-<html lang="zh">
+<html lang="${L.lang}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -90,11 +131,12 @@ function page(): string {
 </style>
 </head>
 <body>
-<header><h1>SpeakType</h1><div id="state">连接中…</div></header>
+<header><h1>SpeakType</h1><div id="state">${L.connecting}</div></header>
 <div id="partial"></div>
-<button id="talk" disabled>按住说话</button>
-<footer>松手后文字会落到电脑光标处 · 音频仅经局域网传输</footer>
+<button id="talk" disabled>${L.hold}</button>
+<footer>${L.footer}</footer>
 <script>
+const L = ${JSON.stringify(L)};
 const token = new URLSearchParams(location.search).get("t") || "";
 const stateEl = document.getElementById("state");
 const partialEl = document.getElementById("partial");
@@ -104,19 +146,19 @@ let ws = null, ctx = null, stream = null, node = null, holding = false;
 function connect() {
   ws = new WebSocket("wss://" + location.host + "/ws?t=" + token);
   ws.binaryType = "arraybuffer";
-  ws.onopen = () => { stateEl.textContent = "已连接电脑"; talk.disabled = false; };
-  ws.onclose = () => { stateEl.textContent = "连接断开，正在重连…"; talk.disabled = true; setTimeout(connect, 1500); };
+  ws.onopen = () => { stateEl.textContent = L.connected; talk.disabled = false; };
+  ws.onclose = () => { stateEl.textContent = L.reconnecting; talk.disabled = true; setTimeout(connect, 1500); };
   ws.onmessage = (ev) => {
     if (typeof ev.data !== "string") return;
     const m = JSON.parse(ev.data);
     if (m.type === "status") {
       partialEl.textContent = m.partial || partialEl.textContent;
-      if (m.state === "transcribing") stateEl.textContent = "转写中…";
-      else if (m.state === "polishing") stateEl.textContent = "润色中…";
-      else if (m.state === "error") stateEl.textContent = m.message || "出错了";
-      else if (m.state === "idle" && !holding) stateEl.textContent = "已连接电脑";
+      if (m.state === "transcribing") stateEl.textContent = L.transcribing;
+      else if (m.state === "polishing") stateEl.textContent = L.polishing;
+      else if (m.state === "error") stateEl.textContent = m.message || L.error;
+      else if (m.state === "idle" && !holding) stateEl.textContent = L.connected;
     }
-    if (m.type === "busy") { stateEl.textContent = "电脑端正在录音，请稍候"; endHold(true); }
+    if (m.type === "busy") { stateEl.textContent = L.busy; endHold(true); }
   };
 }
 connect();
@@ -125,7 +167,7 @@ async function openMic() {
   if (stream) return true;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-  } catch (e) { stateEl.textContent = "麦克风权限被拒绝"; return false; }
+  } catch (e) { stateEl.textContent = L.micDenied; return false; }
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   const src = ctx.createMediaStreamSource(stream);
   node = ctx.createScriptProcessor(4096, 1, 1);
@@ -152,8 +194,8 @@ async function startHold(ev) {
   if (ctx.state === "suspended") await ctx.resume();
   holding = true;
   talk.classList.add("rec");
-  talk.textContent = "松手结束";
-  stateEl.textContent = "录音中…";
+  talk.textContent = L.release;
+  stateEl.textContent = L.recording;
   partialEl.textContent = "";
   ws.send(JSON.stringify({ type: "start" }));
 }
@@ -161,7 +203,7 @@ function endHold(cancel) {
   if (!holding) return;
   holding = false;
   talk.classList.remove("rec");
-  talk.textContent = "按住说话";
+  talk.textContent = L.hold;
   if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: cancel ? "cancel" : "stop" }));
 }
 talk.addEventListener("touchstart", startHold, { passive: false });
@@ -262,6 +304,13 @@ export async function stopRemoteMic(): Promise<void> {
 function connectRelay(d: RemoteMicDeps): void {
   const ws = new WebSocket(`wss://${relayBase}/ws/${relayRoom}?role=desktop`);
   relayWs = ws;
+  ws.on("open", () => {
+    relayFails = 0;
+    if (info.error) {
+      info.error = undefined;
+      d.onClients(info.clients);
+    }
+  });
   ws.on("message", (data, isBinary) => handlePhoneMessage(d, ws, data, isBinary));
   ws.on("error", (error) => log.warn("relay ws error", error));
   ws.on("close", () => {
@@ -273,8 +322,15 @@ function connectRelay(d: RemoteMicDeps): void {
     relayPhoneConnected = false;
     info.clients = 0;
     d.onClients(0);
-    // 开关仍开着时掉线自动重连
-    if (!relayStopped) setTimeout(() => !relayStopped && !relayWs && connectRelay(d), 2000);
+    // 开关仍开着时掉线自动重连；连续失败达到阈值时在设置页显示可见错误
+    if (!relayStopped) {
+      relayFails++;
+      if (relayFails >= RELAY_FAIL_VISIBLE && !info.error) {
+        info.error = t("settings.remoteMicRelayError");
+        d.onClients(info.clients);
+      }
+      setTimeout(() => !relayStopped && !relayWs && connectRelay(d), 2000);
+    }
   });
 }
 
@@ -286,6 +342,7 @@ async function startRelayMic(relayUrl: string, room: string): Promise<RemoteMicI
   relayBase = parsed.host + parsed.pathname.replace(/\/+$/, "");
   relayRoom = room;
   relayStopped = false;
+  relayFails = 0;
   connectRelay(d);
   const url = `https://${relayBase}/m/${relayRoom}`;
   const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });

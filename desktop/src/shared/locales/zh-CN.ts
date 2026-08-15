@@ -169,6 +169,7 @@ export const zhCN = {
   "settings.remoteRelayUrlHint": "默认为官方中转（音频直通不存储），可换成你自部署的 Cloudflare Worker 地址。",
   "settings.remoteMicStepsRelay": "手机扫码打开页面（任意网络可用），按住圆钮说话、松手落字；页面可「添加到主屏幕」当 App 用，也可在 App 里手输下面的配对码。",
   "settings.remoteMicPairCode": "配对码（手机 App 里手输即可连接）：",
+  "settings.remoteMicRelayError": "连不上中转服务器——请检查中转地址和网络，仍在自动重试…",
 
   "settings.asr": "语音识别服务",
   "settings.asrHint":
