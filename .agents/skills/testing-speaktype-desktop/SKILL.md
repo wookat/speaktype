@@ -144,3 +144,11 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Custom English fake-mic WAVs can be generated offline with SAPI TTS: `SpFileStream` + `SpAudioFormat.Type=22` (16kHz mono) writes a wav directly usable as `--use-file-for-fake-audio-capture` source.
 - When launched with fake-mic flags, the SpeakType main window steals foreground: before dictating into Notepad, click its taskbar icon and confirm focus via the Ln/Col status bar.
 - Stats-accounting changes (round 48, PR #103): back up `%APPDATA%\SpeakType\history.json`, zero the `stats` block while the app is closed, then dictate a sentence whose word count differs wildly from its char count (e.g. 5 words / 28 chars) and cross-check history.json numbers against the Home UI. This box's SAPI has English voices only (David/Zira) — mixed CJK/Latin test sentences cannot be TTS-generated naturally.
+
+## Export dialogs and encoding traps (round 50, PR #106)
+- Renderer Blob downloads (Dictionary/History export) open a native Save dialog in Electron: click Save in the GUI first, then verify the file byte-for-byte via shell. The file does not exist until Save is clicked.
+- PowerShell 5 reads UTF-8-without-BOM files as ANSI by default and can corrupt Chinese text when writing back. Always use Get-Content -Raw -Encoding UTF8 / .NET UTF-8 APIs when touching speaktype.json or history.json, and back them up before any script edits.
+
+## Two-step confirm buttons and persona storage (round 51, PR #107)
+- Two-step confirm buttons change label width on first click, which shifts the button center: leave >=0.3s between clicks and aim the second click at the widened label. Zero-interval synthetic double clicks may be swallowed.
+- Personas/rules/current selection live in speaktype.json: top-level personas[] (custom ids like custom-<ts>), settings.personaId, settings.appPersonas. Cascade-cleanup assertions are most reliable via direct shell inspection of that file.
