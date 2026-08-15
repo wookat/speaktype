@@ -35,6 +35,10 @@ const NO_SPEECH_PEAK = 250;
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
 // 免按模式连续这么多轮无人声（每轮约 10s）自动退出，避免忘关后麦克风常开
 const HANDS_FREE_MAX_SILENT_ROUNDS = 6;
+// 免按模式单段上限：超过软上限后遇到第一个非人声帧就分段落字，硬上限即使一直有人声也强制分段，
+// 避免连续说话「一段到底」——中途崩溃全丢、实时字幕 20s 后也不再更新
+const HANDS_FREE_SOFT_SEGMENT_MS = 50000;
+const HANDS_FREE_HARD_SEGMENT_MS = 75000;
 // 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足门槛时视为无有效人声，不送 ASR
 const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
 const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
@@ -239,6 +243,13 @@ export class Dictation {
     this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
     if (voiced) this.lastVoiceAt = now;
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
+    if (this.handsFree) {
+      const elapsed = now - this.startedAt;
+      if (elapsed >= HANDS_FREE_HARD_SEGMENT_MS || (elapsed >= HANDS_FREE_SOFT_SEGMENT_MS && !voiced)) {
+        void this.autoStop();
+        return;
+      }
+    }
     if (voiced) return;
     const settings = getSettings();
     if (!settings.vadAutoStop) return;
