@@ -31,6 +31,7 @@ $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
 $hardStop = (Get-Date).AddSeconds(${MAX_WATCH_SECONDS})
 $last = $null
 $anchorId = $null
+$blurSent = $false
 while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
   $txt = $null
   $id = ''
@@ -55,6 +56,11 @@ while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
   # 光标还在落字那个输入框里就续期（即使什么都没改），离开才开始倒计时
   if ($txt -ne $null -and $id -eq $anchorId) {
     $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
+    $blurSent = $false
+  } elseif ($anchorId -ne $null -and -not $blurSent) {
+    # 焦点离开落字控件：通知节点侧立即结算本轮改动，不等停顿计时器
+    [Console]::Out.WriteLine('BLUR|')
+    $blurSent = $true
   }
   $line = $id + '|' + $txt
   if ($txt -ne $null -and $line -ne $last) {
@@ -268,6 +274,13 @@ export function watchPastedText(
       const sep = line.indexOf("|");
       if (sep < 0) continue;
       const id = line.slice(0, sep);
+      if (id === "BLUR") {
+        if (settleTimer) {
+          clearTimeout(settleTimer);
+          settle();
+        }
+        continue;
+      }
       let text: string;
       try {
         text = Buffer.from(line.slice(sep + 1).trim(), "base64").toString("utf8");

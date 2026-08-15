@@ -30,6 +30,7 @@ export const ja: LocaleDict = {
   "home.steps.2": "任意の入力欄にカーソルを置く",
   "home.steps.3": "{{key}} を押しながら話す",
   "home.steps.4": "キーを離すとカーソル位置に文字が入る",
+  "home.remoteMic": "PC にマイクがない？スマホをマイクとして使う \u2192",
   "home.persona.current": "現在のペルソナ",
   "home.persona.switch": "Alt+1..9 で切り替え",
 
@@ -296,7 +297,7 @@ export const ja: LocaleDict = {
   "toast.learned": "新しい語を学習しました",
   "toast.learnedBody": "「{{word}}」を辞書に追加しました。次回から自動訂正されます",
   "toast.undo": "元に戻す",
-  "toast.undone": "取り消しました",
+  "toast.undone": "元に戻しました",
   "toast.undoneBody": "「{{word}}」を辞書から削除しました",
 
   "tray.open": "SpeakType を開く",

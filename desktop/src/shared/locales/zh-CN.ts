@@ -28,6 +28,7 @@ export const zhCN = {
   "home.steps.2": "把光标定位到任意输入框",
   "home.steps.3": "按住 {{key}}，说出你想输入的内容",
   "home.steps.4": "松开按键，文字自动落到光标处",
+  "home.remoteMic": "电脑没有好麦克风？用手机当麦克风 \u2192",
   "home.persona.current": "当前人设",
   "home.persona.switch": "Alt+1..9 快速切换",
 

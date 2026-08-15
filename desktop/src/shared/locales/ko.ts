@@ -30,6 +30,7 @@ export const ko: LocaleDict = {
   "home.steps.2": "아무 입력창에나 커서를 놓기",
   "home.steps.3": "{{key}} 를 누른 채 말하기",
   "home.steps.4": "키를 떼면 커서 위치에 글자 입력",
+  "home.remoteMic": "PC에 마이크가 없나요? 휴대폰을 마이크로 사용 \u2192",
   "home.persona.current": "현재 페르소나",
   "home.persona.switch": "Alt+1..9 로 전환",
 
