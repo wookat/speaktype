@@ -11,10 +11,10 @@ import pkg from "../../package.json";
 declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { Persona, Settings, StatusPayload } from "../shared/types";
-import { Dictation } from "./dictation";
+import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
-import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao";
+import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, testDoubao } from "./doubao";
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
@@ -107,7 +107,12 @@ function broadcast(payload: StatusPayload): void {
 
 let toastAction: (() => void) | null = null;
 
-function showToast(title: string, body: string, action?: { label: string; run: () => void }): void {
+function showToast(
+  title: string,
+  body: string,
+  action?: { label: string; run: () => void },
+  durationMs?: number,
+): void {
   if (!toastWin || toastWin.isDestroyed()) return;
   toastAction = action?.run ?? null;
   toastWin.webContents.send("toast", { title, body, actionLabel: action?.label });
@@ -115,8 +120,14 @@ function showToast(title: string, body: string, action?: { label: string; run: (
   toastWin.showInactive();
   if (toastTimer) clearTimeout(toastTimer);
   // 带操作按钮的 toast 停留久一点，给用户点击时间
-  toastTimer = setTimeout(() => toastWin?.hide(), action ? 6000 : 2600);
+  toastTimer = setTimeout(() => toastWin?.hide(), durationMs ?? (action ? 6000 : 2600));
 }
+
+// 悬停暂停自动隐藏，移开后短暂宽限再收起
+ipcMain.on("toast:hover", (_e, hovering: boolean) => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = hovering ? null : setTimeout(() => toastWin?.hide(), 2000);
+});
 
 ipcMain.on("toast:action", () => {
   const run = toastAction;
@@ -330,6 +341,7 @@ function registerIpc(): void {
   ipcMain.handle("history:list", () => getHistory());
   ipcMain.handle("history:clear", () => {
     clearHistory();
+    clearFailedAudio();
     return getHistory();
   });
   ipcMain.handle("history:delete", (_e, ids: string[]) => {
@@ -347,6 +359,7 @@ function registerIpc(): void {
   ipcMain.handle("chatgpt:ready", () => chatgptLoggedIn());
   ipcMain.handle("chatgpt:login", () => showChatgptLogin());
   ipcMain.handle("chatgpt:test", () => testChatgpt());
+  ipcMain.handle("doubao:test", () => testDoubao());
   ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => dictation.toggleHandsFree());
   ipcMain.handle("record:cancel", () => dictation.cancel());

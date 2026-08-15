@@ -32,6 +32,7 @@ function VoiceTab(props: {
 
   const [chatgptReady, setChatgptReady] = useState(false);
   const [chatgptDetail, setChatgptDetail] = useState("");
+  const [doubaoDetail, setDoubaoDetail] = useState("");
   useEffect(() => {
     if (s.asrProvider === "chatgpt") void api.chatgptReady().then(setChatgptReady);
   }, [s.asrProvider]);
@@ -189,6 +190,19 @@ function VoiceTab(props: {
               value={s.doubaoAppKey}
               onChange={(e) => update({ doubaoAppKey: e.target.value.trim() })}
             />
+          </Row>
+          <Row label={t("settings.chatgptTest")} hint={doubaoDetail || t("settings.chatgptTestHint")}>
+            <button
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50"
+              onClick={() => {
+                setDoubaoDetail(t("settings.modelTesting"));
+                void api.testDoubao().then(({ ok, detail }) => {
+                  setDoubaoDetail(`${ok ? "OK" : "FAIL"} · ${detail.slice(0, 160)}`);
+                });
+              }}
+            >
+              {t("settings.chatgptTest")}
+            </button>
           </Row>
         </>
       ) : (

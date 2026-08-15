@@ -50,6 +50,7 @@ const api = {
   chatgptReady: (): Promise<boolean> => ipcRenderer.invoke("chatgpt:ready"),
   loginChatgpt: (): Promise<void> => ipcRenderer.invoke("chatgpt:login"),
   testChatgpt: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("chatgpt:test"),
+  testDoubao: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("doubao:test"),
   onboardingDone: (): Promise<void> => ipcRenderer.invoke("onboarding:done"),
   toggleRecord: (): Promise<void> => ipcRenderer.invoke("record:toggle"),
   cancelRecord: (): Promise<void> => ipcRenderer.invoke("record:cancel"),
@@ -127,6 +128,7 @@ const api = {
     return () => ipcRenderer.removeListener("toast", listener);
   },
   toastAction: () => ipcRenderer.send("toast:action"),
+  toastHover: (hovering: boolean) => ipcRenderer.send("toast:hover", hovering),
 
   recorder: {
     onStart: (fn: (opts: { deviceId: string }) => void) =>

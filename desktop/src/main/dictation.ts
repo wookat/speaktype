@@ -69,6 +69,11 @@ function pruneFailedAudio(): void {
   });
 }
 
+/** 清空历史时一并删掉落盘的失败录音 */
+export function clearFailedAudio(): void {
+  rmSync(failedAudioDir(), { recursive: true, force: true });
+}
+
 function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
   if (!getSettings().keepFailedAudio) return undefined;
   try {
@@ -95,7 +100,12 @@ function wavToFrames(file: string): Int16Array[] {
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
   broadcast: (payload: StatusPayload) => void;
-  showToast: (title: string, body: string, action?: { label: string; run: () => void }) => void;
+  showToast: (
+    title: string,
+    body: string,
+    action?: { label: string; run: () => void },
+    durationMs?: number,
+  ) => void;
   /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
   pushSettings: () => void;
   /** 打开主窗口并跳到 设置→模型 tab（改写缺润色模型时引导用户去配） */
@@ -313,10 +323,12 @@ export class Dictation {
       // 配置类失败（未登录/未填 key/模型未下载）只闪状态条用户看不见：补常驻 toast 并直达设置
       const configErrors = [t("error.noAppKey"), t("error.noAsrConfig"), t("error.localModelMissing")];
       if (configErrors.includes(message)) {
-        this.deps.showToast(t("toast.asrNotConfigured"), message, {
-          label: t("toast.openSettingsAction"),
-          run: () => this.deps.openModelSettings(),
-        });
+        this.deps.showToast(
+          t("toast.asrNotConfigured"),
+          message,
+          { label: t("toast.openSettingsAction"), run: () => this.deps.openModelSettings() },
+          12000,
+        );
       }
       this.report("error", message);
     }
