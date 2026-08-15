@@ -283,6 +283,8 @@ export const en: LocaleDict = {
   "toast.historyRecoveredBody": "The history file was corrupted and has been reset; a backup was saved as history.json.bad. Settings are unaffected.",
   "toast.noSpeech": "Didn't catch that",
   "toast.configRecovered": "Settings rebuilt",
+  "toast.modelReady": "Offline model ready",
+  "toast.modelReadyBody": "All set — hold your talk key and say your first sentence.",
   "toast.configRecoveredBody": "The config file was corrupted and has been reset; a backup was saved as speaktype.json.bad.",
   "toast.noSpeechBody": "No speech detected — try again",
   "toast.pasteFailed": "Paste failed, copied to clipboard",
