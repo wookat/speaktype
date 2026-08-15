@@ -36,7 +36,8 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
     a.click();
     URL.revokeObjectURL(url);
   };
-  const filtered = query ? words.filter((w) => w.includes(query)) : words;
+  const q = query.trim().toLowerCase();
+  const filtered = q ? words.filter((w) => w.toLowerCase().includes(q)) : words;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -104,7 +105,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
       {filtered.length === 0 ? (
         <div className="mt-12 text-center text-sm text-slate-400">
           {words.length > 0 ? (
-            t("history.noResults")
+            t("dict.noResults")
           ) : (
             <>
               {t("dict.empty")}

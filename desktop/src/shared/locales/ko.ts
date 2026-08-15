@@ -86,6 +86,7 @@ export const ko: LocaleDict = {
   "dict.count": "{{count}}/300 핫워드",
   "dict.limitReached": "사전은 최대 300개 핫워드까지 지원합니다. {{count}}개 단어는 추가되지 않았습니다.",
   "dict.manage": "핫워드 관리",
+  "dict.noResults": "일치하는 핫워드가 없습니다.",
   "dict.empty": "아직 핫워드가 없습니다",
   "dict.emptyHint": "인명이나 전문 용어를 추가하면 인식 시 우선 반영됩니다",
   "dict.autoLearn": "수정에서 자동 학습",
