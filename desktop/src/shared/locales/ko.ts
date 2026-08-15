@@ -111,6 +111,7 @@ export const ko: LocaleDict = {
   "settings.holdCaptureUnsupported": "이 키는 길게 누르기 키로 사용할 수 없습니다. 지원: 문자/기능 키/보조 키, 마우스 측면·가운데 버튼(단일 키만, 조합 불가).",
   "settings.rewriteKey": "선택 텍스트 다시 쓰기",
   "settings.rewriteKeyOff": "끄기",
+  "settings.rewriteKeyConflict": "누른 채 말하기 키와 같아 다시 쓰기가 비활성화됩니다. 다른 키를 선택하세요.",
   "settings.rewriteKeyHint": "텍스트를 선택하고 {{key}} 를 누른 채 지시(예: \"영어로 번역\", \"더 정중하게\")를 말하면 손을 뗄 때 선택 영역이 교체됩니다. 다듬기 모델 설정이 필요합니다.",
   "settings.rewriteKeyOffHint": "선택한 텍스트 위에서 키를 누른 채 지시를 말하면 다시 쓰기/번역됩니다. 키를 고르면 켜집니다.",
   "settings.toggle": "핸즈프리 모드",

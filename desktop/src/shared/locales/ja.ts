@@ -111,6 +111,7 @@ export const ja: LocaleDict = {
   "settings.holdCaptureUnsupported": "このキーは長押しキーに使えません。対応：英字/ファンクションキー/修飾キー、マウスサイド/ミドルボタン（単キーのみ、組み合わせ不可）。",
   "settings.rewriteKey": "選択テキストを書き換え",
   "settings.rewriteKeyOff": "オフ",
+  "settings.rewriteKeyConflict": "押しながら話すキーと同じため、書き換えは無効になります。別のキーを選んでください。",
   "settings.rewriteKeyHint": "テキストを選択して {{key}} を押しながら指示（例：「英語に翻訳」「もっと丁寧に」）を話すと、離した時点で選択範囲が置き換わります。推敲モデルの設定が必要です。",
   "settings.rewriteKeyOffHint": "選択したテキストの上でキーを押しながら指示を話すと書き換え／翻訳できます。キーを選ぶと有効になります。",
   "settings.toggle": "ハンズフリーモード",

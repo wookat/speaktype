@@ -14,7 +14,7 @@ function toSimplified(text: string): string {
 }
 
 const SAMPLE_RATE = 16000;
-// 离线流式字幕：每 1s 重解一次已录音频，1s 起步、超过 20s 停止预览（重解耗时随长度线性增长）
+// 离线流式字幕：每 1s 重解一次已录音频，1s 起步；超过 20s 后改解最后 20s 滑窗，成本恒定、字幕不断供
 const PARTIAL_TICK_MS = 250;
 const PARTIAL_INTERVAL_MS = 1000;
 const PARTIAL_MIN_SAMPLES = SAMPLE_RATE;
@@ -187,19 +187,23 @@ export function startLocalAsrSession(
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
   if (!isSherpaModel(model)) ensureLocalServer(model).catch(() => undefined);
 
-  // sherpa 系是整句模型，流式字幕靠定时重解已录部分近似；只在音频够长且
-  // 不过长时做，超过上限停掉预览留给最终识别
+  // sherpa 系是整句模型，流式字幕靠定时重解已录部分近似；超过上限后只解
+  // 最后一段滑窗，预览成本不随录音时长线性增长，长句字幕也不会冻结
   let timer: NodeJS.Timeout | null = null;
   if (onPartial && isSherpaModel(model)) {
     let inFlight = false;
     let nextAt = 0;
     timer = setInterval(() => {
       const samples = frames.reduce((sum, f) => sum + f.length, 0);
-      if (inFlight || samples < PARTIAL_MIN_SAMPLES || samples > PARTIAL_MAX_SAMPLES) return;
+      if (inFlight || samples < PARTIAL_MIN_SAMPLES) return;
       if (Date.now() < nextAt) return;
       inFlight = true;
       const started = Date.now();
-      void transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto")
+      const audio = pcmToFloat32(frames);
+      // slice 而非 subarray：worker postMessage 结构化克隆会拷整个底层 buffer
+      const window =
+        audio.length > PARTIAL_MAX_SAMPLES ? audio.slice(audio.length - PARTIAL_MAX_SAMPLES) : audio;
+      void transcribeSherpa(model, window, SAMPLE_RATE, settings.language || "auto")
         .then((text) => {
           // 解码在 worker 里，但仍串行；按上次耗时拉开间隔，别让预览霸占识别线程
           nextAt = Date.now() + Math.max(PARTIAL_INTERVAL_MS, (Date.now() - started) * 2);

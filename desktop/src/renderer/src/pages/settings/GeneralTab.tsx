@@ -105,6 +105,9 @@ function GeneralTab(props: {
               </option>
             ))}
           </select>
+          {s.hotkeyRewrite !== "Off" && s.hotkeyRewrite === s.hotkeyHold && (
+            <div className="mt-1 text-xs text-amber-600">{t("settings.rewriteKeyConflict")}</div>
+          )}
         </Row>
         <Row label={t("settings.toggle")} hint={t("settings.toggleHint", { key: s.hotkeyToggle })}>
           <select
