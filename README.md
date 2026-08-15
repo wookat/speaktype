@@ -62,7 +62,7 @@ Most AI dictation tools are closed source, or route your voice through the vendo
 2. **Any OpenAI-compatible `/audio/transcriptions` API** — Base URL + API key + model name. Presets for OpenAI Whisper, Groq (free tier), Fireworks, Mistral Voxtral, SiliconFlow and Alibaba Bailian, with a connection test.
 3. **No-API-key web providers** — ChatGPT web transcription (a free OpenAI account works) or Doubao voice, both reusing a session you sign into yourself inside the app. These use undocumented endpoints, are off by default, and may break or conflict with those services' terms — the account risk is yours to judge. See [DISCLAIMER.md](DISCLAIMER.md).
 
-AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Google Gemini's OpenAI-compatible endpoint, Groq, DeepSeek, Zhipu GLM-4-Flash, Kimi, Qwen, or a local Ollama…). Without one, a local cleanup pass still handles self-corrections ("5pm — no, 6pm" → "6pm").
+AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Google Gemini's OpenAI-compatible endpoint, Groq, DeepSeek, Zhipu GLM-4-Flash, Kimi, Qwen, or a local Ollama / LM Studio endpoint — for local endpoints the API key can be left empty). Without one, a local cleanup pass still handles self-corrections ("5pm — no, 6pm" → "6pm").
 
 ## 📦 Download & install
 

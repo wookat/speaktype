@@ -62,7 +62,7 @@
 2. **任意 OpenAI 兼容转写接口**：填 Base URL + API Key + 模型名即可，内置 OpenAI Whisper / Groq（有免费额度）/ Fireworks / Mistral Voxtral / SiliconFlow / 阿里云百炼 预设，带测试连接。
 3. **免 API Key 的网页通道**：ChatGPT 网页转写（免费账号也能用）或豆包语音，都是在应用内登录一次后复用你自己的会话。两条走的都是非公开接口，默认关闭，可能失效或与对方条款冲突，账号风险请自行判断，详见 [DISCLAIMER.md](DISCLAIMER.md)。
 
-AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 OpenAI 兼容端点 / Groq / DeepSeek / 智谱 GLM-4-Flash / Kimi / 通义 / 本地 Ollama…），不配置则只做本地口语清理（如「5 点，不对，6 点」→「6 点」），不影响识别。
+AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 OpenAI 兼容端点 / Groq / DeepSeek / 智谱 GLM-4-Flash / Kimi / 通义 / 本地 Ollama、LM Studio——本地端点 API Key 可留空），不配置则只做本地口语清理（如「5 点，不对，6 点」→「6 点」），不影响识别。
 
 ## 📦 下载安装
 
