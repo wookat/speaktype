@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, readFileSync, renameSync, writeFileSync } fro
 import { join } from "node:path";
 import { app } from "electron";
 import Store from "electron-store";
+import log from "electron-log/main.js";
 import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { HistoryItem, Persona, Settings, Stats } from "../shared/types";
 
@@ -221,6 +222,20 @@ export function setCustomPersonas(list: Persona[]): void {
     "personas",
     list.filter((p) => !p.builtin),
   );
+}
+
+/** 清洗指向已不存在人设的引用（历史版本删除人设不清理规则留下的存量脏数据） */
+export function pruneStalePersonaRefs(): void {
+  const ids = new Set(getPersonas().map((p) => p.id));
+  const settings = getSettings();
+  const patch: Partial<Settings> = {};
+  const rules = settings.appPersonas.filter((r) => ids.has(r.personaId));
+  if (rules.length !== settings.appPersonas.length) patch.appPersonas = rules;
+  if (!ids.has(settings.personaId)) patch.personaId = "default";
+  if (Object.keys(patch).length > 0) {
+    setSettings(patch);
+    log.info("pruned stale persona refs", patch);
+  }
 }
 
 export function findPersona(id: string): Persona {

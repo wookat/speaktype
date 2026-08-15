@@ -274,6 +274,8 @@ export async function rewriteSelection(
   instruction: string,
 ): Promise<string | null> {
   if (!settings.polishBaseUrl) return null;
+  // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
+  instruction = correctHotwords(instruction, settings.hotwords);
   const prompt = [
     "你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。",
     "要求：",

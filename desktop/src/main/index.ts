@@ -38,6 +38,7 @@ import {
   getSettings,
   getStats,
   isOnboarded,
+  pruneStalePersonaRefs,
   setCustomPersonas,
   setOnboarded,
   setSettings,
@@ -429,6 +430,7 @@ function registerIpc(): void {
 }
 
 void app.whenReady().then(() => {
+  pruneStalePersonaRefs();
   registerIpc();
   const startHidden = getSettings().startMinimized && process.argv.includes("--hidden");
   mainWin = createMainWindow(!startHidden);
