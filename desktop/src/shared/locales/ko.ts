@@ -257,7 +257,7 @@ export const ko: LocaleDict = {
   "settings.about.license": "라이선스",
   "settings.about.author": "제작자 및 메인테이너",
   "settings.about.contribute": "기여하기",
-  "settings.about.updateAvailable": "새 버전 {version}이(가) 출시되었습니다:",
+  "settings.about.updateAvailable": "새 버전 {{version}}이(가) 출시되었습니다:",
   "settings.about.logs": "로그",
   "settings.about.logsOpen": "로그 폴더 열기",
   "settings.about.contributeDesc": "Issue 와 Pull Request 를 환영합니다 — 함께 훌륭한 오픈소스 음성 입력을 만들어요.",

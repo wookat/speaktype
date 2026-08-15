@@ -257,7 +257,7 @@ export const ja: LocaleDict = {
   "settings.about.license": "ライセンス",
   "settings.about.author": "作者・メンテナー",
   "settings.about.contribute": "コントリビュート",
-  "settings.about.updateAvailable": "新しいバージョン {version} が公開されています：",
+  "settings.about.updateAvailable": "新しいバージョン {{version}} が公開されています：",
   "settings.about.logs": "ログ",
   "settings.about.logsOpen": "ログフォルダを開く",
   "settings.about.contributeDesc": "Issue と Pull Request を歓迎します — 一緒に優れたオープンソース音声入力を作りましょう。",
