@@ -73,3 +73,7 @@
 ## whisper-server 切模型即时释放 + 新版提示启动预拨（第 31 轮固化）
 - [ ] whisper 系模型听写一句后切到 SenseVoice → log 出现 "local whisper-server stopped"，whisper-server.exe 进程退出
 - [ ] 启动约 5 秒后 log 已完成 latest release 预拨 → 首次打开关于页新版横幅无需等待网络
+
+## 英文热词纠错 + whisper 主动停服不告警（第 32 轮固化）
+- [ ] 词典加 "SpeakType" → 听写出 "speak type"/"speaktype"/"Speaktype" 均落字为 "SpeakType"；"speak types"（复数）与跨标点 "speak. type" 不误替换
+- [ ] whisper 模型切走（主动 stopLocalServer）→ log 只有 "local whisper-server stopped"，无 "exited (null)" warn；whisper-server 崩溃退出时 warn 仍在

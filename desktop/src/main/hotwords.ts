@@ -34,11 +34,52 @@ function matches(segReadings: string[][], wordReadings: string[][]): boolean {
   return wordReadings.every((wr, i) => segReadings[i]?.some((sr) => wr.includes(sr)));
 }
 
+/** 英文/数字热词（可含空格或连字符），如 "SpeakType"、"GPT-4" */
+const ASCII_WORD = /^[A-Za-z][A-Za-z0-9]*(?:[ -][A-Za-z0-9]+)*$/;
+
+/**
+ * 英文热词：大小写与空格/连字符不敏感的整词替换。
+ * "speak type"/"speaktype"/"Speaktype" → "SpeakType"。只处理去分隔后 ≥4 字符的词，避免短词误替换。
+ */
+function correctAsciiHotword(text: string, word: string): string {
+  const key = word.replace(/[ -]/g, "").toLowerCase();
+  if (key.length < 4) return text;
+  const tokens = [...text.matchAll(/[A-Za-z0-9]+/g)].map((m) => ({
+    start: m.index ?? 0,
+    end: (m.index ?? 0) + m[0].length,
+    text: m[0],
+  }));
+  for (let i = 0; i < tokens.length; i++) {
+    const first = tokens[i];
+    if (!first) break;
+    let joined = "";
+    let end = first.start;
+    for (let j = i; j < tokens.length && joined.length < key.length; j++) {
+      const tk = tokens[j];
+      if (!tk) break;
+      // 相邻 token 之间只允许空格/连字符，不跨标点
+      if (j > i && !/^[ -]+$/.test(text.slice(end, tk.start))) break;
+      joined += tk.text.toLowerCase();
+      end = tk.end;
+      if (joined === key) {
+        const seg = text.slice(first.start, end);
+        if (seg === word) break;
+        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(end), word);
+      }
+    }
+  }
+  return text;
+}
+
 export function correctHotwords(text: string, hotwords: string[]): string {
   if (!text || !hotwords.length) return text;
   let out = text;
   for (const word of hotwords) {
     const trimmed = word.trim();
+    if (ASCII_WORD.test(trimmed)) {
+      out = correctAsciiHotword(out, trimmed);
+      continue;
+    }
     if (trimmed.length < 2 || !CJK.test(trimmed) || out.includes(trimmed)) continue;
     const wordReadings = readings(trimmed);
     const n = trimmed.length;
