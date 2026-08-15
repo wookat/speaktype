@@ -152,3 +152,14 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 ## Two-step confirm buttons and persona storage (round 51, PR #107)
 - Two-step confirm buttons change label width on first click, which shifts the button center: leave >=0.3s between clicks and aim the second click at the widened label. Zero-interval synthetic double clicks may be swallowed.
 - Personas/rules/current selection live in speaktype.json: top-level personas[] (custom ids like custom-<ts>), settings.personaId, settings.appPersonas. Cascade-cleanup assertions are most reliable via direct shell inspection of that file.
+
+## Prompt capture via local mock endpoint (round 52, PR #109)
+- To assert exact polish/rewrite prompt content, run a local Node HTTP mock at 127.0.0.1:18099 that logs the POST JSON body and returns a fixed OpenAI-compatible completion, then point polishBaseUrl at it.
+- Remember polishEnabled=true routes ordinary dictation through the mock too: disable polish when testing local-only hotword correction, or the fixed mock output overwrites the text you want to inspect.
+- Use full local model ids (e.g. `parakeet-tdt-0.6b-v3`, not `parakeet`); a wrong id silently shows the download banner instead of erroring.
+
+## Remote mic (phone-as-mic) testing (round 54, PR #110)
+- Open the pairing page in a browser launched with `--no-proxy-server --ignore-certificate-errors` plus the three fake-mic flags; the LAN page uses a self-signed cert and the box has a dead system proxy.
+- Close the old pairing page BEFORE switching LAN/relay mode: a lingering page WebSocket keeps the HTTPS server alive so startRemoteMic early-returns and the mode toggle silently does nothing.
+- Single-box "text lands in Notepad" checks race pasteText (Ctrl+V to the foreground window ~60ms after mouseup): use a SendInput script that Alt+Tabs within ~25ms of mouseup, or the text lands in the browser.
+- computer-tool coordinates are 1024x768 scaled; the real display is 1280x720 — multiply x by 1.25 and y by 0.9375 when driving SendInput scripts from screenshots.
