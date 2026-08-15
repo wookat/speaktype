@@ -23,9 +23,13 @@ function SettingsPage(props: {
 }) {
   const { t, settings: s } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
+  const [anchor, setAnchor] = useState<string | null>(null);
   useEffect(() => {
     if (!props.jumpTab) return;
-    setTab(props.jumpTab as SettingsTab);
+    // 支持 "tab#区块" 形式：页内入口可直接滚到目标区块（如 general#remote-mic）
+    const [tabId, hash] = props.jumpTab.split("#");
+    setTab(tabId as SettingsTab);
+    setAnchor(hash ?? null);
     props.clearJump();
   }, [props.jumpTab]);
 
@@ -64,6 +68,8 @@ function SettingsPage(props: {
             holdKeyChoices={props.holdKeyChoices}
             rewriteKeyChoices={props.rewriteKeyChoices}
             toggleKeyChoices={props.toggleKeyChoices}
+            anchor={anchor}
+            clearAnchor={() => setAnchor(null)}
           />
         )}
         {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
