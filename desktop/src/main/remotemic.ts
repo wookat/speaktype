@@ -295,6 +295,8 @@ export async function stopRemoteMic(): Promise<void> {
     wss = null;
   }
   if (server) {
+    // 配对页残留的 HTTP keep-alive 连接会让 close 永远等不到回调，进而卡死后续的模式切换
+    server.closeAllConnections();
     await new Promise<void>((resolve) => server?.close(() => resolve()));
     server = null;
   }
