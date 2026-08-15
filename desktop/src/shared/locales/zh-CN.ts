@@ -66,6 +66,7 @@ export const zhCN = {
   "personas.duplicate": "复制并修改",
   "personas.edit": "编辑",
   "personas.delete": "删除",
+  "personas.deleteConfirm": "确认删除？再点一次",
   "personas.appRules": "按应用自动切人设",
   "personas.appRulesHint": "开始说话时看当前窗口，命中关键词就用对应人设润色（如在 VS Code 用“简洁”、在微信用“口语”）。仅读进程名与窗口标题，不读窗口内容，全程本地。",
   "personas.appRuleAdd": "添加规则",

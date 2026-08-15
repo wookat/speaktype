@@ -64,6 +64,7 @@ export const zhTW: LocaleDict = {
   "personas.duplicate": "複製並修改",
   "personas.edit": "編輯",
   "personas.delete": "刪除",
+  "personas.deleteConfirm": "確認刪除？再點一次",
   "personas.appRules": "依應用程式自動切人設",
   "personas.appRulesHint": "開始說話時看目前視窗，命中關鍵字就用對應人設潤色（如在 VS Code 用「簡潔」、在微信用「口語」）。僅讀行程名與視窗標題，不讀視窗內容，全程本機。",
   "personas.appRuleAdd": "新增規則",

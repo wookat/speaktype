@@ -69,6 +69,7 @@ export const ja: LocaleDict = {
   "personas.duplicate": "複製して編集",
   "personas.edit": "編集",
   "personas.delete": "削除",
+  "personas.deleteConfirm": "削除しますか？もう一度クリック",
   "personas.appRules": "アプリごとにペルソナを自動切替",
   "personas.appRulesHint": "話し始めた時点の前面のウィンドウを見て、一致したペルソナで整形します。プロセス名とウィンドウタイトルのみを参照し、すべてローカルで処理します。",
   "personas.appRuleAdd": "ルールを追加",
