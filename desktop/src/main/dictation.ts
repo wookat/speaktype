@@ -5,7 +5,7 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { foregroundWindowKey, personaForActiveApp } from "./activeapp";
+import { foregroundWindowKey, isTerminalForeground, personaForActiveApp } from "./activeapp";
 import {
   pcmToWav,
   preconnectAsr,
@@ -18,7 +18,7 @@ import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from 
 import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { copySelection, pasteText, toggleSystemMute } from "./paste";
-import { polishText, rewriteSelection } from "./polish";
+import { deformatForTerminal, polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
 import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
@@ -644,6 +644,7 @@ export class Dictation {
 
     let failed: string | undefined;
     if (settings.autoPaste || rewriteTarget) {
+      if (!rewriteTarget && isTerminalForeground()) text = deformatForTerminal(text);
       // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
       // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字。
       // hold 模式同理：短间隔内连续口述视为同一段落，一样补句间空格
