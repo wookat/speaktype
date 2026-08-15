@@ -163,3 +163,7 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - LAN/relay mode switching works with the pairing page still connected (since PR #112 stopRemoteMic force-closes lingering connections); verify with `netstat | findstr 43117` plus the `remote mic listening/relaying via` lines in main.log.
 - Single-box "text lands in Notepad" checks race pasteText (Ctrl+V to the foreground window ~60ms after mouseup): use a SendInput script that Alt+Tabs within ~25ms of mouseup, or the text lands in the browser.
 - computer-tool coordinates are 1024x768 scaled; the real display is 1280x720 — multiply x by 1.25 and y by 0.9375 when driving SendInput scripts from screenshots.
+
+## Terminal paste-target testing (round 55, PR #114/#115)
+- Use a real cmd.exe window as the paste target (activeApp reports cmd.exe, which is in TERMINAL_APPS); clicking inside a cmd window enters "select" mark mode that swallows the paste — press Esc before dictating.
+- SAPI-generated short-sentence wav files looped as fake mic input are sometimes misrecognized on the first loop (e.g. "Speak type" → "speight"); assert on the second loop's stable output or lengthen the hold.
