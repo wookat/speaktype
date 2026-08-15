@@ -284,6 +284,8 @@ export const ko: LocaleDict = {
   "toast.noSpeech": "잘 들리지 않았습니다",
   "toast.configRecovered": "설정을 다시 만들었습니다",
   "toast.modelReady": "오프라인 모델 준비 완료",
+  "toast.asrNotConfigured": "음성 인식이 설정되지 않았습니다",
+  "toast.openSettingsAction": "설정 열기",
   "toast.modelReadyBody": "준비 완료 — 말하기 키를 누른 채 첫 문장을 말해 보세요.",
   "toast.configRecoveredBody": "설정 파일이 손상되어 기본값으로 다시 만들었습니다. 백업: speaktype.json.bad.",
   "toast.noSpeechBody": "음성이 감지되지 않았습니다 — 다시 시도하세요",

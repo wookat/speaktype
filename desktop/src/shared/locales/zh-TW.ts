@@ -260,6 +260,8 @@ export const zhTW: LocaleDict = {
   "toast.noSpeech": "沒聽清",
   "toast.configRecovered": "設定已重建",
   "toast.modelReady": "離線模型已就緒",
+  "toast.asrNotConfigured": "語音識別尚未設定",
+  "toast.openSettingsAction": "前往設定",
   "toast.modelReadyBody": "一切就緒——按住說話鍵，說出你的第一句話吧。",
   "toast.configRecoveredBody": "設定檔損壞，已用預設值重建；原檔備份為 speaktype.json.bad。",
   "toast.noSpeechBody": "這次沒識別到內容，再說一次試試",

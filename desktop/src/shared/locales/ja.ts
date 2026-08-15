@@ -284,6 +284,8 @@ export const ja: LocaleDict = {
   "toast.noSpeech": "聞き取れませんでした",
   "toast.configRecovered": "設定を再構築しました",
   "toast.modelReady": "オフラインモデルの準備完了",
+  "toast.asrNotConfigured": "音声認識が未設定です",
+  "toast.openSettingsAction": "設定を開く",
   "toast.modelReadyBody": "準備完了 — トークキーを押しながら最初の一言を話してみましょう。",
   "toast.configRecoveredBody": "設定ファイルが破損していたため初期値で再構築しました。バックアップは speaktype.json.bad です。",
   "toast.noSpeechBody": "音声が検出されませんでした — もう一度お試しください",
