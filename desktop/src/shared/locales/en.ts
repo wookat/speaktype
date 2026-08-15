@@ -91,6 +91,7 @@ export const en: LocaleDict = {
   "dict.autoLearnHint": "After text lands, words you manually fix in the target field are learned into the dictionary (compared locally, never uploaded)",
   "dict.save": "Save",
   "dict.clear": "Clear",
+  "dict.export": "Export",
   "dict.search": "Search hotwords",
 
   "settings.title": "Settings",

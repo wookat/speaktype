@@ -91,6 +91,7 @@ export const ja: LocaleDict = {
   "dict.autoLearnHint": "入力後に手動で直した語を辞書に自動登録します（比較はすべてローカル、アップロードなし）",
   "dict.save": "保存",
   "dict.clear": "消去",
+  "dict.export": "エクスポート",
   "dict.search": "ホットワードを検索",
 
   "settings.title": "設定",

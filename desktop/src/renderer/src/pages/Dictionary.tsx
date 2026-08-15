@@ -26,6 +26,16 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   };
 
   const remove = (word: string) => props.update({ hotwords: words.filter((w) => w !== word) });
+  // 导出一行一词的 .txt，与粘贴导入天然 round-trip
+  const exportWords = () => {
+    const blob = new Blob([`${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `speaktype-dictionary-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const filtered = query ? words.filter((w) => w.includes(query)) : words;
 
   return (
@@ -48,6 +58,13 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
         </div>
       )}
       <div className="mt-2 flex justify-end gap-2">
+        <button
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+          disabled={words.length === 0}
+          onClick={exportWords}
+        >
+          {t("dict.export")}
+        </button>
         <button
           className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40"
           disabled={words.length === 0}
