@@ -261,6 +261,13 @@ export function getStats(): Stats {
   return historyStore.get("stats");
 }
 
+/** 统计口径：CJK 每字计 1 词，拉丁/数字按连续串计 1 词（混排相加），避免英文按字符计虚高 */
+export function countWords(text: string): number {
+  const cjk = (text.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z0-9][A-Za-z0-9'’-]*/g) ?? []).length;
+  return cjk + latin;
+}
+
 export function addStats(words: number, durationMs: number): void {
   const current = getStats();
   historyStore.set("stats", {
