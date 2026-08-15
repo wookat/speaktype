@@ -277,7 +277,10 @@ function registerIpc(): void {
     const next = setSettings(patch);
     applyHotkeys(next);
     // 旧模型 worker 常驻数百 MB～GB：切换本身就是「不再用它」信号，立即释放而非等空闲计时
-    if ("localModel" in patch && next.localModel !== prevModel) releaseSherpaWorker();
+    if ("localModel" in patch && next.localModel !== prevModel) {
+      releaseSherpaWorker();
+      stopLocalServer();
+    }
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
     if ("uiLanguage" in patch) refreshTrayMenu();
     if ("remoteMicEnabled" in patch || "remoteMicMode" in patch || "remoteRelayUrl" in patch) {
@@ -286,9 +289,9 @@ function registerIpc(): void {
     pushSettings();
     return next;
   });
-  // 轻量新版提示（非自动更新）：拨一次 GitHub latest release，失败静默（离线不打扰）
+  // 轻量新版提示（非自动更新）：启动后空闲预拨一次 GitHub latest release，失败静默（离线不打扰）
   let latestTag = "";
-  ipcMain.handle("app:latestVersion", async () => {
+  const fetchLatestTag = async (): Promise<string> => {
     if (latestTag) return latestTag;
     try {
       const res = await fetch("https://api.github.com/repos/wookat/speaktype/releases/latest", {
@@ -299,7 +302,9 @@ function registerIpc(): void {
       // 离线或 API 限流：不提示即可
     }
     return latestTag;
-  });
+  };
+  setTimeout(() => void fetchLatestTag(), 5000);
+  ipcMain.handle("app:latestVersion", () => fetchLatestTag());
   ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("apps:running", () => runningApps());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
