@@ -69,3 +69,7 @@
 以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
 - [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号
 - [ ] "what time is the meeting tomorrow and who is joining" → 疑问句可能收句号而非问号
+
+## whisper-server 切模型即时释放 + 新版提示启动预拨（第 31 轮固化）
+- [ ] whisper 系模型听写一句后切到 SenseVoice → log 出现 "local whisper-server stopped"，whisper-server.exe 进程退出
+- [ ] 启动约 5 秒后 log 已完成 latest release 预拨 → 首次打开关于页新版横幅无需等待网络
