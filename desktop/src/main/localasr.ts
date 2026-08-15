@@ -117,28 +117,36 @@ export function localModelStatus(model: string): LocalModelStatus {
 }
 
 /**
- * 磁盘上已有可续传残片时的模型整体完成百分比；没有残片返回 null。
- * 还没开始下的文件大小未知，按已知部分（已完成文件 + 残片元数据）估算，上限 99。
+ * 磁盘上已有部分进度（可续传残片，或多文件模型里部分文件已完好）时的模型整体完成
+ * 百分比；完全没有进度返回 null。还没开始下且大小未知的文件不计入，上限 99。
  */
 function modelPartialPercent(model: string): number | null {
   let got = 0;
   let total = 0;
-  let hasPart = false;
-  for (const [, dest] of modelFiles(model)) {
+  let hasProgress = false;
+  for (const [, dest, expected] of modelFiles(model)) {
     if (existsSync(dest)) {
       const size = statSync(dest).size;
-      got += size;
-      total += size;
+      if (expected === undefined || size === expected) {
+        got += size;
+        total += size;
+        continue;
+      }
+      // 大小与预期不符（损坏/截断）：按该文件未下载计，其余完好文件仍计入进度
+      total += expected;
+      hasProgress = true;
       continue;
     }
     const p = partialProgress(dest);
     if (p) {
       got += p.got;
       total += p.total;
-      hasPart = true;
+      hasProgress = true;
+    } else if (expected !== undefined) {
+      total += expected;
     }
   }
-  if (!hasPart || total <= 0) return null;
+  if (!hasProgress || total <= 0) return null;
   return Math.min(99, Math.floor((got / total) * 100));
 }
 
