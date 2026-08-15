@@ -257,6 +257,7 @@ export const en: LocaleDict = {
   "settings.about.license": "License",
   "settings.about.author": "Author & maintainers",
   "settings.about.contribute": "Contributing",
+  "settings.about.updateAvailable": "New version {version} is available:",
   "settings.about.logs": "Logs",
   "settings.about.logsOpen": "Open log folder",
   "settings.about.contributeDesc": "Issues and pull requests are welcome — help us build great open-source voice typing.",

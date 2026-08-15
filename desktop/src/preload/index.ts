@@ -62,6 +62,7 @@ const api = {
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open:external", url),
   openLogs: (): Promise<void> => ipcRenderer.invoke("log:open"),
+  latestVersion: (): Promise<string> => ipcRenderer.invoke("app:latestVersion"),
   localModels: (): Promise<Array<{ id: string; size: string }>> => ipcRenderer.invoke("local:models"),
   localModelStatus: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:status", model),
   localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),

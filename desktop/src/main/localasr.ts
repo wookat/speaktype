@@ -289,6 +289,18 @@ function ensureWorker(modelId: string): Worker {
   return worker;
 }
 
+/** 切换本地模型后旧 worker 不会再被用到：立即释放（数百 MB～GB 级），不等空闲计时 */
+export function releaseSherpaWorker(): void {
+  if (!worker || pending.size > 0) return;
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+  void worker.terminate();
+  worker = null;
+  log.info("sherpa worker stopped (model switched)");
+}
+
 /** 启动后空闲时预热 worker：用一小段静音触发模型加载，把 ONNX 冷启动成本移出用户第一句 */
 export function prewarmSherpa(model: string, language: string): void {
   if (worker || !isSherpaModel(model) || !modelReady(model)) return;

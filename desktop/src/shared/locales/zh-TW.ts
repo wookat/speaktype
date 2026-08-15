@@ -236,6 +236,7 @@ export const zhTW: LocaleDict = {
   "settings.about.license": "開源許可",
   "settings.about.author": "作者與維護者",
   "settings.about.contribute": "參與貢獻",
+  "settings.about.updateAvailable": "新版本 {version} 已發布，前往下載：",
   "settings.about.logs": "執行日誌",
   "settings.about.logsOpen": "開啟日誌目錄",
   "settings.about.contributeDesc": "歡迎提交 Issue 與 Pull Request，一起把開源語音輸入做好。",
