@@ -86,6 +86,7 @@ function pageStrings(): Record<string, string> {
         release: "松手结束",
         recording: "录音中…",
         micDenied: "麦克风权限被拒绝",
+        rescan: "配对已失效，请回电脑重新扫码",
         footer: "松手后文字会落到电脑光标处 · 音频仅经局域网传输",
       }
     : {
@@ -101,6 +102,7 @@ function pageStrings(): Record<string, string> {
         release: "Release to finish",
         recording: "Recording…",
         micDenied: "Microphone permission denied",
+        rescan: "Pairing expired — scan the QR code on your PC again",
         footer: "Text lands at your PC cursor on release · audio stays on your local network",
       };
 }
@@ -141,13 +143,19 @@ const token = new URLSearchParams(location.search).get("t") || "";
 const stateEl = document.getElementById("state");
 const partialEl = document.getElementById("partial");
 const talk = document.getElementById("talk");
-let ws = null, ctx = null, stream = null, node = null, holding = false;
+let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 0;
 
 function connect() {
   ws = new WebSocket("wss://" + location.host + "/ws?t=" + token);
   ws.binaryType = "arraybuffer";
-  ws.onopen = () => { stateEl.textContent = L.connected; talk.disabled = false; };
-  ws.onclose = () => { stateEl.textContent = L.reconnecting; talk.disabled = true; setTimeout(connect, 1500); };
+  ws.onopen = () => { fails = 0; stateEl.textContent = L.connected; talk.disabled = false; };
+  // token 已轮换（桌面端开关过远程麦）时重连永远被拒：连拒 8 次即停，提示重新扫码
+  ws.onclose = () => {
+    talk.disabled = true;
+    if (++fails >= 8) { stateEl.textContent = L.rescan; return; }
+    stateEl.textContent = L.reconnecting;
+    setTimeout(connect, 1500);
+  };
   ws.onmessage = (ev) => {
     if (typeof ev.data !== "string") return;
     const m = JSON.parse(ev.data);
