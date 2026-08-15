@@ -210,6 +210,8 @@ export function learnableWord(diff: Diff, inserted: string): string | null {
   const zh = /^[\u4e00-\u9fff]{2,6}$/.test(diff.right);
   const en = /^[A-Za-z][A-Za-z0-9-]{2,19}$/.test(diff.right) && /[A-Za-z]/.test(diff.wrong);
   if (!zh && !en) return null;
+  // 纯大小写差异不是识别错误（"report"→"Report" 学了会全局强制大写），不学
+  if (en && diff.wrong.toLowerCase() === diff.right.toLowerCase()) return null;
   // 改动必须落在我们刚插入的文本里，别人的内容不学
   if (!inserted.includes(diff.wrong)) return null;
   if (en && !wholeWordIn(inserted, diff.wrong)) return null;

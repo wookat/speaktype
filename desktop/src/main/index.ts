@@ -297,7 +297,10 @@ function registerIpc(): void {
       const res = await fetch("https://api.github.com/repos/wookat/speaktype/releases/latest", {
         headers: { accept: "application/vnd.github+json" },
       });
-      if (res.ok) latestTag = ((await res.json()) as { tag_name?: string }).tag_name ?? "";
+      if (res.ok) {
+        latestTag = ((await res.json()) as { tag_name?: string }).tag_name ?? "";
+        log.info(`latest release prefetched: ${latestTag || "(none)"}`);
+      }
     } catch {
       // 离线或 API 限流：不提示即可
     }
