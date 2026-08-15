@@ -145,7 +145,8 @@ function showPairing() {
 function connect() {
   ws = new WebSocket("wss://" + location.host + BASE + "/ws/" + room + "?role=phone");
   ws.binaryType = "arraybuffer";
-  ws.onopen = () => { fails = 0; stateEl.textContent = "已连接中转，等待电脑…"; talk.disabled = false; };
+  // 电脑端未在房间时按住说话没有任何去处：按钮保持禁用，等 peer 消息再放开
+  ws.onopen = () => { fails = 0; stateEl.textContent = "已连接中转，等待电脑…"; };
   ws.onclose = (ev) => {
     talk.disabled = true;
     if (ev.reason === "room occupied") { stateEl.textContent = "该房间已有手机连接"; return; }
@@ -164,7 +165,10 @@ function connect() {
       else if (m.state === "error") stateEl.textContent = m.message || "出错了";
       else if (m.state === "idle" && !holding) stateEl.textContent = "已连接电脑";
     }
-    if (m.type === "peer") stateEl.textContent = m.connected ? "已连接电脑" : "电脑端已离线";
+    if (m.type === "peer") {
+      talk.disabled = !m.connected;
+      stateEl.textContent = m.connected ? "已连接电脑" : "电脑端已离线";
+    }
     if (m.type === "busy") { stateEl.textContent = "电脑端正在录音，请稍候"; endHold(true); }
   };
 }
