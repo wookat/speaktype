@@ -38,6 +38,8 @@ const HANDS_FREE_MAX_SILENT_ROUNDS = 6;
 // 防幻听：整段录音里有声时长（按 20ms 子窗口统计 peak≥900）不足门槛时视为无有效人声，不送 ASR
 const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
 const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
+// 按住说话模式：上一句落字后短间隔内的下一句视为同一段落，拉丁字母/数字开头时补句间空格
+const HOLD_GLUE_WINDOW_MS = 15000;
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
@@ -133,6 +135,8 @@ export class Dictation {
   private handsFreeTyped = false;
   /** 免按被其他热键结束：本次收尾的静音分支不再叠加「没听清」toast 覆盖退出提示 */
   private handsFreeEndedByKey = false;
+  /** hold 模式上一次落字时间，用于短间隔连续口述的句间空格 */
+  private lastHoldPasteAt = 0;
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
@@ -639,13 +643,19 @@ export class Dictation {
     let failed: string | undefined;
     if (settings.autoPaste || rewriteTarget) {
       // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
-      // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字
+      // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字。
+      // hold 模式同理：短间隔内连续口述视为同一段落，一样补句间空格
+      const holdGlue =
+        this.mode === "hold" && !rewriteTarget && Date.now() - this.lastHoldPasteAt < HOLD_GLUE_WINDOW_MS;
       const glue =
-        this.mode === "toggle" && this.handsFreeTyped && /^[A-Za-z0-9]/.test(text) ? " " : "";
+        ((this.mode === "toggle" && this.handsFreeTyped) || holdGlue) && /^[A-Za-z0-9]/.test(text)
+          ? " "
+          : "";
       try {
         // 改写模式：选区还选着，直接粘贴就是替换
         await pasteText(glue + text);
         if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
+        if (this.mode === "hold" && !rewriteTarget) this.lastHoldPasteAt = Date.now();
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
         this.deps.showToast(t("toast.pasteFailed"), text.slice(0, 40));
