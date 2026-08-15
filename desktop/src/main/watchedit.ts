@@ -19,8 +19,8 @@ const MAX_WATCH_SECONDS = 300;
 const POLL_MS = 700;
 /** 编辑停顿判定：这么久没有新变化就认为一轮修改结束 */
 const SETTLE_MS = 1500;
-/** 变化段任一侧超过这个长度就当作用户在写别的东西，不学 */
-const MAX_SEGMENT = 10;
+/** 变化段任一侧超过这个长度就当作用户在写别的东西，不学（英文单词比中文词长，上限需容下如 "dictation"） */
+const MAX_SEGMENT = 20;
 /** 中段差异做 LCS 拆分的长度上限，再长视为无关的大改动 */
 const MAX_LCS = 160;
 
@@ -70,6 +70,9 @@ interface Diff {
   right: string;
 }
 
+const ALNUM = /^[A-Za-z0-9]$/;
+const ASCII_SEG = /^[A-Za-z0-9-]+$/;
+
 /** 去共同前后缀，取中间变化段；中段过大时再用 LCS 拆成多个独立小改动 */
 export function extractCorrections(before: string, after: string): Diff[] {
   if (before === after) return [];
@@ -79,10 +82,18 @@ export function extractCorrections(before: string, after: string): Diff[] {
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
   let end = 0;
   while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  // 英文单词内部部分重合（如 Bericht→report 共后缀 t）会把词拆碎：把边界外扩到完整单词
+  while (start > 0 && ALNUM.test(a[start - 1] ?? "") && (ALNUM.test(a[start] ?? "") || ALNUM.test(b[start] ?? ""))) start--;
+  while (
+    end > 0 &&
+    ALNUM.test(a[a.length - end] ?? "") &&
+    (ALNUM.test(a[a.length - end - 1] ?? "") || ALNUM.test(b[b.length - end - 1] ?? ""))
+  )
+    end--;
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
-  // 短段直接当一处改动；长段可能是改了多个不相邻的地方，LCS 对齐后按连续变化段分组
-  if (ma.length <= 6 && mb.length <= 6) {
+  // 短段或两侧均为单个英文词时直接当一处改动；长段可能是改了多个不相邻的地方，LCS 对齐后按连续变化段分组
+  if ((ma.length <= 6 && mb.length <= 6) || (ma.length > 0 && mb.length > 0 && ASCII_SEG.test(ma.join("")) && ASCII_SEG.test(mb.join("")))) {
     return [{ wrong: ma.join(""), right: mb.join("") }];
   }
   if (ma.length > MAX_LCS || mb.length > MAX_LCS) return [];
@@ -121,10 +132,12 @@ export function extractCorrections(before: string, after: string): Diff[] {
   return out.filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT);
 }
 
-/** 学习门槛：改后的词是 2-6 字纯中文才收进词典，避免误学标点/删改 */
+/** 学习门槛：改后的词是 2-6 字纯中文，或 3-20 字符英文词（可含连字符/数字）才收进词典，避免误学标点/删改 */
 export function learnableWord(diff: Diff, inserted: string): string | null {
   if (!diff.wrong || diff.wrong === diff.right) return null;
-  if (!/^[\u4e00-\u9fff]{2,6}$/.test(diff.right)) return null;
+  const zh = /^[\u4e00-\u9fff]{2,6}$/.test(diff.right);
+  const en = /^[A-Za-z][A-Za-z0-9-]{2,19}$/.test(diff.right) && /[A-Za-z]/.test(diff.wrong);
+  if (!zh && !en) return null;
   // 改动必须落在我们刚插入的文本里，别人的内容不学
   if (!inserted.includes(diff.wrong)) return null;
   return diff.right;

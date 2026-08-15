@@ -77,3 +77,7 @@
 ## 英文热词纠错 + whisper 主动停服不告警（第 32 轮固化）
 - [ ] 词典加 "SpeakType" → 听写出 "speak type"/"speaktype"/"Speaktype" 均落字为 "SpeakType"；"speak types"（复数）与跨标点 "speak. type" 不误替换
 - [ ] whisper 模型切走（主动 stopLocalServer）→ log 只有 "local whisper-server stopped"，无 "exited (null)" warn；whisper-server 崩溃退出时 warn 仍在
+
+## 英文自动纠错学习（第 33 轮固化）
+- [ ] 英文听写落字后 15 秒内把误识词手改成正确词（如 "dictacion"→"dictation"）→ log 出现 auto-learn 且词典新增该词；部分重合词（如 "Bericht"→"report"）学到完整单词而非碎片
+- [ ] 只加标点（"hello world"→"hello, world"）不误学；中文近音自动学习不回归
