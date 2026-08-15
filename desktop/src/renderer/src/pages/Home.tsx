@@ -20,7 +20,8 @@ function Home(props: {
 }) {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
-  const saved = Math.max(0, Math.round(props.statsWords / 40) * 60000 - props.statsDuration);
+  // 手打按 40 词/分估算；不先取整到分钟，少量词数也能给出非零节省
+  const saved = Math.max(0, Math.round((props.statsWords / 40) * 60000) - props.statsDuration);
 
   // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
   const [local, setLocal] = useState<LocalModelStatus | null>(null);
