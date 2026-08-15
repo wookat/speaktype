@@ -12,6 +12,7 @@ const isMac = process.platform === "darwin";
 
 interface Win32Api {
   activeApp(): { app: string; title: string } | null;
+  foregroundWindowKey(): string | null;
 }
 
 function loadWin32(): Win32Api | null {
@@ -52,6 +53,10 @@ function loadWin32(): Win32Api | null {
           CloseHandle(handle);
         }
         return { app: app.toLowerCase(), title: decode(titleBuf) };
+      },
+      foregroundWindowKey() {
+        const hwnd = GetForegroundWindow();
+        return hwnd ? String(koffi.address(hwnd)) : null;
       },
     };
   } catch (error) {
@@ -128,6 +133,12 @@ export function runningApps(): Promise<string[]> {
 export function activeApp(): { app: string; title: string } | null {
   if (isMac) return macCache;
   return win32?.activeApp() ?? null;
+}
+
+/** 前台窗口的稳定标识（hwnd）。标题变化不影响；取不到时返回 null */
+export function foregroundWindowKey(): string | null {
+  if (isMac) return macCache?.app ?? null;
+  return win32?.foregroundWindowKey() ?? null;
 }
 
 /**

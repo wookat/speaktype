@@ -5,7 +5,7 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { personaForActiveApp } from "./activeapp";
+import { foregroundWindowKey, personaForActiveApp } from "./activeapp";
 import {
   pcmToWav,
   preconnectAsr,
@@ -137,6 +137,8 @@ export class Dictation {
   private handsFreeEndedByKey = false;
   /** hold 模式上一次落字时间，用于短间隔连续口述的句间空格 */
   private lastHoldPasteAt = 0;
+  /** hold 模式上一次落字的前台窗口标识：切窗后新位置应顶格，不补句间空格 */
+  private lastHoldPasteWin: string | null = null;
   private lastVoiceAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
@@ -645,8 +647,13 @@ export class Dictation {
       // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
       // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字。
       // hold 模式同理：短间隔内连续口述视为同一段落，一样补句间空格
+      const pasteWin = this.mode === "hold" && !rewriteTarget ? foregroundWindowKey() : null;
       const holdGlue =
-        this.mode === "hold" && !rewriteTarget && Date.now() - this.lastHoldPasteAt < HOLD_GLUE_WINDOW_MS;
+        this.mode === "hold" &&
+        !rewriteTarget &&
+        Date.now() - this.lastHoldPasteAt < HOLD_GLUE_WINDOW_MS &&
+        pasteWin !== null &&
+        pasteWin === this.lastHoldPasteWin;
       const glue =
         ((this.mode === "toggle" && this.handsFreeTyped) || holdGlue) && /^[A-Za-z0-9]/.test(text)
           ? " "
@@ -655,7 +662,10 @@ export class Dictation {
         // 改写模式：选区还选着，直接粘贴就是替换
         await pasteText(glue + text);
         if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
-        if (this.mode === "hold" && !rewriteTarget) this.lastHoldPasteAt = Date.now();
+        if (this.mode === "hold" && !rewriteTarget) {
+          this.lastHoldPasteAt = Date.now();
+          this.lastHoldPasteWin = pasteWin;
+        }
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
         this.deps.showToast(t("toast.pasteFailed"), text.slice(0, 40));
