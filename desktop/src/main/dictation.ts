@@ -20,7 +20,7 @@ import { t, translator } from "./i18n";
 import { copySelection, pasteText, toggleSystemMute } from "./paste";
 import { polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
-import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
+import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
@@ -493,7 +493,7 @@ export class Dictation {
       if (!raw) return { ok: false, detail: t("toast.noSpeech") };
       const text = await polishText(settings, persona, raw);
       this.resolveFailedEntry(id, text, raw);
-      addStats(text.length, entry.durationMs);
+      addStats(countWords(text), entry.durationMs);
       clipboard.writeText(text);
       this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
       return { ok: true, detail: text };
@@ -685,7 +685,7 @@ export class Dictation {
         failed,
         provider: settings.asrProvider,
       });
-    addStats(text.length, durationMs);
+    addStats(countWords(text), durationMs);
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
     if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
