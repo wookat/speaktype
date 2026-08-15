@@ -53,7 +53,7 @@ function History(props: {
     const lines = items
       .filter((h) => h.status !== "failed")
       // 多行文本续行补两空格缩进，保持在同一列表项内，不会被解析成新的顶级条目
-      .map((h) => `- ${new Date(h.at).toLocaleString()} · ${h.personaName}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
+      .map((h) => `- ${new Date(h.at).toLocaleString(props.settings.uiLanguage)} · ${h.personaName}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
     const blob = new Blob([`# SpeakType History\n\n${lines.join("\n\n")}\n`], {
       type: "text/markdown;charset=utf-8",
     });
