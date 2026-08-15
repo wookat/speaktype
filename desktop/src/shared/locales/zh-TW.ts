@@ -76,6 +76,7 @@ export const zhTW: LocaleDict = {
   "dict.subtitle": "記住那些只屬於你的重要詞彙",
   "dict.placeholder": "請按每行一個詞的格式輸入；單個詞最多 20 個字元，首尾空格會被自動過濾，空行不會儲存。",
   "dict.count": "{{count}}/300 熱詞",
+  "dict.limitReached": "詞典最多 300 個熱詞，{{count}} 個詞未能加入。",
   "dict.manage": "管理熱詞",
   "dict.empty": "還沒有任何熱詞",
   "dict.emptyHint": "我們會記住你獨特的名稱和詞彙，支援手動新增",

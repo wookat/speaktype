@@ -481,7 +481,11 @@ export class Dictation {
     let hotwords = settings.hotwords;
     const learned: Diff[] = [];
     for (const item of items) {
-      if (hotwords.includes(item.right) || hotwords.length >= 300) continue;
+      if (hotwords.includes(item.right)) continue;
+      if (hotwords.length >= 300) {
+        log.info(`auto-learn skipped (dictionary full): "${item.right}"`);
+        continue;
+      }
       hotwords = [...hotwords, item.right];
       learned.push(item);
     }
