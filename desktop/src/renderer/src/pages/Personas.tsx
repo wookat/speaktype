@@ -18,6 +18,13 @@ function Personas(props: {
   const polishReady =
     props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl);
   const [editing, setEditing] = useState<Persona | null>(null);
+  // 删除是全应用唯一不可逆操作：两步确认，几秒不点自动复位
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(null), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
   // 正在运行的应用列表：规则输入框提供下拉建议，免得用户不知道进程名怎么写
   const [apps, setApps] = useState<string[]>([]);
   useEffect(() => {
@@ -32,6 +39,19 @@ function Personas(props: {
     const next = exists ? custom.map((p) => (p.id === persona.id ? persona : p)) : [...custom, persona];
     void api.savePersonas(next).then(props.setPersonas);
     setEditing(null);
+  };
+
+  const remove = (persona: Persona) => {
+    void api
+      .savePersonas(props.personas.filter((p) => !p.builtin && p.id !== persona.id))
+      .then(props.setPersonas);
+    // 规则/当前选中若指向被删人设，一并清理，避免残留死 id 静默改道
+    const patch: Partial<Settings> = {};
+    const rules = props.settings.appPersonas.filter((r) => r.personaId !== persona.id);
+    if (rules.length !== props.settings.appPersonas.length) patch.appPersonas = rules;
+    if (props.settings.personaId === persona.id) patch.personaId = "default";
+    if (Object.keys(patch).length > 0) props.update(patch);
+    setConfirmDelete(null);
   };
 
   const duplicate = (persona: Persona) => {
@@ -201,15 +221,14 @@ function Personas(props: {
                     {t("personas.edit")}
                   </button>
                   <button
-                    className="hover:text-red-500"
+                    className={confirmDelete === persona.id ? "font-medium text-red-500" : "hover:text-red-500"}
                     onClick={(e) => {
                       e.stopPropagation();
-                      void api
-                        .savePersonas(props.personas.filter((p) => !p.builtin && p.id !== persona.id))
-                        .then(props.setPersonas);
+                      if (confirmDelete === persona.id) remove(persona);
+                      else setConfirmDelete(persona.id);
                     }}
                   >
-                    {t("personas.delete")}
+                    {confirmDelete === persona.id ? t("personas.deleteConfirm") : t("personas.delete")}
                   </button>
                 </>
               )}
