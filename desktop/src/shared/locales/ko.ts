@@ -83,6 +83,7 @@ export const ko: LocaleDict = {
   "dict.placeholder":
     "한 줄에 한 단어, 각 20자까지. 앞뒤 공백은 제거되고 빈 줄은 건너뜁니다.",
   "dict.count": "{{count}}/300 핫워드",
+  "dict.limitReached": "사전은 최대 300개 핫워드까지 지원합니다. {{count}}개 단어는 추가되지 않았습니다.",
   "dict.manage": "핫워드 관리",
   "dict.empty": "아직 핫워드가 없습니다",
   "dict.emptyHint": "인명이나 전문 용어를 추가하면 인식 시 우선 반영됩니다",

@@ -10,6 +10,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const { t } = props;
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
+  const [dropped, setDropped] = useState(0);
   const words = props.settings.hotwords;
 
   const addFromText = () => {
@@ -17,7 +18,9 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
       .split("\n")
       .map((s) => s.trim())
       .filter((s) => s && s.length <= MAX_HOTWORD_LEN);
-    const merged = [...new Set([...words, ...incoming])].slice(0, MAX_HOTWORDS);
+    const unique = [...new Set([...words, ...incoming])];
+    const merged = unique.slice(0, MAX_HOTWORDS);
+    setDropped(unique.length - merged.length);
     props.update({ hotwords: merged });
     setText("");
   };
@@ -39,6 +42,11 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
         />
         <div className="absolute bottom-3 right-4 text-xs text-slate-400">{t("dict.count", { count: words.length })}</div>
       </div>
+      {dropped > 0 && (
+        <div className="mt-2 rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-700">
+          {t("dict.limitReached", { count: dropped })}
+        </div>
+      )}
       <div className="mt-2 flex justify-end gap-2">
         <button
           className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40"

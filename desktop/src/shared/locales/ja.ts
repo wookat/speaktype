@@ -83,6 +83,7 @@ export const ja: LocaleDict = {
   "dict.placeholder":
     "1 行に 1 語、各 20 文字まで。前後の空白は削除され、空行はスキップされます。",
   "dict.count": "{{count}}/300 ホットワード",
+  "dict.limitReached": "辞書は最大 300 語までです。{{count}} 語は追加されませんでした。",
   "dict.manage": "ホットワードを管理",
   "dict.empty": "ホットワードはまだありません",
   "dict.emptyHint": "人名や専門用語を追加すると、認識時に優先されます",

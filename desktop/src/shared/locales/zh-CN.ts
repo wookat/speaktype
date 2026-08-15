@@ -79,6 +79,7 @@ export const zhCN = {
   "dict.subtitle": "记住那些只属于你的重要词汇",
   "dict.placeholder": "请按每行一个词的格式输入；单个词最多 20 个字符，首尾空格会被自动过滤，空行不会保存。",
   "dict.count": "{{count}}/300 热词",
+  "dict.limitReached": "词典最多 300 个热词，{{count}} 个词未能加入。",
   "dict.manage": "管理热词",
   "dict.empty": "还没有任何热词",
   "dict.emptyHint": "我们会记住你独特的名称和词汇，支持手动添加",

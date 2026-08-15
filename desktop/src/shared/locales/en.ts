@@ -83,6 +83,7 @@ export const en: LocaleDict = {
   "dict.placeholder":
     "One word per line; up to 20 characters each. Leading/trailing spaces are trimmed and empty lines are skipped.",
   "dict.count": "{{count}}/300 hotwords",
+  "dict.limitReached": "Dictionary is limited to 300 hotwords — {{count}} word(s) were not added.",
   "dict.manage": "Manage hotwords",
   "dict.empty": "No hotwords yet",
   "dict.emptyHint": "Add names and jargon unique to you — recognition will respect them",
