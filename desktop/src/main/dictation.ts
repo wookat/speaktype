@@ -518,16 +518,21 @@ export class Dictation {
     const settings = getSettings();
     let hotwords = settings.hotwords;
     const learned: Diff[] = [];
+    let skippedFull = false;
     for (const item of items) {
       if (hotwords.includes(item.right)) continue;
       if (hotwords.length >= 300) {
         log.info(`auto-learn skipped (dictionary full): "${item.right}"`);
+        skippedFull = true;
         continue;
       }
       hotwords = [...hotwords, item.right];
       learned.push(item);
     }
-    if (learned.length === 0) return;
+    if (learned.length === 0) {
+      if (skippedFull) this.deps.showToast(t("toast.dictFull"), t("toast.dictFullBody"));
+      return;
+    }
     setSettings({ hotwords });
     const entry = getHistory().find((h) => h.id === historyId);
     if (entry) {

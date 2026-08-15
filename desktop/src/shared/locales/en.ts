@@ -309,6 +309,8 @@ export const en: LocaleDict = {
   "toast.undo": "Undo",
   "toast.undone": "Undone",
   "toast.undoneBody": "\"{{word}}\" removed from dictionary",
+  "toast.dictFull": "Dictionary is full",
+  "toast.dictFullBody": "300-word limit reached; this correction wasn't saved. Remove unused words in Dictionary",
   "toast.undoneManyBody": "\"{{words}}\" removed from dictionary",
 
   "tray.open": "Open SpeakType",
