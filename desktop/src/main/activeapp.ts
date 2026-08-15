@@ -141,6 +141,27 @@ export function foregroundWindowKey(): string | null {
   return win32?.foregroundWindowKey() ?? null;
 }
 
+/** 终端类前台进程：落字后一回车就执行，句级格式（尾句号/句首大写）会让命令出错 */
+const TERMINAL_APPS = new Set([
+  "cmd.exe",
+  "powershell.exe",
+  "pwsh.exe",
+  "windowsterminal.exe",
+  "openconsole.exe",
+  "conhost.exe",
+  "alacritty.exe",
+  "wezterm-gui.exe",
+  "mintty.exe",
+  "hyper.exe",
+  "wsl.exe",
+  "ubuntu.exe",
+]);
+
+export function isTerminalForeground(): boolean {
+  const app = activeApp()?.app.toLowerCase();
+  return app ? TERMINAL_APPS.has(app) : false;
+}
+
 /**
  * 按规则挑人设：规则的 match 命中进程名或窗口标题（不区分大小写）即采用，
  * 先命中先用，全不命中返回 null 走当前人设。
