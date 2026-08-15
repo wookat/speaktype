@@ -272,8 +272,11 @@ function MicSection(props: {
     if (props.anchor !== "remote-mic") return;
     remoteMicRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     setHighlight(true);
-    props.clearAnchor();
-    const timer = setTimeout(() => setHighlight(false), 1800);
+    // 熄灭后才消费锚点：同步 clearAnchor 会让 effect 立即重跑，cleanup 把熄灭定时器清掉导致 ring 常亮
+    const timer = setTimeout(() => {
+      setHighlight(false);
+      props.clearAnchor();
+    }, 1800);
     return () => clearTimeout(timer);
   }, [props.anchor]);
   const [devices, setDevices] = useState<MicDevice[] | null>(null);
