@@ -160,6 +160,6 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 
 ## Remote mic (phone-as-mic) testing (round 54, PR #110)
 - Open the pairing page in a browser launched with `--no-proxy-server --ignore-certificate-errors` plus the three fake-mic flags; the LAN page uses a self-signed cert and the box has a dead system proxy.
-- Close the old pairing page BEFORE switching LAN/relay mode: a lingering page WebSocket keeps the HTTPS server alive so startRemoteMic early-returns and the mode toggle silently does nothing.
+- LAN/relay mode switching works with the pairing page still connected (since PR #112 stopRemoteMic force-closes lingering connections); verify with `netstat | findstr 43117` plus the `remote mic listening/relaying via` lines in main.log.
 - Single-box "text lands in Notepad" checks race pasteText (Ctrl+V to the foreground window ~60ms after mouseup): use a SendInput script that Alt+Tabs within ~25ms of mouseup, or the text lands in the browser.
 - computer-tool coordinates are 1024x768 scaled; the real display is 1280x720 — multiply x by 1.25 and y by 0.9375 when driving SendInput scripts from screenshots.
