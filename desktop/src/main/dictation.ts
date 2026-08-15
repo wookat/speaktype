@@ -610,7 +610,7 @@ export class Dictation {
     addStats(text.length, durationMs);
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
-    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]/.test(text)) {
+    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
       watchPastedText(text, (wrong, right) => this.learnCorrection(historyId, wrong, right));
     }
 
