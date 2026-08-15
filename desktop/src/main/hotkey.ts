@@ -101,6 +101,8 @@ export class HotkeyManager {
   private rewriteTimer: NodeJS.Timeout | null = null;
   private rewriteActive = false;
   private rewritePressed = false;
+  /** 免按热键按住未松时吃掉系统 key repeat 的 keydown，避免刚进免按就被重复键退出 */
+  private togglePressed = false;
   private started = false;
   private capture: ((name: string | null) => void) | null = null;
   /** 刚被录制的键：松开前吃掉系统 key repeat 的 keydown，避免误触发录音 */
@@ -261,12 +263,11 @@ export class HotkeyManager {
       this.pressRewrite();
       return;
     }
-    if (ev.altKey && ev.keycode === this.toggleKeycode && this.toggleModAlt) {
-      this.handlers.onToggle();
-      return;
-    }
-    if (!this.toggleModAlt && ev.keycode === this.toggleKeycode) {
-      this.handlers.onToggle();
+    if (ev.keycode === this.toggleKeycode && (this.toggleModAlt ? ev.altKey : true)) {
+      if (!this.togglePressed) {
+        this.togglePressed = true;
+        this.handlers.onToggle();
+      }
       return;
     }
     if (ev.altKey && this.personaHotkeys) {
@@ -280,6 +281,7 @@ export class HotkeyManager {
       this.captureSwallowKeycode = -1;
       return;
     }
+    if (ev.keycode === this.toggleKeycode) this.togglePressed = false;
     if (ev.keycode === this.holdKeycode) this.releaseHold();
     else if (ev.keycode === this.rewriteKeycode) this.releaseRewrite();
   }

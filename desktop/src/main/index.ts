@@ -121,7 +121,7 @@ function showToast(
   toastWin.showInactive();
   if (toastTimer) clearTimeout(toastTimer);
   // 带操作按钮的 toast 停留久一点，给用户点击时间
-  toastTimer = setTimeout(() => toastWin?.hide(), durationMs ?? (action ? 6000 : 2600));
+  toastTimer = setTimeout(() => toastWin?.hide(), durationMs ?? (action ? 6000 : 4000));
 }
 
 // 悬停暂停自动隐藏，移开后短暂宽限再收起
