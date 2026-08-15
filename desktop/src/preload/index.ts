@@ -120,11 +120,13 @@ const api = {
     ipcRenderer.on("goto", listener);
     return () => ipcRenderer.removeListener("goto", listener);
   },
-  onToast: (fn: (payload: { title: string; body: string }) => void) => {
-    const listener = (_e: unknown, payload: { title: string; body: string }) => fn(payload);
+  onToast: (fn: (payload: { title: string; body: string; actionLabel?: string }) => void) => {
+    const listener = (_e: unknown, payload: { title: string; body: string; actionLabel?: string }) =>
+      fn(payload);
     ipcRenderer.on("toast", listener);
     return () => ipcRenderer.removeListener("toast", listener);
   },
+  toastAction: () => ipcRenderer.send("toast:action"),
 
   recorder: {
     onStart: (fn: (opts: { deviceId: string }) => void) =>

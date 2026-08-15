@@ -95,7 +95,7 @@ function wavToFrames(file: string): Int16Array[] {
 export interface DictationDeps {
   recorder: () => BrowserWindow | null;
   broadcast: (payload: StatusPayload) => void;
-  showToast: (title: string, body: string) => void;
+  showToast: (title: string, body: string, action?: { label: string; run: () => void }) => void;
   /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
   pushSettings: () => void;
   /** 打开主窗口并跳到 设置→模型 tab（改写缺润色模型时引导用户去配） */
@@ -485,7 +485,20 @@ export class Dictation {
       updateHistoryItem(historyId, { text: entry.text.replace(wrong, right) });
     }
     this.deps.pushSettings();
-    this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }));
+    // 误编辑（如手滑打错再改回）也会触发学词：toast 上直接给撤销，不用去词典页手删
+    this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }), {
+      label: t("toast.undo"),
+      run: () => {
+        const now = getSettings();
+        setSettings({ hotwords: now.hotwords.filter((w) => w !== right) });
+        const item = getHistory().find((h) => h.id === historyId);
+        if (item && item.text.includes(right)) {
+          updateHistoryItem(historyId, { text: item.text.replace(right, wrong) });
+        }
+        this.deps.pushSettings();
+        this.deps.showToast(t("toast.undone"), t("toast.undoneBody", { word: right }));
+      },
+    });
   }
 
   private async finalize(): Promise<void> {
