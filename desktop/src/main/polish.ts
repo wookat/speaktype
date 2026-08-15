@@ -1,4 +1,5 @@
 import type { Persona, Settings } from "../shared/types";
+import { httpErrorDetail } from "./asr";
 import { correctHotwords } from "./hotwords";
 import { applyItn } from "./itn";
 import { t } from "./i18n";
@@ -253,8 +254,7 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
       }),
     });
     if (!res.ok) {
-      const body = (await res.text()).slice(0, 160);
-      return { ok: false, detail: `HTTP ${res.status} ${body}` };
+      return { ok: false, detail: httpErrorDetail(res.status, await res.text()) };
     }
     return { ok: true, detail: settings.polishModel || "gpt-4o-mini" };
   } catch (error) {
