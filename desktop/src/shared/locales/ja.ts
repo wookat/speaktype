@@ -240,7 +240,7 @@ export const ja: LocaleDict = {
   "settings.modelPreset": "プロバイダープリセット",
   "settings.modelPresetCustom": "カスタム",
   "settings.modelBaseUrl": "Base URL",
-  "settings.modelApiKey": "API キー",
+  "settings.modelApiKey": "API キー（Ollama などローカル端点は空欄可）",
   "settings.modelName": "モデル",
   "settings.modelTest": "接続テスト",
   "settings.modelTesting": "テスト中…",
@@ -290,6 +290,8 @@ export const ja: LocaleDict = {
   "toast.rewriteNoModelBody": "設定 → 推敲モデル で OpenAI 互換モデルを設定してください",
   "toast.rewriteFailed": "書き換えに失敗しました",
   "toast.rewriteFailedBody": "推敲モデルから結果が返らなかったため、原文は変更されていません",
+  "toast.polishFallback": "推敲サービスを利用できません",
+  "toast.polishFallbackBody": "推敲なしの原文を入力しました",
   "toast.learned": "新しい語を学習しました",
   "toast.learnedBody": "「{{word}}」を辞書に追加しました。次回から自動訂正されます",
 

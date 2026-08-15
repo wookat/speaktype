@@ -240,7 +240,7 @@ export const en: LocaleDict = {
   "settings.modelPreset": "Provider preset",
   "settings.modelPresetCustom": "Custom",
   "settings.modelBaseUrl": "Base URL",
-  "settings.modelApiKey": "API Key",
+  "settings.modelApiKey": "API Key (leave empty for local endpoints like Ollama)",
   "settings.modelName": "Model",
   "settings.modelTest": "Test connection",
   "settings.modelTesting": "Testing…",
@@ -290,6 +290,8 @@ export const en: LocaleDict = {
   "toast.rewriteNoModelBody": "Configure an OpenAI-compatible model in Settings → Polish model",
   "toast.rewriteFailed": "Rewrite failed",
   "toast.rewriteFailedBody": "The polish model returned nothing; the text was left unchanged",
+  "toast.polishFallback": "Polish service unavailable",
+  "toast.polishFallbackBody": "Inserted the raw transcript without AI polish",
   "toast.learned": "New word learned",
   "toast.learnedBody": "\"{{word}}\" added to dictionary; future misrecognitions auto-corrected",
 

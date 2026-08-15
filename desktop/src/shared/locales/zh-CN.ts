@@ -234,7 +234,7 @@ export const zhCN = {
   "settings.modelPreset": "服务商预设",
   "settings.modelPresetCustom": "自定义",
   "settings.modelBaseUrl": "Base URL",
-  "settings.modelApiKey": "API Key",
+  "settings.modelApiKey": "API Key（Ollama 等本地端点可留空）",
   "settings.modelName": "模型名",
   "settings.modelTest": "测试连接",
   "settings.modelTesting": "测试中…",
@@ -284,6 +284,8 @@ export const zhCN = {
   "toast.rewriteNoModelBody": "去 设置 → 润色模型 配置一个 OpenAI 兼容模型",
   "toast.rewriteFailed": "改写失败",
   "toast.rewriteFailedBody": "润色模型没有返回结果，原文未改动",
+  "toast.polishFallback": "润色服务不可用",
+  "toast.polishFallbackBody": "已按未润色的原文落字",
   "toast.learned": "已学会新词",
   "toast.learnedBody": "「{{word}}」已加入词典，下次自动纠正",
 

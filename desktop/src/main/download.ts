@@ -42,7 +42,9 @@ function ghAssetSource(path: string): string | null {
 export function hfSources(path: string): string[] {
   const sources = [`https://huggingface.co/${path}`, `https://hf-mirror.com/${path}`];
   const gh = ghAssetSource(path);
-  if (gh) sources.push(gh);
+  // 只对 models-v1 里真正存在的资产附加第三源：不存在的资产必产 404，
+  // 会以「最后一个错误」覆盖前两源的真实失败原因
+  if (gh && knownSha256(gh)) sources.push(gh);
   return sources;
 }
 
@@ -197,7 +199,12 @@ export function partialProgress(dest: string): { got: number; total: number } | 
   return { got: Math.min(statSync(part).size, meta.total), total: meta.total };
 }
 
-/** 下载单个文件到 dest：依次尝试 sources 里的完整 URL，全部失败抛最后一个错误 */
+/** 本机存储类错误：换源重试无意义，且对用户最可操作，报错时应优先选它 */
+function isStorageError(error: unknown): boolean {
+  return /EACCES|EPERM|EBUSY|ENOSPC|EROFS|EMFILE|permission denied|no space left/i.test(String(error));
+}
+
+/** 下载单个文件到 dest：依次尝试 sources 里的完整 URL；全部失败时抛最可操作的错误（存储类优先，否则最后一个） */
 export async function downloadFile(
   sources: string[],
   dest: string,
@@ -209,8 +216,9 @@ export async function downloadFile(
       await downloadFromUrl(url, dest, onProgress);
       return;
     } catch (error) {
-      lastError = error;
       log.warn(`download source failed: ${url}`, error);
+      if (isStorageError(error)) throw error instanceof Error ? error : new Error(String(error));
+      lastError = error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));

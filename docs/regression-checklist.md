@@ -56,6 +56,11 @@
 - [ ] 人设卡片右侧操作按钮保持单行
 - [ ] 侧栏/设置项自适应，无横向滚动条、无控件重叠
 
+## 润色降级可见 + 本地无鉴权端点（第 28 轮固化）
+- [ ] 润色模型 Base URL 指向不可达地址 → 普通听写落字为未润色原文，且弹「润色服务不可用」toast（降级不再静默）
+- [ ] API Key 留空 + Base URL 指向本地无鉴权端点（Ollama/LM Studio/mock）→ 测试连接可点、润色/F8 改写可用（请求不带 Authorization 头）
+- [ ] 同一拒写状态下依次下载 Parakeet 与 whisper 系模型 → 两者都报存储类文案（GH 第三源 404 不再覆盖真实错误）
+
 ## 增强标点英文边界句基线（第 16 轮固化，ct-transformer 模型级限制，不投工程修）
 以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
 - [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号

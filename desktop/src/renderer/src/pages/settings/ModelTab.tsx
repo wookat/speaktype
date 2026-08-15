@@ -70,7 +70,7 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
           <div className="flex items-center gap-3">
             <button
               className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
-              disabled={testState === "testing" || !s.polishBaseUrl || !s.polishApiKey}
+              disabled={testState === "testing" || !s.polishBaseUrl}
               onClick={runTest}
             >
               {testState === "testing" ? t("settings.modelTesting") : t("settings.modelTest")}

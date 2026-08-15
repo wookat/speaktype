@@ -16,7 +16,7 @@ function Personas(props: {
   const { t } = props;
   // 人设只在 AI 润色阶段生效，没配润色模型时规则不会改变落字
   const polishReady =
-    props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl && props.settings.polishApiKey);
+    props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl);
   const [editing, setEditing] = useState<Persona | null>(null);
   // 正在运行的应用列表：规则输入框提供下拉建议，免得用户不知道进程名怎么写
   const [apps, setApps] = useState<string[]>([]);
