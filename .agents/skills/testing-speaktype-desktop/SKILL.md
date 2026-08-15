@@ -5,6 +5,15 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 # Testing SpeakType Windows desktop (Electron)
 
+## Network-blocking tests (download failure simulation) — CRITICAL traps
+
+- **NEVER enable Windows Firewall on this box** (`netsh advfirewall set allprofiles state on`): it severs the Devin control channel instantly; recovery needed a VM reboot. The firewall is intentionally OFF, so program-scoped firewall block rules are silently ineffective too.
+- **hosts-file blocking may silently stop working** (entries present, ANSI encoding fine, flushdns/Dnscache OK, but ping still resolves real IPs). Always verify with `ping <domain>` that blocking is effective BEFORE relying on it — a "blocked" download that succeeds means the block never applied.
+- Null routes (`route add <ip> mask 255.255.255.255 <bogus-gw>`) do NOT block here (virtual NAT proxy-ARPs everything). Proxy env vars (`HTTPS_PROXY`) are ignored by Node/undici `fetch` in the Electron main process.
+- **Working method: IPsec static policy** (independent of firewall profiles):
+  `netsh ipsec static add policy name=P; add filterlist name=F; add filter filterlist=F srcaddr=me dstaddr=<ip-or-net> [dstmask=...] protocol=TCP mirrored=yes; add filteraction name=A action=block; add rule name=R policy=P filterlist=F filteraction=A; set policy name=P assign=y`.
+  Block 143.204.0.0/16 (huggingface CF), hf-mirror IP, github.com IP, 185.199.108.0/22 (GH release CDN). Verify with node fetch (UND_ERR_CONNECT_TIMEOUT ≈10s per source). Cleanup: `set policy assign=n; delete policy/filterlist/filteraction`.
+
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
 ## Launch (dev and installed)
@@ -114,3 +123,18 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - PR #61 (dark mode) lesson: to test "follow system" theme sync, flip the registry directly — `HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize` values AppsUseLightTheme/SystemUsesLightTheme (0=dark/1=light); Electron matchMedia reacts live, no restart or Windows Settings UI needed. Restore both to 1 afterwards.
 
 - PR #49/#50 (enhanced punctuation) lessons: (a) SenseVoice CHINESE raw is essentially always self-punctuated (tried normal and +45% rate edge-tts long run-on sentences) so polish.ts needsPunctuation never fires for zh with SenseVoice - the ct-transformer model path can only be shown E2E with ENGLISH raw (e.g. b2.wav, raw has no mid-sentence punctuation); check main.log for "punct worker started" to prove the model (not rules) ran. (b) No local Chinese TTS voice exists (only David/Zira en-US, and python has no pip); generate Chinese WAVs online with `npm i msedge-tts` + node script (zh-CN-XiaoxiaoNeural, mp3) -> ffmpeg -ar 16000 -ac 1 -> rebuild canonical wav (see C:\Users\Administrator\tts\edgetts49.mjs / buildzh49.ps1); mkdir the toFile output dir first. (c) The punct model download from HF is fast (~5s) and real progress % is visible - click and screenshot within ~1.5s to catch mid-progress. (d) PowerShell here runs .ps1 files as ANSI: any script containing Chinese must be re-saved as UTF-8 WITH BOM before running or it fails to parse.
+
+## Fresh-user simulation trap (legacy userData migration)
+
+- Deleting `%APPDATA%\SpeakType\speaktype.json` is NOT enough to simulate a brand-new user: `src/main/migrate.ts` copies the config back from any legacy dir matching `SpeakType *` that contains a speaktype.json (e.g. `SpeakType ?????`). Renaming with a suffix (`SpeakType xxx-off`) still matches the glob - move the legacy dir OUT of %APPDATA% entirely, and move it back (original name) during cleanup.
+- Verify via main.log: expect "no legacy userData to migrate" instead of "migrated legacy userData from ...".
+- To make the Home missing-model banner appear for the default model, also stash the model files out of `%APPDATA%\SpeakType\models\<model>` and restore afterwards.
+
+## Capturing loader-phase UI states (badge/spinner)
+
+- SenseVoice offline transcription finishes in <1s, so the post-release loader is nearly impossible to screenshot. To hold the loader open, run a local OpenAI-compatible polish server that delays ~6s before responding (node http server on 127.0.0.1, returning `{choices:[{message:{content:...}}]}`), set polishBaseUrl/ApiKey/Model in speaktype.json, then screenshot during the "Polishing..." spinner. Restore polish settings afterwards.
+
+## Fake mic and audio service traps (round 30)
+- The fake microphone is NOT a system device: launch SpeakType.exe with Chromium flags `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream --use-file-for-fake-audio-capture=C:\Users\Administrator\tts\sample.wav`. Without these flags hotkeys appear dead: recording aborts instantly with a brief "Microphone unavailable / No microphone found" toast (bottom-center, ~2.6s, easy to miss).
+- Windows Audio services (Audiosrv/AudioEndpointBuilder) may be DISABLED on this VM; the Chromium fake-capture flags work regardless. Re-enable with `sc.exe config Audiosrv start= auto` etc. only if real audio devices are needed.
+- To debug the packaged main process, launch with `--inspect=9229` and use Runtime.evaluate over the Node inspector WebSocket; require app modules via `path.join(process.resourcesPath, 'app.asar', 'node_modules', ...)`.
