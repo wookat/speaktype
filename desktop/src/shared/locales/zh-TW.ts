@@ -285,6 +285,8 @@ export const zhTW: LocaleDict = {
   "toast.undo": "復原",
   "toast.undone": "已復原",
   "toast.undoneBody": "「{{word}}」已從詞典移除",
+  "toast.dictFull": "詞典已滿",
+  "toast.dictFullBody": "已達 300 詞上限，本次糾正沒有學入。可到「詞典」刪除不用的詞",
   "toast.undoneManyBody": "「{{words}}」已從詞典移除",
   "tray.open": "開啟 SpeakType",
   "tray.activate": "配置語音識別",

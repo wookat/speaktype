@@ -309,6 +309,8 @@ export const ja: LocaleDict = {
   "toast.undo": "元に戻す",
   "toast.undone": "元に戻しました",
   "toast.undoneBody": "「{{word}}」を辞書から削除しました",
+  "toast.dictFull": "辞書がいっぱいです",
+  "toast.dictFullBody": "300 語の上限に達したため、今回の修正は学習されませんでした。「辞書」で不要な語を削除してください",
   "toast.undoneManyBody": "「{{words}}」を辞書から削除しました",
 
   "tray.open": "SpeakType を開く",

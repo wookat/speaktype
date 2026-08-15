@@ -309,6 +309,8 @@ export const ko: LocaleDict = {
   "toast.undo": "실행 취소",
   "toast.undone": "취소했습니다",
   "toast.undoneBody": "‘{{word}}’을(를) 사전에서 제거했습니다",
+  "toast.dictFull": "사전이 가득 찼습니다",
+  "toast.dictFullBody": "300개 단어 한도에 도달해 이번 교정은 저장되지 않았습니다. ‘사전’에서 사용하지 않는 단어를 삭제하세요",
   "toast.undoneManyBody": "‘{{words}}’을(를) 사전에서 제거했습니다",
 
   "tray.open": "SpeakType 열기",

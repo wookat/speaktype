@@ -303,6 +303,8 @@ export const zhCN = {
   "toast.undo": "撤销",
   "toast.undone": "已撤销",
   "toast.undoneBody": "「{{word}}」已从词典移除",
+  "toast.dictFull": "词典已满",
+  "toast.dictFullBody": "已达 300 词上限，本次纠正没有学入。可到「词典」删除不用的词",
   "toast.undoneManyBody": "「{{words}}」已从词典移除",
 
   "tray.open": "打开 SpeakType",
