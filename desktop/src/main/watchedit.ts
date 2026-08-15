@@ -72,6 +72,14 @@ interface Diff {
 
 const ALNUM = /^[A-Za-z0-9]$/;
 const ASCII_SEG = /^[A-Za-z0-9-]+$/;
+const CJK_CH = /^[\u4e00-\u9fff]$/;
+
+interface Span {
+  i0: number;
+  i1: number;
+  j0: number;
+  j1: number;
+}
 
 /** 去共同前后缀，取中间变化段；中段过大时再用 LCS 拆成多个独立小改动 */
 export function extractCorrections(before: string, after: string): Diff[] {
@@ -90,6 +98,14 @@ export function extractCorrections(before: string, after: string): Diff[] {
     (ALNUM.test(a[a.length - end - 1] ?? "") || ALNUM.test(b[b.length - end - 1] ?? ""))
   )
     end--;
+  // 中文同音词常只差一字（名天→明天）：去前后缀后剩单字会被 2 字门槛拒学，
+  // 回扩 1 字复用共同前/后缀，学到的词仍须过 learnableWord 的 2-6 字门槛
+  const singleCjk = (arr: string[]): boolean =>
+    arr.length - start - end === 1 && CJK_CH.test(arr[start] ?? "");
+  if (singleCjk(a) || singleCjk(b)) {
+    if (end > 0 && CJK_CH.test(a[a.length - end] ?? "")) end--;
+    else if (start > 0 && CJK_CH.test(a[start - 1] ?? "")) start--;
+  }
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
   // 短段或两侧均为单个英文词时直接当一处改动；长段可能是改了多个不相邻的地方，LCS 对齐后按连续变化段分组
@@ -105,31 +121,87 @@ export function extractCorrections(before: string, after: string): Diff[] {
       dp[i]![j] = ma[i] === mb[j] ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
     }
   }
-  const out: Diff[] = [];
+  const spans: Span[] = [];
   let i = 0;
   let j = 0;
-  let wrong = "";
-  let right = "";
+  let di = -1;
+  let dj = -1;
   const flush = (): void => {
-    if (wrong || right) out.push({ wrong, right });
-    wrong = "";
-    right = "";
+    if (di >= 0) spans.push({ i0: di, i1: i, j0: dj, j1: j });
+    di = -1;
+    dj = -1;
   };
   while (i < n && j < m) {
     if (ma[i] === mb[j]) {
       flush();
       i++;
       j++;
-    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
-      wrong += ma[i++];
     } else {
-      right += mb[j++];
+      if (di < 0) {
+        di = i;
+        dj = j;
+      }
+      if (dp[i + 1]![j]! >= dp[i]![j + 1]!) i++;
+      else j++;
     }
   }
-  wrong += ma.slice(i).join("");
-  right += mb.slice(j).join("");
+  if (i < n || j < m) {
+    if (di < 0) {
+      di = i;
+      dj = j;
+    }
+    i = n;
+    j = m;
+  }
   flush();
-  return out.filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT);
+  // 一轮改两个词（review→feedback + report→summary）时 LCS 会把词拆碎：
+  // 每个变化段各自向两侧吸附到完整单词
+  for (const s of spans) {
+    while (
+      s.i0 > 0 &&
+      s.j0 > 0 &&
+      ma[s.i0 - 1] === mb[s.j0 - 1] &&
+      ALNUM.test(ma[s.i0 - 1] ?? "") &&
+      (ALNUM.test(ma[s.i0] ?? "") || ALNUM.test(mb[s.j0] ?? ""))
+    ) {
+      s.i0--;
+      s.j0--;
+    }
+    while (
+      s.i1 < n &&
+      s.j1 < m &&
+      ma[s.i1] === mb[s.j1] &&
+      ALNUM.test(ma[s.i1] ?? "") &&
+      (ALNUM.test(ma[s.i1 - 1] ?? "") || ALNUM.test(mb[s.j1 - 1] ?? ""))
+    ) {
+      s.i1++;
+      s.j1++;
+    }
+  }
+  // 吸附后相邻段可能重叠：合并成一段
+  const merged: Span[] = [];
+  for (const s of spans) {
+    const prev = merged[merged.length - 1];
+    if (prev && (s.i0 < prev.i1 || s.j0 < prev.j1)) {
+      prev.i1 = Math.max(prev.i1, s.i1);
+      prev.j1 = Math.max(prev.j1, s.j1);
+    } else {
+      merged.push(s);
+    }
+  }
+  return merged
+    .map((s) => ({ wrong: ma.slice(s.i0, s.i1).join(""), right: mb.slice(s.j0, s.j1).join("") }))
+    .filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT);
+}
+
+/** 英文错词须以完整词边界出现在文本里，防止 LCS 碎片（如 "w"）误学 */
+function wholeWordIn(text: string, word: string): boolean {
+  for (let idx = text.indexOf(word); idx >= 0; idx = text.indexOf(word, idx + 1)) {
+    const beforeOk = !ALNUM.test(word[0] ?? "") || !ALNUM.test(text[idx - 1] ?? "");
+    const afterOk = !ALNUM.test(word[word.length - 1] ?? "") || !ALNUM.test(text[idx + word.length] ?? "");
+    if (beforeOk && afterOk) return true;
+  }
+  return false;
 }
 
 /** 学习门槛：改后的词是 2-6 字纯中文，或 3-20 字符英文词（可含连字符/数字）才收进词典，避免误学标点/删改 */
@@ -140,6 +212,7 @@ export function learnableWord(diff: Diff, inserted: string): string | null {
   if (!zh && !en) return null;
   // 改动必须落在我们刚插入的文本里，别人的内容不学
   if (!inserted.includes(diff.wrong)) return null;
+  if (en && !wholeWordIn(inserted, diff.wrong)) return null;
   return diff.right;
 }
 
