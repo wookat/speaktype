@@ -50,6 +50,18 @@ interface TranscriptionResponse {
   text?: string;
 }
 
+/** 错误响应优先取 JSON 里的 error.message/message，取不到再退回原始正文片段 */
+export function httpErrorDetail(status: number, body: string): string {
+  let msg = "";
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string }; message?: string };
+    msg = parsed.error?.message ?? parsed.message ?? "";
+  } catch {
+    /* not JSON */
+  }
+  return `HTTP ${status} ${(msg || body).slice(0, 160)}`;
+}
+
 /** 设置页“测试连接”：上传一段极短静音验证端点/密钥/模型名 */
 export async function testAsr(settings: Settings): Promise<{ ok: boolean; detail: string }> {
   if (!settings.asrBaseUrl || !settings.asrApiKey) return { ok: false, detail: "Base URL / API Key" };
@@ -65,8 +77,7 @@ export async function testAsr(settings: Settings): Promise<{ ok: boolean; detail
       body: form,
     });
     if (!res.ok) {
-      const body = (await res.text()).slice(0, 160);
-      return { ok: false, detail: `HTTP ${res.status} ${body}` };
+      return { ok: false, detail: httpErrorDetail(res.status, await res.text()) };
     }
     return { ok: true, detail: settings.asrModel || "whisper-1" };
   } catch (error) {
