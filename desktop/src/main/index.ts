@@ -142,9 +142,9 @@ const dictation = new Dictation({
   broadcast,
   pushSettings: () => pushSettings(),
   showToast,
-  openModelSettings: () => {
+  openModelSettings: (tab = "model") => {
     showMain();
-    mainWin?.webContents.send("goto", { page: "settings", tab: "model" });
+    mainWin?.webContents.send("goto", { page: "settings", tab });
   },
 });
 

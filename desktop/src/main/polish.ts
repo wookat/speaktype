@@ -173,6 +173,8 @@ export function localCleanup(text: string, selfCorrect = true, rulePunct = true)
   if (selfCorrect) out = out.replace(SELF_CORRECTION, "");
   out = out.replace(/(.{2,10}?)\1{2,}/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
+  // 上游 ASR 的 ITN 把 "costs eleven dollars" 重写成 "costs$11"：单词紧跟 $数字 之间补空格
+  out = out.replace(/([A-Za-z])\$(\d)/g, "$1 $$$2");
   if (selfCorrect && rulePunct) out = addLocalPunctuation(out);
   // 去尾句号是中文语音输入习惯；英文句尾句号要保留，否则和 addEnglishPunctuation 互搏
   return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
