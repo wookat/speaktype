@@ -18,7 +18,7 @@ import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge } from "./doubao"
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, stopLocalServer } from "./localasr";
+import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
@@ -273,8 +273,11 @@ function registerIpc(): void {
     systemLocale: app.getLocale() || "zh-CN",
   }));
   ipcMain.handle("settings:update", async (_e, patch: Partial<Settings>) => {
+    const prevModel = getSettings().localModel;
     const next = setSettings(patch);
     applyHotkeys(next);
+    // 旧模型 worker 常驻数百 MB～GB：切换本身就是「不再用它」信号，立即释放而非等空闲计时
+    if ("localModel" in patch && next.localModel !== prevModel) releaseSherpaWorker();
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
     if ("uiLanguage" in patch) refreshTrayMenu();
     if ("remoteMicEnabled" in patch || "remoteMicMode" in patch || "remoteRelayUrl" in patch) {
@@ -282,6 +285,20 @@ function registerIpc(): void {
     }
     pushSettings();
     return next;
+  });
+  // 轻量新版提示（非自动更新）：拨一次 GitHub latest release，失败静默（离线不打扰）
+  let latestTag = "";
+  ipcMain.handle("app:latestVersion", async () => {
+    if (latestTag) return latestTag;
+    try {
+      const res = await fetch("https://api.github.com/repos/wookat/speaktype/releases/latest", {
+        headers: { accept: "application/vnd.github+json" },
+      });
+      if (res.ok) latestTag = ((await res.json()) as { tag_name?: string }).tag_name ?? "";
+    } catch {
+      // 离线或 API 限流：不提示即可
+    }
+    return latestTag;
   });
   ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("apps:running", () => runningApps());

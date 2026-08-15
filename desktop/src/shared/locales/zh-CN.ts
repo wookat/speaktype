@@ -251,6 +251,7 @@ export const zhCN = {
   "settings.about.license": "开源许可",
   "settings.about.author": "作者与维护者",
   "settings.about.contribute": "参与贡献",
+  "settings.about.updateAvailable": "新版本 {version} 已发布，前往下载：",
   "settings.about.logs": "运行日志",
   "settings.about.logsOpen": "打开日志目录",
   "settings.about.contributeDesc": "欢迎提交 Issue 与 Pull Request，一起把开源语音输入做好。",

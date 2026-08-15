@@ -61,6 +61,10 @@
 - [ ] API Key 留空 + Base URL 指向本地无鉴权端点（Ollama/LM Studio/mock）→ 测试连接可点、润色/F8 改写可用（请求不带 Authorization 头）
 - [ ] 同一拒写状态下依次下载 Parakeet 与 whisper 系模型 → 两者都报存储类文案（GH 第三源 404 不再覆盖真实错误）
 
+## 切模型即时释放旧 worker + 新版提示（第 29 轮固化）
+- [ ] SenseVoice 听写一句后切到 Parakeet → log 出现 "sherpa worker stopped (model switched)"，任务管理器内存明显回落（不等 10 分钟空闲）
+- [ ] 关于页：当前版本低于 GitHub latest release 时显示琥珀色「新版本 vX.Y.Z」提示条并可跳 Releases；断网/限流时不显示、无报错
+
 ## 增强标点英文边界句基线（第 16 轮固化，ct-transformer 模型级限制，不投工程修）
 以下句子的当前模型输出即为基线，复现同样偏差不算回归；整体明显变差才算回归：
 - [ ] "can you check the numbers before the meeting I met Sarah this morning she said the roadmap is ready we can start next week" → 问号会错位到句中（meeting？I met…），"she said，" 有冗余逗号
