@@ -29,8 +29,21 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
 $hardStop = (Get-Date).AddSeconds(${MAX_WATCH_SECONDS})
+function Read-ElText($el) {
+  $p = $null
+  if ($el.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) {
+    return $p.Current.Value
+  }
+  $tp = $null
+  if ($el.TryGetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern, [ref]$tp)) {
+    return $tp.DocumentRange.GetText(20000)
+  }
+  if ($el.Current.ClassName -match 'Edit') { return $el.Current.Name }
+  return $null
+}
 $last = $null
 $anchorId = $null
+$anchorEl = $null
 $blurSent = $false
 while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
   $txt = $null
@@ -39,26 +52,29 @@ while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
     $el = [System.Windows.Automation.AutomationElement]::FocusedElement
     if ($el) {
       $id = ($el.GetRuntimeId() -join '.')
-      $p = $null
-      if ($el.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) {
-        $txt = $p.Current.Value
-      } else {
-        $tp = $null
-        if ($el.TryGetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern, [ref]$tp)) {
-          $txt = $tp.DocumentRange.GetText(20000)
-        } elseif ($el.Current.ClassName -match 'Edit') {
-          $txt = $el.Current.Name
-        }
-      }
+      $txt = Read-ElText $el
     }
   } catch { $txt = $null }
-  if ($txt -ne $null -and $anchorId -eq $null) { $anchorId = $id }
+  if ($txt -ne $null -and $anchorId -eq $null) { $anchorId = $id; $anchorEl = $el }
   # 光标还在落字那个输入框里就续期（即使什么都没改），离开才开始倒计时
   if ($txt -ne $null -and $id -eq $anchorId) {
     $deadline = (Get-Date).AddSeconds(${WATCH_SECONDS})
     $blurSent = $false
   } elseif ($anchorId -ne $null -and -not $blurSent) {
-    # 焦点离开落字控件：通知节点侧立即结算本轮改动，不等停顿计时器
+    # 焦点离开落字控件：先补读一次控件当前文本（轮询间隔内最后几次击键可能没被采到），
+    # 再通知节点侧立即结算。UIA 按元素引用读文本不依赖焦点，控件已销毁时静默回退
+    try {
+      if ($anchorEl -ne $null) {
+        $ftxt = Read-ElText $anchorEl
+        if ($ftxt -ne $null) {
+          $fline = $anchorId + '|' + $ftxt
+          if ($fline -ne $last) {
+            $last = $fline
+            [Console]::Out.WriteLine($anchorId + '|' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($ftxt)))
+          }
+        }
+      }
+    } catch { }
     [Console]::Out.WriteLine('BLUR|')
     $blurSent = $true
   }
@@ -71,7 +87,7 @@ while ((Get-Date) -lt $deadline -and (Get-Date) -lt $hardStop) {
 }
 `;
 
-interface Diff {
+export interface Diff {
   wrong: string;
   right: string;
 }
@@ -228,12 +244,13 @@ let current: ReturnType<typeof spawn> | null = null;
 
 /**
  * 落字成功后调用：持续观察目标输入框，用户每改完一处（停顿约 1.5 秒）就把
- * 插入文本里被改掉的词回调 (错词, 对词)，基线滚动更新，可连续学多处。
+ * 插入文本里被改掉的词整批回调（同一轮停顿改多个词只弹一次学习提示），
+ * 基线滚动更新，可连续学多处。
  * 同时只跑一个观察进程，新落字会顶掉旧的（顶掉前把最后一轮改动也学完）。
  */
 export function watchPastedText(
   inserted: string,
-  onLearn: (wrong: string, right: string) => void,
+  onLearn: (corrections: Diff[]) => void,
 ): void {
   if (process.platform !== "win32") return;
   if (current) {
@@ -255,12 +272,14 @@ export function watchPastedText(
   const settle = (): void => {
     settleTimer = null;
     if (baseline === null || pending === null || pending === baseline) return;
+    const learned: Diff[] = [];
     for (const diff of extractCorrections(baseline, pending)) {
       const right = learnableWord(diff, inserted);
       if (!right) continue;
       log.info(`auto-learn: "${diff.wrong}" -> "${right}"`);
-      onLearn(diff.wrong, right);
+      learned.push({ wrong: diff.wrong, right });
     }
+    if (learned.length > 0) onLearn(learned);
     // 基线滚动到当前文本：后面接着改还能继续学
     baseline = pending;
     pending = null;

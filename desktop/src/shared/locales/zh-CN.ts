@@ -290,9 +290,11 @@ export const zhCN = {
   "toast.polishFallbackBody": "已按未润色的原文落字",
   "toast.learned": "已学会新词",
   "toast.learnedBody": "「{{word}}」已加入词典，下次自动纠正",
+  "toast.learnedManyBody": "「{{words}}」已加入词典，下次自动纠正",
   "toast.undo": "撤销",
   "toast.undone": "已撤销",
   "toast.undoneBody": "「{{word}}」已从词典移除",
+  "toast.undoneManyBody": "「{{words}}」已从词典移除",
 
   "tray.open": "打开 SpeakType",
   "tray.activate": "配置语音识别",

@@ -296,9 +296,11 @@ export const ko: LocaleDict = {
   "toast.polishFallbackBody": "다듬지 않은 원문을 입력했습니다",
   "toast.learned": "새 단어를 학습했습니다",
   "toast.learnedBody": "‘{{word}}’을(를) 사전에 추가했습니다. 다음부터 자동 교정됩니다",
+  "toast.learnedManyBody": "‘{{words}}’을(를) 사전에 추가했습니다",
   "toast.undo": "실행 취소",
   "toast.undone": "취소했습니다",
   "toast.undoneBody": "‘{{word}}’을(를) 사전에서 제거했습니다",
+  "toast.undoneManyBody": "‘{{words}}’을(를) 사전에서 제거했습니다",
 
   "tray.open": "SpeakType 열기",
   "tray.activate": "음성 인식 설정",

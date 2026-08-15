@@ -14,6 +14,8 @@ function GeneralTab(props: {
   holdKeyChoices: string[];
   rewriteKeyChoices: string[];
   toggleKeyChoices: string[];
+  anchor: string | null;
+  clearAnchor: () => void;
 }) {
   const { t, s, update } = props;
   const [capturing, setCapturing] = useState(false);
@@ -250,13 +252,30 @@ function GeneralTab(props: {
         </Row>
       </section>
 
-      <MicSection t={t} s={s} update={props.update} />
+      <MicSection t={t} s={s} update={props.update} anchor={props.anchor} clearAnchor={props.clearAnchor} />
     </>
   );
 }
 
-function MicSection(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
+function MicSection(props: {
+  t: Translator;
+  s: Settings;
+  update: (patch: Partial<Settings>) => void;
+  anchor: string | null;
+  clearAnchor: () => void;
+}) {
   const { t, s, update } = props;
+  // 页内锚点（如 Home 手机麦入口）：滚到手机麦区块并短暂高亮，免得用户在长页里自己找
+  const remoteMicRef = useRef<HTMLDivElement | null>(null);
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    if (props.anchor !== "remote-mic") return;
+    remoteMicRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlight(true);
+    props.clearAnchor();
+    const timer = setTimeout(() => setHighlight(false), 1800);
+    return () => clearTimeout(timer);
+  }, [props.anchor]);
   const [devices, setDevices] = useState<MicDevice[] | null>(null);
   const [testing, setTesting] = useState(false);
   const [level, setLevel] = useState(0);
@@ -319,7 +338,12 @@ function MicSection(props: { t: Translator; s: Settings; update: (patch: Partial
           </div>
         </div>
       )}
-      <RemoteMicRows t={t} s={s} update={update} />
+      <div
+        ref={remoteMicRef}
+        className={`rounded-xl transition-shadow duration-500 ${highlight ? "ring-2 ring-indigo-400" : ""}`}
+      >
+        <RemoteMicRows t={t} s={s} update={update} />
+      </div>
     </section>
   );
 }

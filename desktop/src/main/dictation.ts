@@ -21,7 +21,7 @@ import { copySelection, pasteText, toggleSystemMute } from "./paste";
 import { polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
 import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
-import { watchPastedText } from "./watchedit";
+import { watchPastedText, type Diff } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
 const MAX_BUFFERED_FRAMES = 150;
@@ -475,28 +475,48 @@ export class Dictation {
     }
   }
 
-  /** 用户在目标输入框里手动改对了词：学进词典 + 同步修正历史条目 + 提示 */
-  private learnCorrection(historyId: string, wrong: string, right: string): void {
+  /** 用户在目标输入框里手动改对了词：整批学进词典 + 同步修正历史条目 + 一条可撤销提示 */
+  private learnCorrections(historyId: string, items: Diff[]): void {
     const settings = getSettings();
-    if (settings.hotwords.includes(right) || settings.hotwords.length >= 300) return;
-    setSettings({ hotwords: [...settings.hotwords, right] });
+    let hotwords = settings.hotwords;
+    const learned: Diff[] = [];
+    for (const item of items) {
+      if (hotwords.includes(item.right) || hotwords.length >= 300) continue;
+      hotwords = [...hotwords, item.right];
+      learned.push(item);
+    }
+    if (learned.length === 0) return;
+    setSettings({ hotwords });
     const entry = getHistory().find((h) => h.id === historyId);
-    if (entry && entry.text.includes(wrong)) {
-      updateHistoryItem(historyId, { text: entry.text.replace(wrong, right) });
+    if (entry) {
+      let text = entry.text;
+      for (const { wrong, right } of learned) if (text.includes(wrong)) text = text.replace(wrong, right);
+      if (text !== entry.text) updateHistoryItem(historyId, { text });
     }
     this.deps.pushSettings();
-    // 误编辑（如手滑打错再改回）也会触发学词：toast 上直接给撤销，不用去词典页手删
-    this.deps.showToast(t("toast.learned"), t("toast.learnedBody", { word: right }), {
+    const words = learned.map((l) => l.right);
+    const body =
+      learned.length === 1
+        ? t("toast.learnedBody", { word: words[0]! })
+        : t("toast.learnedManyBody", { words: words.join(", ") });
+    // 误编辑（如手滑打错再改回）也会触发学词：toast 上直接给撤销（整批一起撤），不用去词典页手删
+    this.deps.showToast(t("toast.learned"), body, {
       label: t("toast.undo"),
       run: () => {
         const now = getSettings();
-        setSettings({ hotwords: now.hotwords.filter((w) => w !== right) });
+        setSettings({ hotwords: now.hotwords.filter((w) => !words.includes(w)) });
         const item = getHistory().find((h) => h.id === historyId);
-        if (item && item.text.includes(right)) {
-          updateHistoryItem(historyId, { text: item.text.replace(right, wrong) });
+        if (item) {
+          let text = item.text;
+          for (const { wrong, right } of learned) if (text.includes(right)) text = text.replace(right, wrong);
+          if (text !== item.text) updateHistoryItem(historyId, { text });
         }
         this.deps.pushSettings();
-        this.deps.showToast(t("toast.undone"), t("toast.undoneBody", { word: right }));
+        const undoneBody =
+          learned.length === 1
+            ? t("toast.undoneBody", { word: words[0]! })
+            : t("toast.undoneManyBody", { words: words.join(", ") });
+        this.deps.showToast(t("toast.undone"), undoneBody);
       },
     });
   }
@@ -624,7 +644,7 @@ export class Dictation {
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
     if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
-      watchPastedText(text, (wrong, right) => this.learnCorrection(historyId, wrong, right));
+      watchPastedText(text, (items) => this.learnCorrections(historyId, items));
     }
 
     this.busy = false;

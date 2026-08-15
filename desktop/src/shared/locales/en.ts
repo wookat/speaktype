@@ -296,9 +296,11 @@ export const en: LocaleDict = {
   "toast.polishFallbackBody": "Inserted the raw transcript without AI polish",
   "toast.learned": "New word learned",
   "toast.learnedBody": "\"{{word}}\" added to dictionary; future misrecognitions auto-corrected",
+  "toast.learnedManyBody": "\"{{words}}\" added to dictionary",
   "toast.undo": "Undo",
   "toast.undone": "Undone",
   "toast.undoneBody": "\"{{word}}\" removed from dictionary",
+  "toast.undoneManyBody": "\"{{words}}\" removed from dictionary",
 
   "tray.open": "Open SpeakType",
   "tray.activate": "Set up speech recognition",
