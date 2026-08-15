@@ -107,6 +107,7 @@ export const zhCN = {
   "settings.holdCaptureUnsupported": "这个键不能用作长按键。支持：字母/功能键/修饰键及鼠标侧键、中键（单键，不支持组合）。",
   "settings.rewriteKey": "改写选中文字",
   "settings.rewriteKeyOff": "关闭",
+  "settings.rewriteKeyConflict": "与按住说话键相同，改写将被禁用，请换一个键。",
   "settings.rewriteKeyHint": "选中一段文字后按住 {{key}} 说出指令（如“翻译成英文”“改得正式一点”），松手即替换选区。需要在「润色模型」里配好模型。",
   "settings.rewriteKeyOffHint": "选中文字后按住某个键说指令即可改写/翻译选区，选一个键开启。",
   "settings.toggle": "免按模式",
