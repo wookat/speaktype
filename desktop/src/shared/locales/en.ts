@@ -173,6 +173,7 @@ export const en: LocaleDict = {
   "settings.remoteRelayUrlHint": "Official relay by default (audio is piped through, never stored); replace with your own Cloudflare Worker if you prefer.",
   "settings.remoteMicStepsRelay": "Scan the QR on your phone (works on any network); hold the round button to talk, release to type. Add it to your home screen to use it like an app, or type the pairing code below.",
   "settings.remoteMicPairCode": "Pairing code (type it in the phone app):",
+  "settings.remoteMicRelayError": "Can't reach the relay server — check the relay URL and your network. Still retrying…",
 
   "settings.asr": "Speech recognition service",
   "settings.asrHint":
