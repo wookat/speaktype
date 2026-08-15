@@ -110,8 +110,8 @@ export interface DictationDeps {
   ) => void;
   /** 主进程直改了 settings/历史后推给渲染层，让词典/历史页立即刷新 */
   pushSettings: () => void;
-  /** 打开主窗口并跳到 设置→模型 tab（改写缺润色模型时引导用户去配） */
-  openModelSettings: () => void;
+  /** 打开设置页并定位 tab：润色模型在 "model"，ASR/语音识别配置在 "voice" */
+  openModelSettings: (tab?: "model" | "voice") => void;
 }
 
 export class Dictation {
@@ -332,7 +332,7 @@ export class Dictation {
         this.deps.showToast(
           t("toast.asrNotConfigured"),
           message,
-          { label: t("toast.openSettingsAction"), run: () => this.deps.openModelSettings() },
+          { label: t("toast.openSettingsAction"), run: () => this.deps.openModelSettings("voice") },
           12000,
         );
       }
