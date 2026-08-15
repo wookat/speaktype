@@ -131,7 +131,7 @@ const pair = document.getElementById("pair");
 const installBtn = document.getElementById("install");
 const unpair = document.getElementById("unpair");
 let room = ${room ? JSON.stringify(room) : "localStorage.getItem('speaktype-room') || ''"};
-let ws = null, ctx = null, stream = null, node = null, holding = false;
+let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 0;
 
 if (ROOM_RE.test(room)) localStorage.setItem("speaktype-room", room);
 
@@ -145,11 +145,14 @@ function showPairing() {
 function connect() {
   ws = new WebSocket("wss://" + location.host + BASE + "/ws/" + room + "?role=phone");
   ws.binaryType = "arraybuffer";
-  ws.onopen = () => { stateEl.textContent = "已连接中转，等待电脑…"; talk.disabled = false; };
+  ws.onopen = () => { fails = 0; stateEl.textContent = "已连接中转，等待电脑…"; talk.disabled = false; };
   ws.onclose = (ev) => {
-    stateEl.textContent = ev.reason === "room occupied" ? "该房间已有手机连接" : "连接断开，正在重连…";
     talk.disabled = true;
-    if (ev.reason !== "room occupied") setTimeout(connect, 1500);
+    if (ev.reason === "room occupied") { stateEl.textContent = "该房间已有手机连接"; return; }
+    // 房间码已在电脑端更换时重连永远建不起来：连拒 8 次即停，回配对页提示重新配对
+    if (++fails >= 8) { showPairing(); stateEl.textContent = "配对已失效，请重新输入电脑上的配对码"; return; }
+    stateEl.textContent = "连接断开，正在重连…";
+    setTimeout(connect, 1500);
   };
   ws.onmessage = (ev) => {
     if (typeof ev.data !== "string") return;
