@@ -309,7 +309,16 @@ export class Dictation {
       this.session = null;
       this.deps.recorder()?.webContents.send("recorder:stop");
       this.unmute();
-      this.report("error", error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      // 配置类失败（未登录/未填 key/模型未下载）只闪状态条用户看不见：补常驻 toast 并直达设置
+      const configErrors = [t("error.noAppKey"), t("error.noAsrConfig"), t("error.localModelMissing")];
+      if (configErrors.includes(message)) {
+        this.deps.showToast(t("toast.asrNotConfigured"), message, {
+          label: t("toast.openSettingsAction"),
+          run: () => this.deps.openModelSettings(),
+        });
+      }
+      this.report("error", message);
     }
   }
 

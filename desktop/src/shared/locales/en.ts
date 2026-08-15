@@ -284,6 +284,8 @@ export const en: LocaleDict = {
   "toast.noSpeech": "Didn't catch that",
   "toast.configRecovered": "Settings rebuilt",
   "toast.modelReady": "Offline model ready",
+  "toast.asrNotConfigured": "Speech recognition not set up",
+  "toast.openSettingsAction": "Open Settings",
   "toast.modelReadyBody": "All set — hold your talk key and say your first sentence.",
   "toast.configRecoveredBody": "The config file was corrupted and has been reset; a backup was saved as speaktype.json.bad.",
   "toast.noSpeechBody": "No speech detected — try again",
