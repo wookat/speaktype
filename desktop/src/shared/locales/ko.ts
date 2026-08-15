@@ -240,7 +240,7 @@ export const ko: LocaleDict = {
   "settings.modelPreset": "제공자 프리셋",
   "settings.modelPresetCustom": "사용자 정의",
   "settings.modelBaseUrl": "Base URL",
-  "settings.modelApiKey": "API 키",
+  "settings.modelApiKey": "API 키(Ollama 등 로컬 엔드포인트는 비워도 됨)",
   "settings.modelName": "모델",
   "settings.modelTest": "연결 테스트",
   "settings.modelTesting": "테스트 중…",
@@ -290,6 +290,8 @@ export const ko: LocaleDict = {
   "toast.rewriteNoModelBody": "설정 → 다듬기 모델에서 OpenAI 호환 모델을 설정하세요",
   "toast.rewriteFailed": "다시 쓰기 실패",
   "toast.rewriteFailedBody": "다듬기 모델이 결과를 반환하지 않아 원문이 그대로 유지되었습니다",
+  "toast.polishFallback": "다듬기 서비스를 사용할 수 없습니다",
+  "toast.polishFallbackBody": "다듬지 않은 원문을 입력했습니다",
   "toast.learned": "새 단어를 학습했습니다",
   "toast.learnedBody": "‘{{word}}’을(를) 사전에 추가했습니다. 다음부터 자동 교정됩니다",
 

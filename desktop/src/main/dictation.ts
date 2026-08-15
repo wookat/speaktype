@@ -240,7 +240,7 @@ export class Dictation {
   async startRewrite(): Promise<void> {
     if (this.busy) return;
     const settings = getSettings();
-    if (!settings.polishBaseUrl || !settings.polishApiKey) {
+    if (!settings.polishBaseUrl) {
       this.deps.showToast(t("toast.rewriteNoModel"), t("toast.rewriteNoModelBody"));
       this.deps.openModelSettings();
       return;
@@ -573,7 +573,9 @@ export class Dictation {
       }
       text = rewritten;
     } else {
-      text = await polishText(settings, persona, raw);
+      text = await polishText(settings, persona, raw, () =>
+        this.deps.showToast(t("toast.polishFallback"), t("toast.polishFallbackBody")),
+      );
     }
 
     let failed: string | undefined;

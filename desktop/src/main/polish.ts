@@ -231,17 +231,21 @@ function chatUrl(baseUrl: string): string {
   return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
 }
 
+/** 本地无鉴权端点（Ollama / LM Studio）可不填 key：仅非空时带 Authorization 头 */
+function chatHeaders(settings: Settings): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (settings.polishApiKey) headers["Authorization"] = `Bearer ${settings.polishApiKey}`;
+  return headers;
+}
+
 /** 设置页“测试连接”：发一条最小请求验证端点/密钥/模型名 */
 export async function testPolish(settings: Settings): Promise<{ ok: boolean; detail: string }> {
-  if (!settings.polishBaseUrl || !settings.polishApiKey) return { ok: false, detail: "Base URL / API Key" };
+  if (!settings.polishBaseUrl) return { ok: false, detail: "Base URL" };
   if (!/^https?:\/\//.test(settings.polishBaseUrl)) return { ok: false, detail: t("error.badUrl") };
   try {
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.polishApiKey}`,
-      },
+      headers: chatHeaders(settings),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         max_tokens: 4,
@@ -267,7 +271,7 @@ export async function rewriteSelection(
   selection: string,
   instruction: string,
 ): Promise<string | null> {
-  if (!settings.polishBaseUrl || !settings.polishApiKey) return null;
+  if (!settings.polishBaseUrl) return null;
   const prompt = [
     "你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。",
     "要求：",
@@ -280,10 +284,7 @@ export async function rewriteSelection(
   try {
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.polishApiKey}`,
-      },
+      headers: chatHeaders(settings),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         temperature: 0.3,
@@ -307,8 +308,9 @@ export async function polishText(
   settings: Settings,
   persona: Persona,
   transcript: string,
+  onLlmFallback?: () => void,
 ): Promise<string> {
-  const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl && settings.polishApiKey);
+  const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl);
   let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct);
   if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base);
   if (settings.itn) base = applyItn(base);
@@ -333,21 +335,22 @@ export async function polishText(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${settings.polishApiKey}`,
-      },
+      headers: chatHeaders(settings),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         temperature: 0.3,
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!res.ok) return cleaned;
+    if (!res.ok) {
+      onLlmFallback?.();
+      return cleaned;
+    }
     const data = (await res.json()) as ChatResponse;
     const content = data.choices?.[0]?.message?.content?.trim();
     return content ? content.replace(/^["“]|["”]$/g, "") : cleaned;
   } catch {
+    onLlmFallback?.();
     return cleaned;
   }
 }
