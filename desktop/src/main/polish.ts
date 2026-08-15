@@ -225,10 +225,12 @@ export async function applyModelPunctuation(text: string): Promise<string> {
   return modeled.replace(/[。．.]+$/, "").replace(/^[，。]/, "");
 }
 
-/** 终端目标降格式：去尾部终止标点、还原句首自动大写（仅首字母大写+次字母小写的典型形态） */
+/** 终端目标降格式：去尾部终止标点、还原句首自动大写。驼峰专名（首词后续仍含大写，如 SpeakType）不动 */
 export function deformatForTerminal(text: string): string {
   const out = text.replace(/[。．.!?！？]+\s*$/, "").trimEnd();
-  return out.replace(/^([A-Z])(?=[a-z])/, (ch) => ch.toLowerCase());
+  const first = out.match(/^[A-Za-z][A-Za-z0-9'’-]*/)?.[0];
+  if (!first || !/^[A-Z][a-z]/.test(first) || /[A-Z]/.test(first.slice(1))) return out;
+  return first[0]!.toLowerCase() + out.slice(1);
 }
 
 interface ChatResponse {
