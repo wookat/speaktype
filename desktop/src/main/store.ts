@@ -203,6 +203,8 @@ export function getSettings(): Settings {
   if (merged.remoteRelayUrl === "https://speaktype-relay.wookat520.workers.dev") {
     merged.remoteRelayUrl = DEFAULT_SETTINGS.remoteRelayUrl;
   }
+  // Alt+Space 与 Windows 系统菜单冲突，已从可选项移除；存量配置迁到默认键
+  if (merged.hotkeyToggle === "Alt+Space") merged.hotkeyToggle = DEFAULT_SETTINGS.hotkeyToggle;
   return merged;
 }
 

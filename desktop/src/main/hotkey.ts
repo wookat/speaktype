@@ -67,7 +67,8 @@ export const HOLD_KEY_CHOICES = [
 
 export const REWRITE_KEY_CHOICES = ["Off", ...HOLD_KEY_CHOICES];
 
-export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "Alt+Space", "F9", "F10"];
+// Alt+Space 是 Windows 系统菜单键（弹出窗口菜单并进入菜单模态），不作为可选项
+export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "F9", "F10"];
 
 /** 两次短敲的最大间隔（按第一次松开到第二次松开） */
 const DOUBLE_TAP_MS = 400;
