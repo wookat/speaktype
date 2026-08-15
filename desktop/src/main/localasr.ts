@@ -363,8 +363,8 @@ export async function ensureLocalServer(model: string): Promise<string> {
     proc = child;
     procModel = model;
     child.on("exit", (code) => {
-      log.warn(`local whisper-server exited (${code})`);
       if (proc === child) {
+        log.warn(`local whisper-server exited (${code})`);
         proc = null;
         ready = null;
       }
