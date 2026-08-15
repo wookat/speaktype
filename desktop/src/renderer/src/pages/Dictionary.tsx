@@ -103,8 +103,14 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
       </div>
       {filtered.length === 0 ? (
         <div className="mt-12 text-center text-sm text-slate-400">
-          {t("dict.empty")}
-          <div className="mt-1 text-xs">{t("dict.emptyHint")}</div>
+          {words.length > 0 ? (
+            t("history.noResults")
+          ) : (
+            <>
+              {t("dict.empty")}
+              <div className="mt-1 text-xs">{t("dict.emptyHint")}</div>
+            </>
+          )}
         </div>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
