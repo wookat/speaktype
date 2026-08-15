@@ -87,6 +87,7 @@ export const zhCN = {
   "dict.autoLearnHint": "落字后你在输入框里手动改对的词，自动学进词典（仅本机比对，不上传）",
   "dict.save": "保存",
   "dict.clear": "清空",
+  "dict.export": "导出",
   "dict.search": "搜索热词",
 
   "settings.title": "设置",
