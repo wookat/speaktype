@@ -138,3 +138,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - The fake microphone is NOT a system device: launch SpeakType.exe with Chromium flags `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream --use-file-for-fake-audio-capture=C:\Users\Administrator\tts\sample.wav`. Without these flags hotkeys appear dead: recording aborts instantly with a brief "Microphone unavailable / No microphone found" toast (bottom-center, ~2.6s, easy to miss).
 - Windows Audio services (Audiosrv/AudioEndpointBuilder) may be DISABLED on this VM; the Chromium fake-capture flags work regardless. Re-enable with `sc.exe config Audiosrv start= auto` etc. only if real audio devices are needed.
 - To debug the packaged main process, launch with `--inspect=9229` and use Runtime.evaluate over the Node inspector WebSocket; require app modules via `path.join(process.resourcesPath, 'app.asar', 'node_modules', ...)`.
+
+## Verifying text-transform paths (round 47, PR #101)
+- To prove a localCleanup/polish text transform really fired, screenshot the live-caption capsule mid-hold: it shows the raw ASR partial BEFORE cleanup (e.g. `costs$11`), then compare with the final pasted text (`costs $11`). Same build, before/after distinguishable.
+- Custom English fake-mic WAVs can be generated offline with SAPI TTS: `SpFileStream` + `SpAudioFormat.Type=22` (16kHz mono) writes a wav directly usable as `--use-file-for-fake-audio-capture` source.
+- When launched with fake-mic flags, the SpeakType main window steals foreground: before dictating into Notepad, click its taskbar icon and confirm focus via the Ln/Col status bar.
