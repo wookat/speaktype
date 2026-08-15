@@ -261,3 +261,15 @@ export async function startDoubaoSession(
     },
   };
 }
+
+/** 设置页「测试转写」：真发一段短静音会话，把真实失败原因（缺 key/未登录/握手被拒）原样返回 */
+export async function testDoubao(): Promise<{ ok: boolean; detail: string }> {
+  try {
+    const session = await startDoubaoSession(getSettings().language, () => undefined);
+    session.pushPcm(new Int16Array(5120)); // 320ms @16kHz 静音
+    await session.finish();
+    return { ok: true, detail: "Doubao" };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+}
