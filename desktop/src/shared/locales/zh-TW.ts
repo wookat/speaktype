@@ -79,6 +79,7 @@ export const zhTW: LocaleDict = {
   "dict.count": "{{count}}/300 熱詞",
   "dict.limitReached": "詞典最多 300 個熱詞，{{count}} 個詞未能加入。",
   "dict.manage": "管理熱詞",
+  "dict.noResults": "沒有符合的熱詞。",
   "dict.empty": "還沒有任何熱詞",
   "dict.emptyHint": "我們會記住你獨特的名稱和詞彙，支援手動新增",
   "dict.autoLearn": "自動學習糾正",

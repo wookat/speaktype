@@ -86,6 +86,7 @@ export const ja: LocaleDict = {
   "dict.count": "{{count}}/300 ホットワード",
   "dict.limitReached": "辞書は最大 300 語までです。{{count}} 語は追加されませんでした。",
   "dict.manage": "ホットワードを管理",
+  "dict.noResults": "一致するホットワードはありません。",
   "dict.empty": "ホットワードはまだありません",
   "dict.emptyHint": "人名や専門用語を追加すると、認識時に優先されます",
   "dict.autoLearn": "修正から自動学習",

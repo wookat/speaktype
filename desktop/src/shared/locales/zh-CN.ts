@@ -82,6 +82,7 @@ export const zhCN = {
   "dict.count": "{{count}}/300 热词",
   "dict.limitReached": "词典最多 300 个热词，{{count}} 个词未能加入。",
   "dict.manage": "管理热词",
+  "dict.noResults": "没有匹配的热词。",
   "dict.empty": "还没有任何热词",
   "dict.emptyHint": "我们会记住你独特的名称和词汇，支持手动添加",
   "dict.autoLearn": "自动学习纠错",

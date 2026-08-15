@@ -86,6 +86,7 @@ export const en: LocaleDict = {
   "dict.count": "{{count}}/300 hotwords",
   "dict.limitReached": "Dictionary is limited to 300 hotwords — {{count}} word(s) were not added.",
   "dict.manage": "Manage hotwords",
+  "dict.noResults": "No matching hotwords.",
   "dict.empty": "No hotwords yet",
   "dict.emptyHint": "Add names and jargon unique to you — recognition will respect them",
   "dict.autoLearn": "Learn from your corrections",
