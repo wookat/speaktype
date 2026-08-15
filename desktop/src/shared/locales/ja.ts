@@ -283,6 +283,8 @@ export const ja: LocaleDict = {
   "toast.historyRecoveredBody": "履歴ファイルが破損していたため再構築しました。バックアップは history.json.bad です。設定は影響を受けません",
   "toast.noSpeech": "聞き取れませんでした",
   "toast.configRecovered": "設定を再構築しました",
+  "toast.modelReady": "オフラインモデルの準備完了",
+  "toast.modelReadyBody": "準備完了 — トークキーを押しながら最初の一言を話してみましょう。",
   "toast.configRecoveredBody": "設定ファイルが破損していたため初期値で再構築しました。バックアップは speaktype.json.bad です。",
   "toast.noSpeechBody": "音声が検出されませんでした — もう一度お試しください",
   "toast.pasteFailed": "貼り付けに失敗、クリップボードにコピーしました",

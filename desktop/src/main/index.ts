@@ -352,7 +352,11 @@ function registerIpc(): void {
   ipcMain.handle("record:cancel", () => dictation.cancel());
   ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
   ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
-  ipcMain.handle("local:download", (_e, model: string) => downloadLocalModel(model));
+  ipcMain.handle("local:download", async (_e, model: string) => {
+    const result = await downloadLocalModel(model);
+    if (result.downloaded) showToast(t("toast.modelReady"), t("toast.modelReadyBody"));
+    return result;
+  });
   ipcMain.handle("vad:status", () => vadStatus());
   ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("punct:status", () => punctStatus());

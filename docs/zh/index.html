@@ -241,6 +241,7 @@
     <details class="reveal"><summary>热键能改吗？</summary><p>能。设置 → 通用 → 点「录一个键」，按任意键或鼠标侧键即可。长段输入可以用免按模式（<kbd>Alt+Q</kbd>），说完自动结束。</p></details>
     <details class="reveal"><summary>「学你手改的词」是怎么做的？</summary><p>落字后它只盯着那一个输入框（Windows UI Automation）。你改了字，它在本机比对差异，把改对的词学进词典并同步修正历史记录；你切到别的窗口就停止观察。比对全程不出本机，也可以在设置里整块关掉。</p></details>
     <details class="reveal"><summary>ChatGPT / 豆包 那条通道有风险吗？</summary><p>它复用你自己登录的会话，调用的是对方没有公开的接口，可能失效，也可能与对方服务条款冲突，账号风险由你自行判断，默认是关闭的。介意的话请用离线模型或自带 API Key。<a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">完整免责说明</a>。</p></details>
+    <details class="reveal"><summary>怎么彻底卸载？</summary><p>从开始菜单或「设置 → 应用」运行卸载程序即可移除本体；你的设置、词典和已下载模型（含约 660MB 离线模型）会保留在 <code>%APPDATA%\SpeakType</code>，重装时无需重新下载。想彻底清理，卸载后手动删除该文件夹即可。</p></details>
     <details class="reveal"><summary>macOS / Linux 呢？</summary><p>平台抽象层已合并、DMG 打包配置也在了，只差一台 macOS 构建机。欢迎贡献。</p></details>
   </div>
 </section>

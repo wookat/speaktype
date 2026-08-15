@@ -277,6 +277,8 @@ export const zhCN = {
   "toast.historyRecovered": "历史记录已重建",
   "toast.historyRecoveredBody": "历史文件损坏，已重建；原文件备份为 history.json.bad，设置不受影响",
   "toast.configRecovered": "配置已重建",
+  "toast.modelReady": "离线模型已就绪",
+  "toast.modelReadyBody": "一切就绪——按住说话键，说出你的第一句话吧。",
   "toast.configRecoveredBody": "配置文件损坏，已用默认值重建；原文件备份为 speaktype.json.bad。",
   "toast.noSpeechBody": "这次没识别到内容，再说一次试试",
   "toast.pasteFailed": "落字失败，已复制到剪贴板",

@@ -259,6 +259,8 @@ export const zhTW: LocaleDict = {
   "toast.historyRecoveredBody": "歷史檔案損壞，已重建；原檔備份為 history.json.bad，設定不受影響",
   "toast.noSpeech": "沒聽清",
   "toast.configRecovered": "設定已重建",
+  "toast.modelReady": "離線模型已就緒",
+  "toast.modelReadyBody": "一切就緒——按住說話鍵，說出你的第一句話吧。",
   "toast.configRecoveredBody": "設定檔損壞，已用預設值重建；原檔備份為 speaktype.json.bad。",
   "toast.noSpeechBody": "這次沒識別到內容，再說一次試試",
   "toast.pasteFailed": "落字失敗，已複製到剪貼簿",
