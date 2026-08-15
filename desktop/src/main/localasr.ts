@@ -73,7 +73,12 @@ function modelFiles(model: string): Array<[string, string, number?]> {
 }
 
 function modelReady(model: string): boolean {
-  return modelFiles(model).every(([, path]) => existsSync(path));
+  // 已知字节数的文件（sherpa 系）同时校验大小：损坏/截断的 onnx 会让原生层
+  // 直接 abort 整个进程，这里判未就绪走重新下载引导
+  return modelFiles(model).every(([, path, size]) => {
+    if (!existsSync(path)) return false;
+    return size === undefined || statSync(path).size === size;
+  });
 }
 
 function serverExe(): string {
