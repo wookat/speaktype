@@ -234,8 +234,12 @@ export async function downloadFiles(
   let doneBytes = 0;
   for (const [index, file] of files.entries()) {
     if (existsSync(file.dest)) {
-      doneBytes += file.size || 0;
-      continue;
+      if (!file.size || statSync(file.dest).size === file.size) {
+        doneBytes += file.size || 0;
+        continue;
+      }
+      // 大小与预期不符：损坏/截断文件，删掉重新下载
+      rmSync(file.dest, { force: true });
     }
     await downloadFile(file.sources, file.dest, (got, total) => {
       if (!total) return;
