@@ -28,6 +28,7 @@ export const zhTW: LocaleDict = {
   "home.steps.2": "把游標定位到任意輸入框",
   "home.steps.3": "按住 {{key}}，說出你想輸入的內容",
   "home.steps.4": "鬆開按鍵，文字自動落到游標處",
+  "home.remoteMic": "電腦沒有好麥克風？用手機當麥克風 \u2192",
   "home.persona.current": "當前人設",
   "home.persona.switch": "Alt+1..9 快速切換",
   "history.title": "歷史記錄",

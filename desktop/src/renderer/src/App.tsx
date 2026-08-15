@@ -179,6 +179,10 @@ export default function App() {
             statsDuration={(stats ?? init.stats).durationMs}
             statsSessions={(stats ?? init.stats).sessions}
             goSettings={() => setPage("settings")}
+            goRemoteMic={() => {
+              setSettingsJump("general");
+              setPage("settings");
+            }}
           />
         )}
         {page === "history" && (

@@ -30,6 +30,7 @@ export const en: LocaleDict = {
   "home.steps.2": "Place the cursor in any input field",
   "home.steps.3": "Hold {{key}} and speak",
   "home.steps.4": "Release the key — text lands at your cursor",
+  "home.remoteMic": "No good mic on this PC? Use your phone as the microphone \u2192",
   "home.persona.current": "Current persona",
   "home.persona.switch": "Switch with Alt+1..9",
 

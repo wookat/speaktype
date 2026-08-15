@@ -16,6 +16,7 @@ function Home(props: {
   statsDuration: number;
   statsSessions: number;
   goSettings: () => void;
+  goRemoteMic: () => void;
 }) {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
@@ -109,6 +110,12 @@ function Home(props: {
             </li>
           ))}
         </ol>
+        <button
+          className="mt-3 text-sm text-indigo-500 hover:text-indigo-600"
+          onClick={props.goRemoteMic}
+        >
+          {t("home.remoteMic")}
+        </button>
       </div>
 
       <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5">
