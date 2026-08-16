@@ -241,6 +241,16 @@ interface ChatResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
 
+/** 小模型偶发无视“只输出正文”约束：剥掉常见寒暄前缀与首尾引号，只在剥后仍有正文时生效 */
+export function stripLlmWrapper(content: string): string {
+  const unquoted = content.replace(/^["“]|["”]$/g, "");
+  const stripped = unquoted.replace(
+    /^(?:(?:sure|okay|ok)[,!.]?\s+)?(?:here(?:'s| is)\b[^:\n。]{0,60}|(?:好的[，,]?)?(?:以下是|这是|润色后(?:的文本|的正文)?|改写后(?:的文本|的正文)?)[^：:\n]{0,20})[：:]\s*/i,
+    "",
+  );
+  return stripped.trim() ? stripped.replace(/^["“]|["”]$/g, "").trim() : unquoted;
+}
+
 function chatUrl(baseUrl: string): string {
   const base = baseUrl.replace(/\/$/, "");
   return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
@@ -315,7 +325,7 @@ export async function rewriteSelection(
     if (!res.ok) return null;
     const data = (await res.json()) as ChatResponse;
     const content = data.choices?.[0]?.message?.content?.trim();
-    return content ? content.replace(/^["“]|["”]$/g, "") : null;
+    return content ? stripLlmWrapper(content) : null;
   } catch {
     return null;
   }
@@ -370,7 +380,7 @@ export async function polishText(
     }
     const data = (await res.json()) as ChatResponse;
     const content = data.choices?.[0]?.message?.content?.trim();
-    return content ? content.replace(/^["“]|["”]$/g, "") : cleaned;
+    return content ? stripLlmWrapper(content) : cleaned;
   } catch {
     onLlmFallback?.();
     return cleaned;
