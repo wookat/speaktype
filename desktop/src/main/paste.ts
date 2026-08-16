@@ -108,5 +108,6 @@ export async function pasteText(text: string): Promise<void> {
   await sendShortcut(VK_V, "v");
   // 等目标程序完成粘贴再还原，太快还原会粘到旧内容
   await sleep(350);
-  if (previous) clipboard.writeText(previous);
+  // 剪贴板已被用户/其他程序改写时放弃还原，避免覆盖用户新复制的内容
+  if (previous && clipboard.readText() === text) clipboard.writeText(previous);
 }

@@ -152,7 +152,7 @@ export function foregroundWindowKey(): string | null {
   return win32?.foregroundWindowKey() ?? null;
 }
 
-/** 前台是否有可粘贴的目标窗口（桌面壳/自身窗口/无前台都不算）。判断不了时按有目标处理 */
+/** 前台是否有可粘贴的目标窗口（桌面壳/无前台不算；自身窗口算）。判断不了时按有目标处理 */
 export function hasPasteTarget(): boolean {
   if (isMac) return true;
   return win32?.hasPasteTarget() ?? true;
