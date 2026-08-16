@@ -77,7 +77,7 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Googl
 Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
 
 1. Install (if SmartScreen objects, click "More info → Run anyway"; the installer is not commercially signed).
-2. Settings → Recognition → **Built-in offline** → download a model (or fill in your own API key).
+2. Settings → Speech → **Built-in offline** → download a model (or fill in your own API key).
 3. Put the cursor in any input field, hold `RightCtrl`, speak, release.
 
 ## 🔒 Privacy boundary
