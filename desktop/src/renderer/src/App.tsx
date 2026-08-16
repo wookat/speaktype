@@ -211,7 +211,8 @@ export default function App() {
             t={t}
             settings={settings}
             goModelSettings={() => {
-              setSettingsJump("model");
+              // 本地听写模型在「语音识别」页签；"model" 是 AI 润色模型页
+              setSettingsJump("voice");
               setPage("settings");
             }}
           />
