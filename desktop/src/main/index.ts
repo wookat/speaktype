@@ -250,7 +250,14 @@ function refreshTrayMenu(): void {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: t("tray.open"), click: () => showMain() },
-      { label: t("tray.activate"), click: () => showBridge() },
+      {
+        // 直接弹豆包桥接网页会让新用户误以为必须登录豆包：改为打开 设置→语音识别，桥接入口保留在豆包 provider 卡片里
+        label: t("tray.activate"),
+        click: () => {
+          showMain();
+          mainWin?.webContents.send("goto", { page: "settings", tab: "voice" });
+        },
+      },
       { type: "separator" },
       {
         label: t("tray.quit"),
