@@ -117,6 +117,10 @@ function GeneralTab(props: {
               <option key={key}>{key}</option>
             ))}
           </select>
+          {(s.hotkeyToggle === s.hotkeyHold ||
+            (s.hotkeyRewrite !== "Off" && s.hotkeyToggle === s.hotkeyRewrite)) && (
+            <div className="mt-1 text-xs text-amber-600">{t("settings.toggleKeyConflict")}</div>
+          )}
         </Row>
         <Row label={t("settings.holdDelay")} hint={t("settings.holdDelayHint")}>
           <select

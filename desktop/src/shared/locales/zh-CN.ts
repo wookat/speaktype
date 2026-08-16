@@ -132,6 +132,7 @@ export const zhCN = {
   "settings.rewriteKey": "改写选中文字",
   "settings.rewriteKeyOff": "关闭",
   "settings.rewriteKeyConflict": "与按住说话键相同，改写将被禁用，请换一个键。",
+  "settings.toggleKeyConflict": "与按住说话键或改写键相同，免按模式将被禁用，请换一个键。",
   "settings.rewriteKeyHint": "选中一段文字后按住 {{key}} 说出指令（如“翻译成英文”“改得正式一点”），松手即替换选区。需要在「润色模型」里配好模型。",
   "settings.rewriteKeyOffHint": "选中文字后按住某个键说指令即可改写/翻译选区，选一个键开启。",
   "settings.toggle": "免按模式",
