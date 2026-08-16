@@ -111,6 +111,7 @@ export const ko: LocaleDict = {
   "dict.autoLearnHint": "입력 후 직접 고친 단어를 사전에 자동 등록합니다(비교는 모두 로컬, 업로드 없음)",
   "dict.save": "저장",
   "dict.clear": "지우기",
+  "dict.clearConfirm": "모든 단어를 지울까요? 한 번 더 클릭",
   "dict.export": "내보내기",
   "dict.search": "핫워드 검색",
 

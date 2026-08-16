@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
@@ -11,6 +11,13 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
   const [dropped, setDropped] = useState(0);
+  // 清空是本页唯一批量不可逆操作：两步确认，几秒不点自动复位
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => {
+    if (!confirmClear) return;
+    const timer = setTimeout(() => setConfirmClear(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmClear]);
   const words = props.settings.hotwords;
 
   const addFromText = () => {
@@ -67,11 +74,20 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
           {t("dict.export")}
         </button>
         <button
-          className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+          className={`rounded-xl border px-4 py-2 text-sm disabled:opacity-40 ${
+            confirmClear
+              ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
+              : "border-slate-200 text-slate-500 hover:bg-slate-50"
+          }`}
           disabled={words.length === 0}
-          onClick={() => props.update({ hotwords: [] })}
+          onClick={() => {
+            if (confirmClear) {
+              props.update({ hotwords: [] });
+              setConfirmClear(false);
+            } else setConfirmClear(true);
+          }}
         >
-          {t("dict.clear")}
+          {confirmClear ? t("dict.clearConfirm") : t("dict.clear")}
         </button>
         <button
           className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
