@@ -52,6 +52,13 @@ const FAILED_AUDIO_MAX = 20;
 const FAILED_AUDIO_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
 const FAILED_AUDIO_MAX_BYTES = 50 * 1024 * 1024;
 
+/** 网络层原始错误串（fetch failed/ECONNREFUSED 等）对用户无意义，映射成可行动的人话 */
+function humanizeAsrError(message: string): string {
+  return /fetch failed|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|EPIPE|socket hang up|network error/i.test(message)
+    ? t("error.asrNetwork")
+    : message;
+}
+
 function failedAudioDir(): string {
   return join(app.getPath("userData"), "failed-audio");
 }
@@ -347,7 +354,7 @@ export class Dictation {
           12000,
         );
       }
-      this.report("error", message);
+      this.report("error", humanizeAsrError(message));
     }
   }
 
@@ -469,7 +476,7 @@ export class Dictation {
     } catch (error) {
       this.busy = false;
       this.session = null;
-      this.report("error", error instanceof Error ? error.message : String(error));
+      this.report("error", humanizeAsrError(error instanceof Error ? error.message : String(error)));
     }
     return true;
   }
@@ -509,7 +516,7 @@ export class Dictation {
       this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
       return { ok: true, detail: text };
     } catch (error) {
-      return { ok: false, detail: error instanceof Error ? error.message : String(error) };
+      return { ok: false, detail: humanizeAsrError(error instanceof Error ? error.message : String(error)) };
     }
   }
 
@@ -604,7 +611,7 @@ export class Dictation {
     try {
       raw = await session.finish();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = humanizeAsrError(error instanceof Error ? error.message : String(error));
       const id = randomUUID();
       const audioFile = saveFailedAudio(id, this.allFrames);
       addHistory({

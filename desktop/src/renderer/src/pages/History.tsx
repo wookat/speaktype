@@ -25,6 +25,17 @@ function History(props: {
   const [diffOpen, setDiffOpen] = useState<string | null>(null);
   // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
   const [visible, setVisible] = useState(PAGE_SIZE);
+  // 万字级转录条目全文展开会霸屏：默认 line-clamp，按需展开
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const isLong = (text: string): boolean => text.split("\n").length > 8 || text.length > 600;
+  const toggleExpand = (id: string): void => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   // 单条删除唯一无后悔药：先删后置 Undo 栏，点撤销按原位插回
   const [undoDel, setUndoDel] = useState<{ item: HistoryItem; index: number } | null>(null);
   const undoTimer = useRef<number | null>(null);
@@ -236,7 +247,23 @@ function History(props: {
                       </div>
                     </div>
                   ) : (
-                    <div className="selectable mt-2 break-words text-sm">{item.text}</div>
+                    <div className="mt-2">
+                      <div
+                        className={`selectable break-words text-sm ${
+                          isLong(item.text) && !expandedIds.has(item.id) ? "line-clamp-8" : ""
+                        }`}
+                      >
+                        {item.text}
+                      </div>
+                      {isLong(item.text) && (
+                        <button
+                          className="mt-1 text-xs text-slate-400 hover:text-slate-600"
+                          onClick={() => toggleExpand(item.id)}
+                        >
+                          {expandedIds.has(item.id) ? t("history.collapse") : t("history.expand")}
+                        </button>
+                      )}
+                    </div>
                   )}
                   {suggest?.id === item.id && (
                     <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700">
