@@ -215,7 +215,7 @@ function History(props: {
                     <div className="mt-2">
                       <textarea
                         className="w-full rounded-xl border border-indigo-200 p-2 text-sm"
-                        rows={2}
+                        rows={Math.min(Math.max(2, Math.ceil(editing.text.length / 60) + (editing.text.match(/\n/g)?.length ?? 0)), 14)}
                         autoFocus
                         value={editing.text}
                         onChange={(e) => setEditing({ id: item.id, text: e.target.value })}
@@ -236,7 +236,7 @@ function History(props: {
                       </div>
                     </div>
                   ) : (
-                    <div className="selectable mt-2 text-sm">{item.text}</div>
+                    <div className="selectable mt-2 break-words text-sm">{item.text}</div>
                   )}
                   {suggest?.id === item.id && (
                     <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-700">
