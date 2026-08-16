@@ -23,6 +23,8 @@ function Home(props: {
   // 手打按 40 词/分估算；不先取整到分钟，少量词数也能给出非零节省
   const saved = Math.max(0, Math.round((props.statsWords / 40) * 60000) - props.statsDuration);
 
+  // 熟手默认收起引导卡，新用户默认展开
+  const [stepsOpen, setStepsOpen] = useState(props.statsSessions < 10);
   // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
   const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [modelSize, setModelSize] = useState("");
@@ -94,23 +96,36 @@ function Home(props: {
         <StatCard title={t("home.stat.saved")} value={fmtDuration(saved, t)} hint={t("home.stat.savedHint")} />
       </div>
 
+      {/* 熟手（≥10 次会话）不再需要整块引导卡，折叠为一行可展开；手机麦入口保持常驻 */}
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="font-medium">{t("home.steps.title")}</div>
-        <ol className="mt-4 grid grid-cols-4 gap-3 text-sm text-slate-600">
-          {[
-            t("home.steps.1"),
-            t("home.steps.2"),
-            t("home.steps.3", { key: props.settings.hotkeyHold }),
-            t("home.steps.4"),
-          ].map((step, i) => (
-            <li key={step} className="rounded-xl bg-slate-50 p-3">
-              <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">
-                {i + 1}
-              </div>
-              {step}
-            </li>
-          ))}
-        </ol>
+        <div className="flex items-center justify-between">
+          <div className="font-medium">{t("home.steps.title")}</div>
+          {props.statsSessions >= 10 && (
+            <button
+              className="text-sm text-slate-400 hover:text-slate-600"
+              onClick={() => setStepsOpen((v) => !v)}
+            >
+              {stepsOpen ? t("history.collapse") : t("history.expand")}
+            </button>
+          )}
+        </div>
+        {stepsOpen && (
+          <ol className="mt-4 grid grid-cols-4 gap-3 text-sm text-slate-600">
+            {[
+              t("home.steps.1"),
+              t("home.steps.2"),
+              t("home.steps.3", { key: props.settings.hotkeyHold }),
+              t("home.steps.4"),
+            ].map((step, i) => (
+              <li key={step} className="rounded-xl bg-slate-50 p-3">
+                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">
+                  {i + 1}
+                </div>
+                {step}
+              </li>
+            ))}
+          </ol>
+        )}
         <button
           className="mt-3 text-sm text-indigo-500 hover:text-indigo-600"
           onClick={props.goRemoteMic}
