@@ -41,6 +41,8 @@ export const zhTW: LocaleDict = {
   "home.stat.saved": "節省時間",
   "home.stat.savedHint": "按 40 字/分鐘手打速度估算",
   "home.steps.title": "首次使用？4 步就搞定",
+  "home.steps.expand": "展開步驟",
+  "home.steps.collapse": "收起步驟",
   "home.steps.1": "開啟應用並保持後臺待命",
   "home.steps.2": "把游標定位到任意輸入框",
   "home.steps.3": "按住 {{key}}，說出你想輸入的內容",

@@ -43,6 +43,8 @@ export const ko: LocaleDict = {
   "home.stat.saved": "절약한 시간",
   "home.stat.savedHint": "타자 속도 분당 40자 기준 추정",
   "home.steps.title": "처음이신가요? 4단계로 시작",
+  "home.steps.expand": "단계 보기",
+  "home.steps.collapse": "단계 숨기기",
   "home.steps.1": "앱을 실행한 상태로 유지",
   "home.steps.2": "아무 입력창에나 커서를 놓기",
   "home.steps.3": "{{key}} 를 누른 채 말하기",

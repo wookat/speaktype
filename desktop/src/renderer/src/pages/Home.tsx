@@ -105,7 +105,7 @@ function Home(props: {
               className="text-sm text-slate-400 hover:text-slate-600"
               onClick={() => setStepsOpen((v) => !v)}
             >
-              {stepsOpen ? t("history.collapse") : t("history.expand")}
+              {stepsOpen ? t("home.steps.collapse") : t("home.steps.expand")}
             </button>
           )}
         </div>
