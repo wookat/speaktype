@@ -220,3 +220,9 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Sentinel polling logs may show rapid `[] ↔ text` flapping right after a write (WinForms GetText jitter); take the final value from a separate `-STA` verify process, not the polling log.
 - Since PR #138: image previous is snapshotted only when text previous is empty; restore is three-branch — clipboard rewritten by others → give up; text previous → writeText; non-empty image → writeImage. File lists and other formats are still not preserved (declared boundary).
 - history.json top-level shape is `{history:[...],stats:...}`; latest entry text is `$h.history[0].text`.
+
+## Enhanced punctuation (punct-ct) testing (round 75, PR #140)
+- Model punctuation only runs with `polishEnabled=false` and `enhancedPunct=true` (polish.ts — AI polish skips the punct model entirely).
+- Model lives at `%APPDATA%\SpeakType\models\punct-ct\model.onnx` (~281MB, downloaded via Settings→Speech; HF direct takes ~1 min).
+- Log signature for model punctuation is `punct worker started`; rule-based fallback has no such line.
+- Settings-page status updates live via the `onPunctStatus` push channel: the punctuate failure path pushes `downloaded:false` (#140) so external model deletion reverts the UI without restart; the success path does NOT push — verifying "back to ready" requires remounting the page (switch tabs).
