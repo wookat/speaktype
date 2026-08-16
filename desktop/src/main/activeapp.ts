@@ -13,6 +13,7 @@ const isMac = process.platform === "darwin";
 interface Win32Api {
   activeApp(): { app: string; title: string } | null;
   foregroundWindowKey(): string | null;
+  hasPasteTarget(): boolean;
 }
 
 function loadWin32(): Win32Api | null {
@@ -20,6 +21,7 @@ function loadWin32(): Win32Api | null {
     const user32 = koffi.load("user32.dll");
     const kernel32 = koffi.load("kernel32.dll");
     const GetForegroundWindow = user32.func("void *GetForegroundWindow()");
+    const GetClassNameW = user32.func("int GetClassNameW(void *hWnd, _Out_ uint16_t *buf, int len)");
     const GetWindowTextW = user32.func("int GetWindowTextW(void *hWnd, _Out_ uint16_t *buf, int len)");
     const GetWindowThreadProcessId = user32.func(
       "uint32 GetWindowThreadProcessId(void *hWnd, _Out_ uint32 *pid)",
@@ -57,6 +59,15 @@ function loadWin32(): Win32Api | null {
       foregroundWindowKey() {
         const hwnd = GetForegroundWindow();
         return hwnd ? String(koffi.address(hwnd)) : null;
+      },
+      hasPasteTarget() {
+        const hwnd = GetForegroundWindow();
+        if (!hwnd) return false;
+        const classBuf = new Uint16Array(64);
+        GetClassNameW(hwnd, classBuf, classBuf.length);
+        const cls = decode(classBuf);
+        // 桌面壳窗口（Progman/WorkerW）不是输入目标，盲发 Ctrl+V 会静默丢字
+        return cls !== "Progman" && cls !== "WorkerW";
       },
     };
   } catch (error) {
@@ -139,6 +150,12 @@ export function activeApp(): { app: string; title: string } | null {
 export function foregroundWindowKey(): string | null {
   if (isMac) return macCache?.app ?? null;
   return win32?.foregroundWindowKey() ?? null;
+}
+
+/** 前台是否有可粘贴的目标窗口（桌面壳/自身窗口/无前台都不算）。判断不了时按有目标处理 */
+export function hasPasteTarget(): boolean {
+  if (isMac) return true;
+  return win32?.hasPasteTarget() ?? true;
 }
 
 /** 终端类前台进程：落字后一回车就执行，句级格式（尾句号/句首大写）会让命令出错 */

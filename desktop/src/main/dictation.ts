@@ -5,7 +5,7 @@ import { app, clipboard, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { foregroundWindowKey, isTerminalForeground, personaForActiveApp } from "./activeapp";
+import { foregroundWindowKey, hasPasteTarget, isTerminalForeground, personaForActiveApp } from "./activeapp";
 import {
   pcmToWav,
   preconnectAsr,
@@ -659,7 +659,12 @@ export class Dictation {
     }
 
     let failed: string | undefined;
-    if (settings.autoPaste || rewriteTarget) {
+    const noTarget = !rewriteTarget && settings.autoPaste && !hasPasteTarget();
+    if (noTarget) {
+      // 前台是桌面壳等非输入目标：盲发 Ctrl+V 会静默丢字，改为提示已存历史
+      this.deps.showToast(t("toast.noPasteTarget"), t("toast.noPasteTargetBody"));
+    }
+    if ((settings.autoPaste && !noTarget) || rewriteTarget) {
       if (!rewriteTarget && isTerminalForeground()) text = deformatForTerminal(text);
       // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
       // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字。

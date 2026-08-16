@@ -262,6 +262,8 @@ export const zhTW: LocaleDict = {
   "toast.handsFreeEndByKey": "按了其他熱鍵，連續聽寫已停止；再按免按熱鍵可重新開始",
   "toast.historyRecovered": "歷史記錄已重建",
   "toast.historyRecoveredBody": "歷史檔案損壞，已重建；原檔備份為 history.json.bad，設定不受影響",
+  "toast.noPasteTarget": "目前沒有可輸入的視窗",
+  "toast.noPasteTargetBody": "內容已儲存到歷史，可從歷史頁複製。",
   "toast.noSpeech": "沒聽清",
   "toast.configRecovered": "設定已重建",
   "toast.modelReady": "離線模型已就緒",

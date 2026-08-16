@@ -286,6 +286,8 @@ export const en: LocaleDict = {
   "toast.handsFreeEndByKey": "Another hotkey was pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",
   "toast.historyRecovered": "History rebuilt",
   "toast.historyRecoveredBody": "The history file was corrupted and has been reset; a backup was saved as history.json.bad. Settings are unaffected.",
+  "toast.noPasteTarget": "No text field in focus",
+  "toast.noPasteTargetBody": "Your words were saved to History — copy them from there.",
   "toast.noSpeech": "Didn't catch that",
   "toast.configRecovered": "Settings rebuilt",
   "toast.modelReady": "Offline model ready",
