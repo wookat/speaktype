@@ -47,6 +47,7 @@
 | 🧠 **增强人声检测** | 可选下载 Silero VAD 神经网络（约 35MB，本机运行），噪声环境下自动结束与防幻听更准 |
 | 🔁 **失败可重试** | 识别失败的录音保留在本机（最多 20 段/7 天/50MB，可关），历史页一键重试，不用重说 |
 | 🌗 **暗色模式** | 实时跟随 Windows 深浅色设置，也可在设置中固定浅色/深色 |
+| 🎵 **文件转录** | 拖入音频/视频文件（mp3、wav、m4a、mp4…最长 3 小时）→ 离线分段转写带时间戳 → 导出 TXT / SRT |
 
 <div align="center">
 <img src="docs/assets/screenshot-personas.png" width="720" alt="人设风格" />
@@ -68,9 +69,9 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 
 
 | 平台 | 下载 | 状态 |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.13.0.exe](https://github.com/wookat/speaktype/releases/download/v0.13.0/SpeakType-Setup-0.13.0.exe)（~98MB） | ✅ 稳定 |
-| Windows 绿色免安装 | [SpeakType-0.13.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.13.0/SpeakType-0.13.0-portable.exe)（~87MB） | ✅ 稳定 |
-| Android（手机当麦克风） | [SpeakType-0.13.0.apk](https://github.com/wookat/speaktype/releases/download/v0.13.0/SpeakType-0.13.0.apk) | ✅ 可用 |
+| Windows 10/11 x64 | [SpeakType-Setup-0.14.0.exe](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-Setup-0.14.0.exe)（~98MB） | ✅ 稳定 |
+| Windows 绿色免安装 | [SpeakType-0.14.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-0.14.0-portable.exe)（~87MB） | ✅ 稳定 |
+| Android（手机当麦克风） | [SpeakType-0.14.0.apk](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-0.14.0.apk) | ✅ 可用 |
 | macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
 
 最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
