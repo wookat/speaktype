@@ -209,3 +209,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Comparing history.json text in Windows PowerShell requires `gc -Raw -Encoding UTF8` (default ANSI reads UTF-8 as mojibake, giving a false mismatch).
 - `polishEnabled=true` routes ALL dictation through the polish endpoint — when a mock endpoint is attached, keep it off except for F8 cases. F8 rewrite only checks `polishBaseUrl` (dictation.ts startRewrite); the toggle does not affect it.
 - Since PR #134 "no paste target" = foreground window class Progman/WorkerW (or no hwnd). To trigger: click empty desktop and dictate, expect the "saved to History" toast and no Ctrl+V. SpeakType's own windows (Chrome_WidgetWin_1) count as valid targets.
+
+## Clipboard restore race testing (round 73, PR #136)
+- Test the pasteText 350ms clipboard-restore race with `C:\Users\Administrator\tts\clip-race.ps1` (launch with `-STA`, hidden window): it tight-polls the clipboard, and after detecting the dictated text it MUST wait ~200ms before writing the simulated user copy — writing immediately can land before Ctrl+V and pollute the paste itself (a sentinel false failure). Only assert on runs whose log timestamps show the write happened before the restore point (write + 60 + 350ms).
+- When killing the sentinel, filter with `'clip[-]race\.ps1'` AND exclude `$PID` — a plain command-line filter matches the killer itself (same self-kill trap as round 72).
+- Since PR #136 the restore is conditional (`clipboard.readText() === text`): user copy during the window survives; with no contention the old clipboard is restored; with an empty previous clipboard the dictated text stays.
