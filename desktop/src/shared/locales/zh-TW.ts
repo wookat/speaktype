@@ -296,7 +296,7 @@ export const zhTW: LocaleDict = {
   "toast.rewriteNoSelection": "沒有選取文字",
   "toast.rewriteNoSelectionBody": "先選取要改寫的文字，再按住改寫鍵說指令",
   "toast.rewriteNoModel": "改寫需要潤色模型",
-  "toast.rewriteNoModelBody": "到 設定 → 潤色模型 設定一個 OpenAI 相容模型",
+  "toast.rewriteNoModelBody": "到 設定 → AI 潤色 設定一個 OpenAI 相容模型",
   "toast.rewriteFailed": "改寫失敗",
   "toast.rewriteFailedBody": "潤色模型沒有回傳結果，原文未變動",
   "toast.polishFallback": "潤色服務無法使用",

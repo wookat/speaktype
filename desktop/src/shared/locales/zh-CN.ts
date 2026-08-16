@@ -314,7 +314,7 @@ export const zhCN = {
   "toast.rewriteNoSelection": "没有选中文字",
   "toast.rewriteNoSelectionBody": "先选中要改写的文字，再按住改写键说指令",
   "toast.rewriteNoModel": "改写需要润色模型",
-  "toast.rewriteNoModelBody": "去 设置 → 润色模型 配置一个 OpenAI 兼容模型",
+  "toast.rewriteNoModelBody": "去 设置 → AI 润色 配置一个 OpenAI 兼容模型",
   "toast.rewriteFailed": "改写失败",
   "toast.rewriteFailedBody": "润色模型没有返回结果，原文未改动",
   "toast.polishFallback": "润色服务不可用",

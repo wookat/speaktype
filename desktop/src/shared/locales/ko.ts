@@ -320,7 +320,7 @@ export const ko: LocaleDict = {
   "toast.rewriteNoSelection": "선택된 텍스트가 없습니다",
   "toast.rewriteNoSelectionBody": "먼저 텍스트를 선택한 뒤 다시 쓰기 키를 누른 채 지시를 말하세요",
   "toast.rewriteNoModel": "다시 쓰기에는 다듬기 모델이 필요합니다",
-  "toast.rewriteNoModelBody": "설정 → 다듬기 모델에서 OpenAI 호환 모델을 설정하세요",
+  "toast.rewriteNoModelBody": "설정 → AI 다듬기에서 OpenAI 호환 모델을 설정하세요",
   "toast.rewriteFailed": "다시 쓰기 실패",
   "toast.rewriteFailedBody": "다듬기 모델이 결과를 반환하지 않아 원문이 그대로 유지되었습니다",
   "toast.polishFallback": "다듬기 서비스를 사용할 수 없습니다",
