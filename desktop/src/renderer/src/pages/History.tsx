@@ -66,7 +66,13 @@ function History(props: {
   };
   const q = query.toLowerCase();
   const filtered = q
-    ? props.history.filter((h) => h.text.toLowerCase().includes(q) || h.raw.toLowerCase().includes(q))
+    ? props.history.filter(
+        (h) =>
+          h.text.toLowerCase().includes(q) ||
+          h.raw.toLowerCase().includes(q) ||
+          // 转录条目的 personaName 是来源文件名，是最自然的检索键；听写条目按人设名筛也合理
+          h.personaName.toLowerCase().includes(q),
+      )
     : props.history;
 
   const groups: Array<{ label: string; items: HistoryItem[] }> = [];
