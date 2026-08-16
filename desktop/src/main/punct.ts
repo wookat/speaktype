@@ -143,7 +143,12 @@ function ensureWorker(): Worker {
 
 /** 模型标点：不可用（未下载/曾失败）返回 null，由调用方回退规则断句 */
 export async function punctuate(text: string): Promise<string | null> {
-  if (workerFailed || !punctDownloaded()) return null;
+  if (workerFailed) return null;
+  if (!punctDownloaded()) {
+    // 模型文件被外部删除时同步设置页状态，避免仍显示已就绪
+    push({ downloaded: false, downloading: false, progress: 0 });
+    return null;
+  }
   try {
     const w = ensureWorker();
     const id = nextJobId++;
