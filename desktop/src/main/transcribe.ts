@@ -1,3 +1,6 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { app } from "electron";
 import { Converter } from "opencc-js/t2cn";
 import log from "electron-log/main.js";
 import type { Settings, TranscribeSegment, TranscribeState } from "../shared/types";
@@ -33,11 +36,48 @@ const state: TranscribeState = { running: false, percent: 0, segments: [] };
 let notify: ((s: TranscribeState) => void) | null = null;
 let jobId = 0;
 
+// 完成的转录结果落盘：3 小时长音频转一次可能要几十分钟，重启不该作废
+function lastResultFile(): string {
+  return join(app.getPath("userData"), "transcribe-last.json");
+}
+
+let lastLoaded = false;
+
+function loadLastResult(): void {
+  if (lastLoaded) return;
+  lastLoaded = true;
+  try {
+    if (!existsSync(lastResultFile())) return;
+    const saved = JSON.parse(readFileSync(lastResultFile(), "utf8")) as {
+      segments?: TranscribeSegment[];
+      fileName?: string;
+    };
+    if (!state.running && Array.isArray(saved.segments) && saved.segments.length > 0) {
+      Object.assign(state, { percent: 100, segments: saved.segments, fileName: saved.fileName });
+    }
+  } catch (error) {
+    log.warn("transcribe last result load failed", error);
+  }
+}
+
+function saveLastResult(): void {
+  try {
+    writeFileSync(
+      lastResultFile(),
+      JSON.stringify({ segments: state.segments, fileName: state.fileName }),
+      "utf8",
+    );
+  } catch (error) {
+    log.warn("transcribe last result save failed", error);
+  }
+}
+
 export function onTranscribeState(cb: (s: TranscribeState) => void): void {
   notify = cb;
 }
 
 export function transcribeState(): TranscribeState {
+  loadLastResult();
   return { ...state, segments: [...state.segments] };
 }
 
@@ -138,11 +178,16 @@ async function transcribeSlice(
 }
 
 /** 转录一整个文件的采样（16k mono）。进度和分段结果通过 onTranscribeState 推送 */
-export async function startTranscribe(settings: Settings, samples: Float32Array): Promise<TranscribeState> {
+export async function startTranscribe(
+  settings: Settings,
+  samples: Float32Array,
+  fileName?: string,
+): Promise<TranscribeState> {
   if (state.running) return transcribeState();
+  loadLastResult();
   const model = settings.localModel || "base-q5_1";
   const job = ++jobId;
-  push({ running: true, percent: 0, segments: [], error: undefined });
+  push({ running: true, percent: 0, segments: [], fileName, error: undefined });
   log.info(`file transcribe started (${(samples.length / SR).toFixed(1)}s, model=${model})`);
 
   const ranges = splitSegments(samples);
@@ -160,6 +205,7 @@ export async function startTranscribe(settings: Settings, samples: Float32Array)
       push({ percent: Math.min(99, Math.round(((i + 1) / ranges.length) * 100)), segments: [...segments] });
     }
     push({ running: false, percent: 100, segments: [...segments] });
+    if (segments.length > 0) saveLastResult();
     log.info(`file transcribe done (${segments.length} segments)`);
   } catch (error) {
     if (jobId === job) {

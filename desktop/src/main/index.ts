@@ -376,8 +376,8 @@ function registerIpc(): void {
   ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("punct:status", () => punctStatus());
   ipcMain.handle("punct:download", () => downloadPunct());
-  ipcMain.handle("transcribe:start", (_e, buffer: ArrayBuffer) =>
-    startTranscribe(getSettings(), new Float32Array(buffer)),
+  ipcMain.handle("transcribe:start", (_e, buffer: ArrayBuffer, fileName?: string) =>
+    startTranscribe(getSettings(), new Float32Array(buffer), fileName),
   );
   ipcMain.handle("transcribe:cancel", () => cancelTranscribe());
   ipcMain.handle("transcribe:state", () => transcribeState());

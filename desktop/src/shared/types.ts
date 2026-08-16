@@ -163,6 +163,8 @@ export interface TranscribeState {
   /** 0-100 */
   percent: number;
   segments: TranscribeSegment[];
+  /** 来源文件名，用于导出命名与重启后恢复展示 */
+  fileName?: string;
   error?: string;
 }
 

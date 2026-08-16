@@ -102,7 +102,7 @@ function Transcribe(props: {
         for (let i = 0; i < data.length; i++) mono[i] = (mono[i] ?? 0) + data[i]! / decoded.numberOfChannels;
       }
       setDecoding(false);
-      await api.transcribeStart(mono.buffer);
+      await api.transcribeStart(mono.buffer, file.name);
     } catch {
       setLocalError(t("transcribe.decodeFailed"));
     } finally {
@@ -112,12 +112,13 @@ function Transcribe(props: {
   };
 
   const allText = state.segments.map((s) => s.text).join("\n");
-  const exportTxt = () => saveText(`${allText}\n`, `${fileName.replace(/\.[^.]+$/, "") || "transcript"}.txt`, "text/plain;charset=utf-8");
+  const exportBase = (state.fileName || fileName).replace(/\.[^.]+$/, "") || "transcript";
+  const exportTxt = () => saveText(`${allText}\n`, `${exportBase}.txt`, "text/plain;charset=utf-8");
   const exportSrt = () => {
     const srt = state.segments
       .map((s, i) => `${i + 1}\n${srtTime(s.start)} --> ${srtTime(s.end)}\n${s.text}\n`)
       .join("\n");
-    saveText(srt, `${fileName.replace(/\.[^.]+$/, "") || "transcript"}.srt`, "text/plain;charset=utf-8");
+    saveText(srt, `${exportBase}.srt`, "text/plain;charset=utf-8");
   };
   const copyAll = () => {
     void navigator.clipboard.writeText(allText).then(() => {
@@ -215,6 +216,9 @@ function Transcribe(props: {
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm font-medium">
               {t("transcribe.result", { count: state.segments.length })}
+              {state.fileName && (
+                <span className="ml-2 font-normal text-slate-400">{state.fileName}</span>
+              )}
             </div>
             <div className="flex gap-2">
               <button
