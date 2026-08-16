@@ -35,7 +35,8 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const remove = (word: string) => props.update({ hotwords: words.filter((w) => w !== word) });
   // 导出一行一词的 .txt，与粘贴导入天然 round-trip
   const exportWords = () => {
-    const blob = new Blob([`${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
+    // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码；导入侧 trim() 会剥掉 \ufeff，round-trip 不受影响
+    const blob = new Blob(["\ufeff", `${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
