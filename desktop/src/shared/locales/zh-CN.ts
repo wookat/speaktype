@@ -41,6 +41,8 @@ export const zhCN = {
   "home.stat.saved": "节省时间",
   "home.stat.savedHint": "按 40 字/分钟手打速度估算",
   "home.steps.title": "首次使用？4 步就搞定",
+  "home.steps.expand": "展开步骤",
+  "home.steps.collapse": "收起步骤",
   "home.steps.1": "打开应用并保持后台待命",
   "home.steps.2": "把光标定位到任意输入框",
   "home.steps.3": "按住 {{key}}，说出你想输入的内容",

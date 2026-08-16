@@ -8,7 +8,7 @@ export const ja: LocaleDict = {
   "nav.history": "履歴",
   "nav.personas": "ペルソナ",
   "nav.dictionary": "辞書",
-  "nav.transcribe": "ファイル文字起こし",
+  "nav.transcribe": "文字起こし",
 
   "transcribe.title": "ファイル文字起こし",
   "transcribe.subtitle": "音声ファイルをオフラインで文字化し、字幕をエクスポート",
@@ -43,6 +43,8 @@ export const ja: LocaleDict = {
   "home.stat.saved": "節約した時間",
   "home.stat.savedHint": "タイピング速度 40 字/分で換算",
   "home.steps.title": "はじめての方へ：4 ステップ",
+  "home.steps.expand": "手順を表示",
+  "home.steps.collapse": "手順を隠す",
   "home.steps.1": "アプリを起動したままにする",
   "home.steps.2": "任意の入力欄にカーソルを置く",
   "home.steps.3": "{{key}} を押しながら話す",

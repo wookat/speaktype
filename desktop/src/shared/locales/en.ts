@@ -43,6 +43,8 @@ export const en: LocaleDict = {
   "home.stat.saved": "Time saved",
   "home.stat.savedHint": "Estimated at 40 words/min typing speed",
   "home.steps.title": "First time? 4 quick steps",
+  "home.steps.expand": "Show steps",
+  "home.steps.collapse": "Hide steps",
   "home.steps.1": "Open the app and keep it running",
   "home.steps.2": "Place the cursor in any input field",
   "home.steps.3": "Hold {{key}} and speak",
