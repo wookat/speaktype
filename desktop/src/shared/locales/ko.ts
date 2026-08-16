@@ -89,7 +89,7 @@ export const ko: LocaleDict = {
   "personas.delete": "삭제",
   "personas.deleteConfirm": "삭제할까요? 한 번 더 클릭",
   "personas.appRules": "앱별 페르소나 자동 전환",
-  "personas.appRulesHint": "말하기 시작 시 포그라운드 창을 확인해 일치하는 페르소나로 다듬습니다. 프로세스 이름과 창 제목만 읽으며 모두 로컬에서 처리됩니다.",
+  "personas.appRulesHint": "말하기 시작 시 포그라운드 창을 확인해 일치하는 페르소나로 다듬습니다. 프로세스 이름과 창 제목만 읽으며 모두 로컬에서 처리됩니다.여러 규칙이 동시에 일치하면 목록에서 위에 있는 규칙이 적용됩니다.",
   "personas.appRuleAdd": "규칙 추가",
   "personas.appRulePlaceholder": "포함 문자, 예: code.exe / slack / gmail",
   "personas.appRulesNoPolish": "규칙은 AI 다듬기 모델이 설정된 경우에만 적용됩니다. 현재 미설정이라 출력이 바뀌지 않습니다.",

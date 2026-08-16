@@ -89,7 +89,7 @@ export const en: LocaleDict = {
   "personas.delete": "Delete",
   "personas.deleteConfirm": "Delete? Click again",
   "personas.appRules": "Auto-switch persona by app",
-  "personas.appRulesHint": "When you start speaking, SpeakType checks the foreground window and uses the matching persona (e.g. concise in VS Code, casual in chat apps). Only the process name and window title are read — never window contents, and never leaves your machine.",
+  "personas.appRulesHint": "When you start speaking, SpeakType checks the foreground window and uses the matching persona (e.g. concise in VS Code, casual in chat apps). Only the process name and window title are read — never window contents, and never leaves your machine. If several rules match, the first one in the list wins.",
   "personas.appRuleAdd": "Add rule",
   "personas.appRulePlaceholder": "Contains, e.g. code.exe / slack / gmail",
   "personas.appRulesNoPolish": "Rules only take effect with an AI polish model configured — set one up first.",

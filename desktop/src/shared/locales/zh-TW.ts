@@ -84,7 +84,7 @@ export const zhTW: LocaleDict = {
   "personas.delete": "刪除",
   "personas.deleteConfirm": "確認刪除？再點一次",
   "personas.appRules": "依應用程式自動切人設",
-  "personas.appRulesHint": "開始說話時看目前視窗，命中關鍵字就用對應人設潤色（如在 VS Code 用「簡潔」、在微信用「口語」）。僅讀行程名與視窗標題，不讀視窗內容，全程本機。",
+  "personas.appRulesHint": "開始說話時看目前視窗，命中關鍵字就用對應人設潤色（如在 VS Code 用「簡潔」、在微信用「口語」）。僅讀行程名與視窗標題，不讀視窗內容，全程本機。多條規則同時命中時，列表中靠前的一條生效。",
   "personas.appRuleAdd": "新增規則",
   "personas.appRulePlaceholder": "包含關鍵字，如 code.exe / 微信 / gmail",
   "personas.appRulesNoPolish": "規則僅在設定了 AI 潤色模型後生效，目前未設定，落字不會變化。",
