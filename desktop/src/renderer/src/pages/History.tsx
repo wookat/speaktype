@@ -28,6 +28,7 @@ function History(props: {
   // 单条删除唯一无后悔药：先删后置 Undo 栏，点撤销按原位插回
   const [undoDel, setUndoDel] = useState<{ item: HistoryItem; index: number } | null>(null);
   const undoTimer = useRef<number | null>(null);
+  const undoBtn = useRef<HTMLButtonElement>(null);
   const armUndoTimer = (ms: number): void => {
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
     undoTimer.current = window.setTimeout(() => setUndoDel(null), ms);
@@ -37,6 +38,8 @@ function History(props: {
     void api.deleteHistory([item.id]).then(props.setHistory);
     setUndoDel({ item, index });
     armUndoTimer(10000);
+    // 键盘用户无需穿越整页列表即可撤销
+    requestAnimationFrame(() => undoBtn.current?.focus());
   };
   const undoDelete = (): void => {
     if (!undoDel) return;
@@ -302,7 +305,7 @@ function History(props: {
           onMouseLeave={() => armUndoTimer(2000)}
         >
           <span>{t("history.deleted")}</span>
-          <button className="font-medium text-indigo-300 hover:text-indigo-200" onClick={undoDelete}>
+          <button ref={undoBtn} className="font-medium text-indigo-300 hover:text-indigo-200" onClick={undoDelete}>
             {t("toast.undo")}
           </button>
         </div>
