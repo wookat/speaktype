@@ -38,6 +38,26 @@ function matches(segReadings: string[][], wordReadings: string[][]): boolean {
 const ASCII_WORD = /^[A-Za-z][A-Za-z0-9]*(?:[ -][A-Za-z0-9]+)*$/;
 
 /**
+ * ASCII 热词容错：≥6 字符时允许一处替换或漏字（ASR 轻微漏音），
+ * 不允许多出字符——复数等合法变体（speaktypes）不能被吸走。
+ */
+function nearKey(joined: string, key: string): boolean {
+  if (joined === key) return true;
+  if (key.length < 6) return false;
+  if (joined.length === key.length) {
+    let diff = 0;
+    for (let i = 0; i < key.length; i++) if (joined[i] !== key[i]) diff++;
+    return diff === 1;
+  }
+  if (joined.length === key.length - 1) {
+    let i = 0;
+    while (i < joined.length && joined[i] === key[i]) i++;
+    return joined.slice(i) === key.slice(i + 1);
+  }
+  return false;
+}
+
+/**
  * 英文热词：大小写与空格/连字符不敏感的整词替换。
  * "speak type"/"speaktype"/"Speaktype" → "SpeakType"。只处理去分隔后 ≥4 字符的词，避免短词误替换。
  */
@@ -54,7 +74,8 @@ function correctAsciiHotword(text: string, word: string): string {
     if (!first) break;
     let joined = "";
     let end = first.start;
-    for (let j = i; j < tokens.length && joined.length < key.length; j++) {
+    let nearEnd = -1;
+    for (let j = i; j < tokens.length; j++) {
       const tk = tokens[j];
       if (!tk) break;
       // 相邻 token 之间只允许空格/连字符，不跨标点
@@ -63,9 +84,20 @@ function correctAsciiHotword(text: string, word: string): string {
       end = tk.end;
       if (joined === key) {
         const seg = text.slice(first.start, end);
-        if (seg === word) break;
+        if (seg === word) {
+          nearEnd = -1;
+          break;
+        }
         return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(end), word);
       }
+      // 容错命中先记下，继续找精确命中（devop + s 拼成整词时以精确为准）
+      if (nearEnd < 0 && nearKey(joined, key)) nearEnd = end;
+      if (joined.length >= key.length) break;
+    }
+    if (nearEnd >= 0) {
+      const seg = text.slice(first.start, nearEnd);
+      if (seg !== word)
+        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(nearEnd), word);
     }
   }
   return text;
