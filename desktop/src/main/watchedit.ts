@@ -125,8 +125,11 @@ export function extractCorrections(before: string, after: string): Diff[] {
   const singleCjk = (arr: string[]): boolean =>
     arr.length - start - end === 1 && CJK_CH.test(arr[start] ?? "");
   if (singleCjk(a) || singleCjk(b)) {
-    if (end > 0 && CJK_CH.test(a[a.length - end] ?? "")) end--;
-    else if (start > 0 && CJK_CH.test(a[start - 1] ?? "")) start--;
+    const canRight = end > 0 && CJK_CH.test(a[a.length - end] ?? "");
+    const canLeft = start > 0 && CJK_CH.test(a[start - 1] ?? "");
+    // 两侧都是中文时词边界不可判（园→圆 夹在 公_散 之间），回扩会学到跨词条目并腐蚀后续听写：宁可不学
+    if (canRight && !canLeft) end--;
+    else if (canLeft && !canRight) start--;
   }
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
