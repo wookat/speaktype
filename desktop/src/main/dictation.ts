@@ -75,9 +75,10 @@ function pruneFailedAudio(): void {
   const now = Date.now();
   let bytes = 0;
   all.forEach((item, i) => {
-    bytes += item.size;
-    if (i >= FAILED_AUDIO_MAX || now - item.at > FAILED_AUDIO_MAX_AGE_MS || bytes > FAILED_AUDIO_MAX_BYTES) {
+    if (i >= FAILED_AUDIO_MAX || now - item.at > FAILED_AUDIO_MAX_AGE_MS || bytes + item.size > FAILED_AUDIO_MAX_BYTES) {
       rmSync(join(failedAudioDir(), item.f), { force: true });
+    } else {
+      bytes += item.size;
     }
   });
 }
