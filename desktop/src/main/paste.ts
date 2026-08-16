@@ -102,12 +102,16 @@ export async function copySelection(): Promise<string> {
 }
 
 export async function pasteText(text: string): Promise<void> {
-  const previous = clipboard.readText();
+  const prevText = clipboard.readText();
+  // 文本为空时快照图片剪贴板（如截图后立刻口述），文件列表等其余格式不保
+  const prevImage = prevText ? null : clipboard.readImage();
   clipboard.writeText(text);
   await sleep(60);
   await sendShortcut(VK_V, "v");
   // 等目标程序完成粘贴再还原，太快还原会粘到旧内容
   await sleep(350);
   // 剪贴板已被用户/其他程序改写时放弃还原，避免覆盖用户新复制的内容
-  if (previous && clipboard.readText() === text) clipboard.writeText(previous);
+  if (clipboard.readText() !== text) return;
+  if (prevText) clipboard.writeText(prevText);
+  else if (prevImage && !prevImage.isEmpty()) clipboard.writeImage(prevImage);
 }
