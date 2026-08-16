@@ -219,6 +219,11 @@ function Transcribe(props: {
               {state.fileName && (
                 <span className="ml-2 font-normal text-slate-400">{state.fileName}</span>
               )}
+              {!state.running && state.finishedAt && (
+                <span className="ml-2 font-normal text-slate-400">
+                  · {new Date(state.finishedAt).toLocaleString(props.settings.uiLanguage)}
+                </span>
+              )}
             </div>
             <div className="flex gap-2">
               <button

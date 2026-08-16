@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
@@ -8,6 +9,7 @@ import { pcmToWav } from "./asr";
 import { correctHotwords } from "./hotwords";
 import { t } from "./i18n";
 import { ensureLocalServer, isSherpaModel, transcribeSherpa } from "./localasr";
+import { addHistory } from "./store";
 
 /**
  * 文件转录：整段 16k 单声道音频按静音切成若干段，逐段走内置离线引擎
@@ -51,9 +53,15 @@ function loadLastResult(): void {
     const saved = JSON.parse(readFileSync(lastResultFile(), "utf8")) as {
       segments?: TranscribeSegment[];
       fileName?: string;
+      finishedAt?: number;
     };
     if (!state.running && Array.isArray(saved.segments) && saved.segments.length > 0) {
-      Object.assign(state, { percent: 100, segments: saved.segments, fileName: saved.fileName });
+      Object.assign(state, {
+        percent: 100,
+        segments: saved.segments,
+        fileName: saved.fileName,
+        finishedAt: saved.finishedAt,
+      });
     }
   } catch (error) {
     log.warn("transcribe last result load failed", error);
@@ -64,7 +72,7 @@ function saveLastResult(): void {
   try {
     writeFileSync(
       lastResultFile(),
-      JSON.stringify({ segments: state.segments, fileName: state.fileName }),
+      JSON.stringify({ segments: state.segments, fileName: state.fileName, finishedAt: state.finishedAt }),
       "utf8",
     );
   } catch (error) {
@@ -187,7 +195,7 @@ export async function startTranscribe(
   loadLastResult();
   const model = settings.localModel || "base-q5_1";
   const job = ++jobId;
-  push({ running: true, percent: 0, segments: [], fileName, error: undefined });
+  push({ running: true, percent: 0, segments: [], fileName, finishedAt: undefined, error: undefined });
   log.info(`file transcribe started (${(samples.length / SR).toFixed(1)}s, model=${model})`);
 
   const ranges = splitSegments(samples);
@@ -204,8 +212,20 @@ export async function startTranscribe(
       }
       push({ percent: Math.min(99, Math.round(((i + 1) / ranges.length) * 100)), segments: [...segments] });
     }
-    push({ running: false, percent: 100, segments: [...segments] });
-    if (segments.length > 0) saveLastResult();
+    push({ running: false, percent: 100, segments: [...segments], finishedAt: Date.now() });
+    if (segments.length > 0) {
+      saveLastResult();
+      // 全文进历史：复用历史页的搜索/导出/淡汰，旧转录被新任务覆盖后仍可找回
+      const full = segments.map((s) => s.text).join("\n");
+      addHistory({
+        id: randomUUID(),
+        at: Date.now(),
+        text: full,
+        raw: full,
+        personaName: fileName || t("transcribe.title"),
+        durationMs: Math.round((samples.length / SR) * 1000),
+      });
+    }
     log.info(`file transcribe done (${segments.length} segments)`);
   } catch (error) {
     if (jobId === job) {

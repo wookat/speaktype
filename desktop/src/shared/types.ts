@@ -165,6 +165,8 @@ export interface TranscribeState {
   segments: TranscribeSegment[];
   /** 来源文件名，用于导出命名与重启后恢复展示 */
   fileName?: string;
+  /** 完成时刻（ms），恢复态下区分「这是什么时候转的」 */
+  finishedAt?: number;
   error?: string;
 }
 
