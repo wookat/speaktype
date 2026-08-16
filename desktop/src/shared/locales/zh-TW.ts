@@ -104,6 +104,7 @@ export const zhTW: LocaleDict = {
   "dict.autoLearnHint": "落字後你在輸入框裡手動改對的詞，自動學進詞典（僅本機比對，不上傳）",
   "dict.save": "儲存",
   "dict.clear": "清空",
+  "dict.clearConfirm": "清空全部熱詞？再點一次",
   "dict.export": "匯出",
   "dict.search": "搜尋熱詞",
   "settings.title": "設定",
