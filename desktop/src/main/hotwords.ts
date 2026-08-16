@@ -105,6 +105,7 @@ function correctAsciiHotword(text: string, word: string): string {
 
 export function correctHotwords(text: string, hotwords: string[]): string {
   if (!text || !hotwords.length) return text;
+  const dict = new Set(hotwords.map((w) => w.trim()));
   let out = text;
   for (const word of hotwords) {
     const trimmed = word.trim();
@@ -120,6 +121,8 @@ export function correctHotwords(text: string, hotwords: string[]): string {
     for (let i = 0; i + n <= chars.length; i++) {
       const seg = chars.slice(i, i + n).join("");
       if (seg === trimmed || !CJK.test(seg)) continue;
+      // 同音词典词互噬保护：输出本身就是另一条词典词时不替换（张京/张静共存）
+      if (dict.has(seg)) continue;
       if (matches(readings(seg), wordReadings)) {
         chars.splice(i, n, ...Array.from(trimmed));
         changed = true;
