@@ -286,6 +286,8 @@ export const ko: LocaleDict = {
   "toast.handsFreeEndByKey": "다른 단축키가 눌려 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
   "toast.historyRecovered": "기록을 다시 만들었습니다",
   "toast.historyRecoveredBody": "기록 파일이 손상되어 다시 만들었습니다. 백업: history.json.bad. 설정은 영향이 없습니다",
+  "toast.noPasteTarget": "입력할 수 있는 창이 없습니다",
+  "toast.noPasteTargetBody": "내용이 기록에 저장되었습니다. 기록에서 복사할 수 있습니다.",
   "toast.noSpeech": "잘 들리지 않았습니다",
   "toast.configRecovered": "설정을 다시 만들었습니다",
   "toast.modelReady": "오프라인 모델 준비 완료",

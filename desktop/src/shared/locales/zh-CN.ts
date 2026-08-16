@@ -275,6 +275,8 @@ export const zhCN = {
 
   "toast.persona": "当前人设",
   "toast.personaBody": "{{name}}（Alt+{{index}} 切换）",
+  "toast.noPasteTarget": "当前没有可输入的窗口",
+  "toast.noPasteTargetBody": "内容已保存到历史，可从历史页复制。",
   "toast.noSpeech": "没听清",
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "长时间没检到人声，已自动停止聆听；再按一次热键可重新开始",

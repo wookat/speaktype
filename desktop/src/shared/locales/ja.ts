@@ -286,6 +286,8 @@ export const ja: LocaleDict = {
   "toast.handsFreeEndByKey": "他のホットキーが押されたため連続入力を停止しました。ハンズフリーキーで再開できます",
   "toast.historyRecovered": "履歴を再構築しました",
   "toast.historyRecoveredBody": "履歴ファイルが破損していたため再構築しました。バックアップは history.json.bad です。設定は影響を受けません",
+  "toast.noPasteTarget": "入力先のウィンドウがありません",
+  "toast.noPasteTargetBody": "テキストは履歴に保存されました。履歴からコピーできます。",
   "toast.noSpeech": "聞き取れませんでした",
   "toast.configRecovered": "設定を再構築しました",
   "toast.modelReady": "オフラインモデルの準備完了",
