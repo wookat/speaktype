@@ -92,8 +92,8 @@ const api = {
       ipcRenderer.removeListener("vad:status", listener);
     };
   },
-  transcribeStart: (samples: ArrayBuffer): Promise<TranscribeState> =>
-    ipcRenderer.invoke("transcribe:start", samples),
+  transcribeStart: (samples: ArrayBuffer, fileName?: string): Promise<TranscribeState> =>
+    ipcRenderer.invoke("transcribe:start", samples, fileName),
   transcribeCancel: (): Promise<void> => ipcRenderer.invoke("transcribe:cancel"),
   transcribeState: (): Promise<TranscribeState> => ipcRenderer.invoke("transcribe:state"),
   onTranscribeState: (fn: (s: TranscribeState) => void) => {
