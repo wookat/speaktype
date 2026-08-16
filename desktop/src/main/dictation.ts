@@ -580,6 +580,9 @@ export class Dictation {
     const session = this.session;
     if (!session) return;
     this.session = null;
+    // 本次会话一开始就消费掉改写意图：空结果/异常提前退出时不能残留到下一次普通听写
+    const rewriteTarget = this.rewriteTarget;
+    this.rewriteTarget = null;
     const settings = getSettings();
     const persona = localizePersona(
       findPersona(this.appPersonaId ?? settings.personaId),
@@ -647,8 +650,6 @@ export class Dictation {
     }
 
     this.report("polishing");
-    const rewriteTarget = this.rewriteTarget;
-    this.rewriteTarget = null;
     let text: string;
     if (rewriteTarget) {
       const rewritten = await rewriteSelection(settings, rewriteTarget, raw);

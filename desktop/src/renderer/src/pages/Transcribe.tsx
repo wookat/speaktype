@@ -28,7 +28,8 @@ function clockTime(sec: number): string {
 }
 
 function saveText(content: string, filename: string, mime: string): void {
-  const blob = new Blob([content], { type: mime });
+  // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
+  const blob = new Blob(["\ufeff", content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
