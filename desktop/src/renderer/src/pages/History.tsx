@@ -28,12 +28,15 @@ function History(props: {
   // 单条删除唯一无后悔药：先删后置 Undo 栏，点撤销按原位插回
   const [undoDel, setUndoDel] = useState<{ item: HistoryItem; index: number } | null>(null);
   const undoTimer = useRef<number | null>(null);
+  const armUndoTimer = (ms: number): void => {
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setUndoDel(null), ms);
+  };
   const removeItem = (item: HistoryItem): void => {
     const index = props.history.findIndex((h) => h.id === item.id);
     void api.deleteHistory([item.id]).then(props.setHistory);
     setUndoDel({ item, index });
-    if (undoTimer.current) window.clearTimeout(undoTimer.current);
-    undoTimer.current = window.setTimeout(() => setUndoDel(null), 6000);
+    armUndoTimer(10000);
   };
   const undoDelete = (): void => {
     if (!undoDel) return;
@@ -291,7 +294,13 @@ function History(props: {
         </>
       )}
       {undoDel && (
-        <div className="fixed bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-lg">
+        <div
+          className="fixed bottom-6 right-6 z-10 flex items-center gap-3 rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-lg"
+          onMouseEnter={() => {
+            if (undoTimer.current) window.clearTimeout(undoTimer.current);
+          }}
+          onMouseLeave={() => armUndoTimer(2000)}
+        >
           <span>{t("history.deleted")}</span>
           <button className="font-medium text-indigo-300 hover:text-indigo-200" onClick={undoDelete}>
             {t("toast.undo")}
