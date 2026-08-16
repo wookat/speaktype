@@ -1,4 +1,4 @@
-# SpeakType 可用性度量一键脚本（第 101 轮基线方法固化，第 102 轮起随发版跑）
+﻿# SpeakType 可用性度量一键脚本（第 101 轮基线方法固化，第 102 轮起随发版跑）
 # 用法见同目录 README.md。必须以 -STA 运行：powershell -STA -File measure.ps1 -AppExe <SpeakType.exe 路径>
 param(
   [Parameter(Mandatory = $true)][string]$AppExe,
@@ -25,8 +25,11 @@ function Speak([string]$text) {
 function PlayAudio([string]$file) {
   Add-Type -AssemblyName PresentationCore
   $mp = New-Object System.Windows.Media.MediaPlayer
-  $mp.Open([Uri](Resolve-Path $file)); $mp.Play(); Start-Sleep -Milliseconds 500
-  while (-not $mp.NaturalDuration.HasTimeSpan) { Start-Sleep -Milliseconds 100 }
+  $mp.Open([Uri](Resolve-Path $file).Path); $mp.Play(); Start-Sleep -Milliseconds 500
+  # 无音频输出设备时 HasTimeSpan 永不为 true：超时退出避免挂死
+  $waited = 0
+  while (-not $mp.NaturalDuration.HasTimeSpan -and $waited -lt 10000) { Start-Sleep -Milliseconds 100; $waited += 100 }
+  if (-not $mp.NaturalDuration.HasTimeSpan) { $mp.Close(); throw "PlayAudio: no audio device or media failed to load ($file)" }
   Start-Sleep -Milliseconds ([int]$mp.NaturalDuration.TimeSpan.TotalMilliseconds)
   $mp.Stop(); $mp.Close()
 }
