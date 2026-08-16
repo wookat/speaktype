@@ -234,3 +234,4 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - `ggml-tiny-q5_1.bin` is already downloaded on this box (models root); to exercise the "model missing" banner pick base-q5_1 or small-q5_1.
 - Settings tab ids are `general/voice/model/about`: "voice" is Speech recognition (local dictation models), "model" is the AI polish model tab (#144 fixed the banner jump to use "voice").
 - TXT vs copied-text comparison: Windows clipboard converts to CRLF; normalize line endings before asserting equality.
+- Verifying completion-instant UI (e.g. the #146 settling window): do one warm-up run first to measure the exact transcribe duration (log started/done delta), then time the action as "press Enter → wait duration+0.1s → act immediately → screenshot now AND re-screenshot after 5s". Queued Save-As dialogs can pop several seconds late, so a "no dialog appeared" assertion must include the delayed re-screenshot.
