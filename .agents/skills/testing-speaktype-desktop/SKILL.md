@@ -214,3 +214,9 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Test the pasteText 350ms clipboard-restore race with `C:\Users\Administrator\tts\clip-race.ps1` (launch with `-STA`, hidden window): it tight-polls the clipboard, and after detecting the dictated text it MUST wait ~200ms before writing the simulated user copy — writing immediately can land before Ctrl+V and pollute the paste itself (a sentinel false failure). Only assert on runs whose log timestamps show the write happened before the restore point (write + 60 + 350ms).
 - When killing the sentinel, filter with `'clip[-]race\.ps1'` AND exclude `$PID` — a plain command-line filter matches the killer itself (same self-kill trap as round 72).
 - Since PR #136 the restore is conditional (`clipboard.readText() === text`): user copy during the window survives; with no contention the old clipboard is restored; with an empty previous clipboard the dictated text stays.
+
+## Image clipboard restore testing (round 74, PR #138)
+- Test image-clipboard restore with `C:\Users\Administrator\tts\imgclip.ps1` (must run `-STA`): set = 64x64 green bitmap with a red corner block; verify = ContainsImage + size + two pixel probes. Assert on pixel values, not just ContainsImage=True — otherwise you can't distinguish "restored a different image".
+- Sentinel polling logs may show rapid `[] ↔ text` flapping right after a write (WinForms GetText jitter); take the final value from a separate `-STA` verify process, not the polling log.
+- Since PR #138: image previous is snapshotted only when text previous is empty; restore is three-branch — clipboard rewritten by others → give up; text previous → writeText; non-empty image → writeImage. File lists and other formats are still not preserved (declared boundary).
+- history.json top-level shape is `{history:[...],stats:...}`; latest entry text is `$h.history[0].text`.
