@@ -246,6 +246,9 @@ function chatUrl(baseUrl: string): string {
   return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
 }
 
+/** 端点挂死/网络黑洞时不能无限等：超时后走失败分支（保留选区/回退本地清理） */
+const CHAT_TIMEOUT_MS = 30_000;
+
 /** 本地无鉴权端点（Ollama / LM Studio）可不填 key：仅非空时带 Authorization 头 */
 function chatHeaders(settings: Settings): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -261,6 +264,7 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
       headers: chatHeaders(settings),
+      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         max_tokens: 4,
@@ -301,6 +305,7 @@ export async function rewriteSelection(
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
       headers: chatHeaders(settings),
+      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         temperature: 0.3,
@@ -352,6 +357,7 @@ export async function polishText(
     const res = await fetch(url, {
       method: "POST",
       headers: chatHeaders(settings),
+      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         temperature: 0.3,
