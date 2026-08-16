@@ -2,6 +2,7 @@
 import "./migrate";
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import { join } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
@@ -315,8 +316,17 @@ function registerIpc(): void {
     pushSettings();
     return next;
   });
-  // 轻量新版提示（非自动更新）：启动后空闲预拨一次 GitHub latest release，失败静默（离线不打扰）
+  // 轻量新版提示（非自动更新）：启动后空闲预拨一次 GitHub latest release。
+  // 匿名 API 限额 60 次/时/IP，共享出口 IP 极易耗尽：成功结果落盘缓存 24h，失败 30 分钟后重试至多 3 次，仍失败静默（离线不打扰）
   let latestTag = "";
+  const latestCacheFile = join(app.getPath("userData"), "latest-release.json");
+  try {
+    const cached = JSON.parse(readFileSync(latestCacheFile, "utf8")) as { tag?: string; at?: number };
+    if (cached.tag && Date.now() - (cached.at ?? 0) < 24 * 3600_000) latestTag = cached.tag;
+  } catch {
+    // 无缓存或损坏：当作首次拨号
+  }
+  let latestRetriesLeft = 3;
   const fetchLatestTag = async (): Promise<string> => {
     if (latestTag) return latestTag;
     try {
@@ -326,10 +336,18 @@ function registerIpc(): void {
       if (res.ok) {
         latestTag = ((await res.json()) as { tag_name?: string }).tag_name ?? "";
         log.info(`latest release prefetched: ${latestTag || "(none)"}`);
+        if (latestTag) {
+          try {
+            writeFileSync(latestCacheFile, JSON.stringify({ tag: latestTag, at: Date.now() }));
+          } catch {
+            // 缓存写入失败不影响本次提示
+          }
+        }
       }
     } catch {
-      // 离线或 API 限流：不提示即可
+      // 离线：下面统一走重试
     }
+    if (!latestTag && latestRetriesLeft-- > 0) setTimeout(() => void fetchLatestTag(), 30 * 60_000);
     return latestTag;
   };
   setTimeout(() => void fetchLatestTag(), 5000);

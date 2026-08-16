@@ -204,8 +204,8 @@ function toEnglishPunct(text: string): string {
     .replace(/、/g, ",")
     .replace(/：/g, ":");
   out = out.replace(/\s+([,.?!;:])/g, "$1").replace(/([,.?!;:])(?=[A-Za-z])/g, "$1 ");
-  // 原文句尾已有标点时模型会再补一个（"tonight.." ）：连续终止标点只留第一个
-  out = out.replace(/([.?!])[.?!]+/g, "$1");
+  // 原文句尾已有标点时模型会再补一个（"tonight.."、"great,."）：逗号后紧跟终止标点时终止标点优先，连续终止标点只留第一个
+  out = out.replace(/[,;:]+(?=[.?!])/g, "").replace(/([.?!])[.?!,;:]+/g, "$1");
   out = out.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, ch: string) => pre + ch.toUpperCase());
   return out.trim();
 }
@@ -222,7 +222,11 @@ export async function applyModelPunctuation(text: string): Promise<string> {
     return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
   }
   if (!CJK_RE.test(modeled)) return toEnglishPunct(modeled);
-  return modeled.replace(/[。．.]+$/, "").replace(/^[，。]/, "");
+  return modeled
+    .replace(/[，、；：]+(?=[。！？])/g, "")
+    .replace(/([。！？])[。！？，、；：]+/g, "$1")
+    .replace(/[。．.]+$/, "")
+    .replace(/^[，。]/, "");
 }
 
 /** 终端目标降格式：去尾部终止标点、还原句首自动大写。驼峰专名（首词后续仍含大写，如 SpeakType）不动 */
