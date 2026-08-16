@@ -226,3 +226,11 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Model lives at `%APPDATA%\SpeakType\models\punct-ct\model.onnx` (~281MB, downloaded via Settings→Speech; HF direct takes ~1 min).
 - Log signature for model punctuation is `punct worker started`; rule-based fallback has no such line.
 - Settings-page status updates live via the `onPunctStatus` push channel: the punctuate failure path pushes `downloaded:false` (#140) so external model deletion reverts the UI without restart; the success path does NOT push — verifying "back to ready" requires remounting the page (switch tabs).
+
+## File transcription page testing (round 77, PR #143/#144)
+- Long Chinese test wavs: local TTS voices are English-only. Build them by PCM-concatenating `C:\Users\Administrator\tts\sample.wav` — read the bytes, take `[byte[]]$data = $b[44..($b.Length-1)]` (**must cast to byte[]**, otherwise BinaryWriter writes a tiny corrupt file), repeat, and hand-write a 44-byte RIFF header.
+- TXT/SRT export goes through queued system "Save As" dialogs: save each one fully before clicking the next — a queued dialog intercepts later clicks/typing and can overwrite your source wav. Right after transcription completes, the Cancel button's position becomes the SRT button; screenshot to confirm the progress row is still there before clicking.
+- Warm sensevoice/parakeet transcribe ~70s audio in only 3-5s — cancel test cases need ≥5min audio to have a window.
+- `ggml-tiny-q5_1.bin` is already downloaded on this box (models root); to exercise the "model missing" banner pick base-q5_1 or small-q5_1.
+- Settings tab ids are `general/voice/model/about`: "voice" is Speech recognition (local dictation models), "model" is the AI polish model tab (#144 fixed the banner jump to use "voice").
+- TXT vs copied-text comparison: Windows clipboard converts to CRLF; normalize line endings before asserting equality.
