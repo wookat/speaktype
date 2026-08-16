@@ -127,6 +127,7 @@ export const zhTW: LocaleDict = {
   "settings.rewriteKey": "改寫選取文字",
   "settings.rewriteKeyOff": "關閉",
   "settings.rewriteKeyConflict": "與按住說話鍵相同，改寫將被停用，請換一個鍵。",
+  "settings.toggleKeyConflict": "與按住說話鍵或改寫鍵相同，免按模式將被停用，請換一個鍵。",
   "settings.rewriteKeyHint": "選取一段文字後按住 {{key}} 說出指令（如「翻譯成英文」「改得正式一點」），放開即取代選取範圍。需要先在「潤色模型」設定模型。",
   "settings.rewriteKeyOffHint": "選取文字後按住某個鍵說指令即可改寫/翻譯選取範圍，選一個鍵開啟。",
   "settings.toggle": "免按模式",

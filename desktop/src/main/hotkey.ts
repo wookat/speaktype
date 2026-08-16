@@ -127,9 +127,13 @@ export class HotkeyManager {
     this.rewriteKeycode = rewriteOff || this.rewriteMouseButton ? -1 : (KEY_NAMES[hotkeyRewrite] ?? -1);
     this.holdDelayMs = holdDelayMs;
     this.personaHotkeys = personaHotkeys;
+    const toggleConflict =
+      hotkeyToggle === hotkeyHold || (!rewriteOff && hotkeyToggle === hotkeyRewrite);
     const parts = hotkeyToggle.split("+");
     this.toggleModAlt = parts.includes("Alt");
-    this.toggleKeycode = KEY_NAMES[parts[parts.length - 1] ?? "Space"] ?? UiohookKey.Space;
+    this.toggleKeycode = toggleConflict
+      ? -1
+      : (KEY_NAMES[parts[parts.length - 1] ?? "Space"] ?? UiohookKey.Space);
   }
 
   start(): void {

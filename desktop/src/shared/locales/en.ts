@@ -136,6 +136,8 @@ export const en: LocaleDict = {
   "settings.rewriteKey": "Rewrite selection",
   "settings.rewriteKeyOff": "Off",
   "settings.rewriteKeyConflict": "Same as the hold-to-talk key — rewrite is disabled. Pick a different key.",
+  "settings.toggleKeyConflict":
+    "Same as the hold-to-talk or rewrite key — hands-free is disabled. Pick a different key.",
   "settings.rewriteKeyHint": "Select some text, hold {{key}} and say an instruction (e.g. \"translate to English\", \"make it more formal\"); release to replace the selection. Requires a polish model.",
   "settings.rewriteKeyOffHint": "Hold a key over selected text and say an instruction to rewrite or translate it. Pick a key to enable.",
   "settings.toggle": "Hands-free mode",
