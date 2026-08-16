@@ -41,6 +41,7 @@ body,
   --color-violet-100: #383054;
   --color-violet-600: oklch(72% 0.18 293);
   --color-violet-700: oklch(79% 0.13 292.5);
+  --color-red-50: #3b2327;
   --color-red-100: #3b2327;
   --color-red-600: oklch(70% 0.19 22.2);
 }

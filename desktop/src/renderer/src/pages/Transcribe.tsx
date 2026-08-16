@@ -50,7 +50,21 @@ function Transcribe(props: {
   const [modelReady, setModelReady] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 完成后短暂保留进度行占位，避免下方导出按钮瞬间上移到 Cancel 原位被误点
+  const [settling, setSettling] = useState(false);
+  const wasRunning = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (wasRunning.current && !state.running) {
+      wasRunning.current = false;
+      setSettling(true);
+      const timer = setTimeout(() => setSettling(false), 600);
+      return () => clearTimeout(timer);
+    }
+    wasRunning.current = state.running;
+    return undefined;
+  }, [state.running]);
 
   useEffect(() => {
     // 切页回来接上进行中的任务
@@ -176,13 +190,14 @@ function Transcribe(props: {
         />
       </div>
 
-      {state.running && (
+      {(state.running || settling) && (
         <div className="mt-3 flex items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${state.percent}%` }} />
           </div>
           <button
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+            disabled={!state.running}
             onClick={() => void api.transcribeCancel()}
           >
             {t("transcribe.cancel")}
