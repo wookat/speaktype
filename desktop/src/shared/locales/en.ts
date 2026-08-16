@@ -309,6 +309,8 @@ export const en: LocaleDict = {
   "toast.noPasteTargetBody": "Your words were saved to History — copy them from there.",
   "toast.noSpeech": "Didn't catch that",
   "toast.configRecovered": "Settings rebuilt",
+  "toast.saveFailed": "Couldn't save settings",
+  "toast.saveFailedBody": "The config file couldn't be written (read-only or no permission). Changes will be lost after restart.",
   "toast.modelReady": "Offline model ready",
   "toast.asrNotConfigured": "Speech recognition not set up",
   "toast.openSettingsAction": "Open Settings",

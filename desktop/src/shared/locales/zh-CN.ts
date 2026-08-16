@@ -303,6 +303,8 @@ export const zhCN = {
   "toast.historyRecovered": "历史记录已重建",
   "toast.historyRecoveredBody": "历史文件损坏，已重建；原文件备份为 history.json.bad，设置不受影响",
   "toast.configRecovered": "配置已重建",
+  "toast.saveFailed": "设置无法保存",
+  "toast.saveFailedBody": "配置文件写入被拒（只读或权限不足），重启后改动会丢失。",
   "toast.modelReady": "离线模型已就绪",
   "toast.asrNotConfigured": "语音识别尚未配置",
   "toast.openSettingsAction": "去设置",

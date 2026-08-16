@@ -40,6 +40,7 @@ import {
   getSettings,
   getStats,
   isOnboarded,
+  onPersistError,
   pruneStalePersonaRefs,
   restoreHistory,
   setCustomPersonas,
@@ -500,6 +501,8 @@ void app.whenReady().then(() => {
   if (settings.asrProvider === "local" && isSherpaModel(settings.localModel)) {
     setTimeout(() => prewarmSherpa(getSettings().localModel, getSettings().language), 3000);
   }
+  // 设置写盘被拒（文件只读/权限不足）时给可见提示，否则重启后改动静默丢失
+  onPersistError(() => showToast(t("toast.saveFailed"), t("toast.saveFailedBody")));
   if (wasStoreRecovered()) {
     setTimeout(() => showToast(t("toast.configRecovered"), t("toast.configRecoveredBody")), 1500);
   }

@@ -309,6 +309,8 @@ export const ja: LocaleDict = {
   "toast.noPasteTargetBody": "テキストは履歴に保存されました。履歴からコピーできます。",
   "toast.noSpeech": "聞き取れませんでした",
   "toast.configRecovered": "設定を再構築しました",
+  "toast.saveFailed": "設定を保存できません",
+  "toast.saveFailedBody": "設定ファイルに書き込めません（読み取り専用または権限不足）。再起動後に変更は失われます。",
   "toast.modelReady": "オフラインモデルの準備完了",
   "toast.asrNotConfigured": "音声認識が未設定です",
   "toast.openSettingsAction": "設定を開く",

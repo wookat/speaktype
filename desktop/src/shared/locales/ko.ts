@@ -309,6 +309,8 @@ export const ko: LocaleDict = {
   "toast.noPasteTargetBody": "내용이 기록에 저장되었습니다. 기록에서 복사할 수 있습니다.",
   "toast.noSpeech": "잘 들리지 않았습니다",
   "toast.configRecovered": "설정을 다시 만들었습니다",
+  "toast.saveFailed": "설정을 저장할 수 없습니다",
+  "toast.saveFailedBody": "설정 파일에 쓸 수 없습니다(읽기 전용 또는 권한 부족). 재시작 후 변경 사항이 사라집니다.",
   "toast.modelReady": "오프라인 모델 준비 완료",
   "toast.asrNotConfigured": "음성 인식이 설정되지 않았습니다",
   "toast.openSettingsAction": "설정 열기",
