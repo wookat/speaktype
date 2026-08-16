@@ -10,8 +10,8 @@ android {
     applicationId = "com.speaktype.mic"
     minSdk = 24
     targetSdk = 34
-    versionCode = 7
-    versionName = "0.14.0"
+    versionCode = 8
+    versionName = "0.15.0"
   }
 
   signingConfigs {

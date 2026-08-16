@@ -11,7 +11,7 @@ Recognition engine, AI polishing and hotword correction are all yours to configu
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-download--install)
-[![Release](https://img.shields.io/badge/Release-v0.14.0-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v0.15.0-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
 [![i18n](https://img.shields.io/badge/UI%20languages-5-16a34a.svg)](#-internationalization)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](CONTRIBUTING.md)
 
@@ -69,9 +69,9 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Googl
 
 | Platform | Download | Status |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.14.0.exe](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-Setup-0.14.0.exe) (~98MB) | ✅ Stable |
-| Windows portable | [SpeakType-0.14.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-0.14.0-portable.exe) (~87MB) | ✅ Stable |
-| Android (phone as microphone) | [SpeakType-0.14.0.apk](https://github.com/wookat/speaktype/releases/download/v0.14.0/SpeakType-0.14.0.apk) | ✅ Available |
+| Windows 10/11 x64 | [SpeakType-Setup-0.15.0.exe](https://github.com/wookat/speaktype/releases/download/v0.15.0/SpeakType-Setup-0.15.0.exe) (~98MB) | ✅ Stable |
+| Windows portable | [SpeakType-0.15.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.15.0/SpeakType-0.15.0-portable.exe) (~87MB) | ✅ Stable |
+| Android (phone as microphone) | [SpeakType-0.15.0.apk](https://github.com/wookat/speaktype/releases/download/v0.15.0/SpeakType-0.15.0.apk) | ✅ Available |
 | macOS (Apple Silicon / Intel) | Platform layer merged; installer pending a macOS build environment | 🚧 In progress |
 
 Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
