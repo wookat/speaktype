@@ -64,6 +64,7 @@ export const ko: LocaleDict = {
   "history.emptyHint": "단축키를 누른 채 말하면 여기에 기록됩니다",
   "history.copy": "복사",
   "history.delete": "삭제",
+  "history.deleted": "항목을 삭제했습니다",
   "history.raw": "원본",
   "history.failed": "붙여넣기 실패",
   "history.today": "오늘",

@@ -266,6 +266,13 @@ export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): Hist
   return next;
 }
 
+/** 撤销删除：按原位置插回（幂等，去重后 clamp 到当前列表范围） */
+export function restoreHistory(item: HistoryItem, index: number): void {
+  const list = getHistory().filter((h) => h.id !== item.id);
+  list.splice(Math.min(Math.max(index, 0), list.length), 0, item);
+  historyStore.set("history", list.slice(0, 500));
+}
+
 export function deleteHistory(ids: string[]): void {
   const drop = new Set(ids);
   historyStore.set(

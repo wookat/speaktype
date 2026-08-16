@@ -10,7 +10,7 @@ import pkg from "../../package.json";
 // 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
 declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
-import type { Persona, Settings, StatusPayload } from "../shared/types";
+import type { HistoryItem, Persona, Settings, StatusPayload } from "../shared/types";
 import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
@@ -40,6 +40,7 @@ import {
   getStats,
   isOnboarded,
   pruneStalePersonaRefs,
+  restoreHistory,
   setCustomPersonas,
   setOnboarded,
   setSettings,
@@ -348,6 +349,10 @@ function registerIpc(): void {
   });
   ipcMain.handle("history:delete", (_e, ids: string[]) => {
     deleteHistory(ids);
+    return getHistory();
+  });
+  ipcMain.handle("history:restore", (_e, item: HistoryItem, index: number) => {
+    restoreHistory(item, index);
     return getHistory();
   });
   ipcMain.handle("history:retry", (_e, id: string) => dictation.retryHistory(id));

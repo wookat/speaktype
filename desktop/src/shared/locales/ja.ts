@@ -64,6 +64,7 @@ export const ja: LocaleDict = {
   "history.emptyHint": "ホットキーを押しながら話すと、ここに記録されます",
   "history.copy": "コピー",
   "history.delete": "削除",
+  "history.deleted": "エントリを削除しました",
   "history.raw": "元のテキスト",
   "history.failed": "貼り付け失敗",
   "history.today": "今日",
