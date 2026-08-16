@@ -62,6 +62,10 @@ export default function App() {
         void api.stats().then(setStats);
       }
     });
+    // 转录完成也会写入历史，收到完成态即刷新列表
+    const offTranscribe = api.onTranscribeState((s) => {
+      if (!s.running && s.percent === 100 && s.segments.length > 0) void api.history().then(setHistory);
+    });
     const offSettings = api.onSettings(({ settings: s, personas: p }) => {
       setSettings(s);
       setPersonas(p);
@@ -73,6 +77,7 @@ export default function App() {
     });
     return () => {
       offStatus();
+      offTranscribe();
       offSettings();
       offGoto();
     };
