@@ -285,6 +285,8 @@ export const zhTW: LocaleDict = {
   "toast.noPasteTargetBody": "內容已儲存到歷史，可從歷史頁複製。",
   "toast.noSpeech": "沒聽清",
   "toast.configRecovered": "設定已重建",
+  "toast.saveFailed": "設定無法儲存",
+  "toast.saveFailedBody": "設定檔寫入被拒（唯讀或權限不足），重啟後變更會遺失。",
   "toast.modelReady": "離線模型已就緒",
   "toast.asrNotConfigured": "語音識別尚未設定",
   "toast.openSettingsAction": "前往設定",

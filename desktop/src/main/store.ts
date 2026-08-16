@@ -187,12 +187,29 @@ function createHistoryStore(): Store<HistorySchema> {
 
 const historyStore = createHistoryStore();
 
+// 磁盘写入被拒（文件只读/权限不足/备份软件锁定）时通知 UI，不能静默丢配置
+let persistErrorHandler: ((error: unknown) => void) | null = null;
+
+export function onPersistError(handler: (error: unknown) => void): void {
+  persistErrorHandler = handler;
+}
+
+function persist<K extends keyof Schema>(key: K, value: Schema[K], notify: boolean): void {
+  try {
+    store.set(key, value);
+  } catch (error) {
+    log.error(`failed to persist ${key}`, error);
+    if (notify) persistErrorHandler?.(error);
+  }
+}
+
 export function getWindowBounds(): WindowBounds | null {
   return store.get("mainWindowBounds");
 }
 
 export function setWindowBounds(bounds: WindowBounds): void {
-  store.set("mainWindowBounds", bounds);
+  // 窗口位置属锦上添花，写失败只落日志不打扰
+  persist("mainWindowBounds", bounds, false);
 }
 
 export function getSettings(): Settings {
@@ -210,7 +227,7 @@ export function getSettings(): Settings {
 
 export function setSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
-  store.set("settings", next);
+  persist("settings", next, true);
   return next;
 }
 
