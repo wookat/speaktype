@@ -89,7 +89,7 @@ export const ja: LocaleDict = {
   "personas.delete": "削除",
   "personas.deleteConfirm": "削除しますか？もう一度クリック",
   "personas.appRules": "アプリごとにペルソナを自動切替",
-  "personas.appRulesHint": "話し始めた時点の前面のウィンドウを見て、一致したペルソナで整形します。プロセス名とウィンドウタイトルのみを参照し、すべてローカルで処理します。",
+  "personas.appRulesHint": "話し始めた時点の前面のウィンドウを見て、一致したペルソナで整形します。プロセス名とウィンドウタイトルのみを参照し、すべてローカルで処理します。複数のルールに一致した場合は、リストの上にあるものが優先されます。",
   "personas.appRuleAdd": "ルールを追加",
   "personas.appRulePlaceholder": "部分一致（例: code.exe / slack / gmail）",
   "personas.appRulesNoPolish": "ルールは AI ポリッシュモデル設定時のみ有効です。未設定のため出力は変わりません。",
