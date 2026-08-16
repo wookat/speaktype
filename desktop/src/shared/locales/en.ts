@@ -320,7 +320,7 @@ export const en: LocaleDict = {
   "toast.rewriteNoSelection": "Nothing selected",
   "toast.rewriteNoSelectionBody": "Select the text first, then hold the rewrite key and say an instruction",
   "toast.rewriteNoModel": "Rewrite needs a polish model",
-  "toast.rewriteNoModelBody": "Configure an OpenAI-compatible model in Settings → Polish model",
+  "toast.rewriteNoModelBody": "Configure an OpenAI-compatible model in Settings → AI polish",
   "toast.rewriteFailed": "Rewrite failed",
   "toast.rewriteFailedBody": "The polish model returned nothing; the text was left unchanged",
   "toast.polishFallback": "Polish service unavailable",

@@ -107,6 +107,29 @@ function pageStrings(): Record<string, string> {
       };
 }
 
+/** 链接失效页：与配对页同一套语言约定（中文界面给中文，其余给英文） */
+function invalidLinkPage(): string {
+  const zh = currentLanguage().startsWith("zh");
+  const title = zh ? "链接已失效" : "Link expired";
+  const body = zh ? "请回电脑上的 SpeakType 重新扫码" : "Go back to SpeakType on your PC and scan the QR code again";
+  return `<!doctype html>
+<html lang="${zh ? "zh" : "en"}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SpeakType</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #17171c; color: #e2e8f0; height: 100dvh;
+         margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+         padding: 24px; text-align: center; }
+  h1 { font-size: 18px; font-weight: 600; }
+  p { margin-top: 10px; font-size: 14px; color: #94a3b8; }
+</style>
+</head>
+<body><h1>${title}</h1><p>${body}</p></body>
+</html>`;
+}
+
 function page(): string {
   const L = pageStrings();
   return `<!doctype html>
@@ -387,8 +410,8 @@ export async function startRemoteMic(
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(page());
     } else {
-      res.writeHead(403);
-      res.end("SpeakType: invalid link, rescan the QR code");
+      res.writeHead(403, { "content-type": "text/html; charset=utf-8" });
+      res.end(invalidLinkPage());
     }
   });
 

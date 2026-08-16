@@ -320,7 +320,7 @@ export const ja: LocaleDict = {
   "toast.rewriteNoSelection": "テキストが選択されていません",
   "toast.rewriteNoSelectionBody": "先にテキストを選択してから、書き換えキーを押しながら指示を話してください",
   "toast.rewriteNoModel": "書き換えには推敲モデルが必要です",
-  "toast.rewriteNoModelBody": "設定 → 推敲モデル で OpenAI 互換モデルを設定してください",
+  "toast.rewriteNoModelBody": "設定 → AI 文章調整 で OpenAI 互換モデルを設定してください",
   "toast.rewriteFailed": "書き換えに失敗しました",
   "toast.rewriteFailedBody": "推敲モデルから結果が返らなかったため、原文は変更されていません",
   "toast.polishFallback": "推敲サービスを利用できません",
