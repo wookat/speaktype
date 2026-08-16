@@ -116,7 +116,7 @@ export const ko: LocaleDict = {
 
   "settings.title": "설정",
   "settings.tab.general": "일반",
-  "settings.tab.model": "AI 모델",
+  "settings.tab.model": "AI 다듬기",
   "settings.tab.voice": "음성 인식",
   "settings.tab.about": "정보",
 

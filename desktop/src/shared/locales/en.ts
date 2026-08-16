@@ -116,7 +116,7 @@ export const en: LocaleDict = {
 
   "settings.title": "Settings",
   "settings.tab.general": "General",
-  "settings.tab.model": "AI model",
+  "settings.tab.model": "AI polish",
   "settings.tab.voice": "Speech",
   "settings.tab.about": "About",
 
