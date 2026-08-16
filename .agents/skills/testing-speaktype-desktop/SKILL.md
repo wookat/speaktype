@@ -195,3 +195,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Failed-entry Retry can be injected synthetically: set a history entry `status="failed"` + `error` + `audioFile` pointing at a real wav copied under failed-audio; Retry re-recognizes and normalizes the entry in place.
 - 500-entry full-load: rewrite the `history` array in history.json directly (top-level shape `{history,stats}` — leave `stats` alone).
 - rkey.ps1's key map lacks ctrl/a/letter keys (`type:`/`ctrl+a` throw NullArray) — use computer-native injection for text and Ctrl+A. Short-lived toasts (persona switch, rewriteNoModel) require screenshotting immediately after computer-native key injection; the rkey→screenshot pipeline is too slow.
+
+## Browser proxy, hosts blocking, soft-segment evidence (round 71)
+- If the local browser can't reach the internet, the cause is usually the dead system proxy (socks 127.0.0.1:1080, nothing listening) — launch `msedge --no-proxy-server`; do NOT change the system proxy.
+- Before relying on hosts-file blocking (e.g. simulating GitHub API rate-limit silence), verify with `ping`: this box's hosts ACL may lack NETWORK SERVICE/Users read access, making the DNS Client ignore hosts entirely. Fix temporarily with `icacls hosts /grant "NT AUTHORITY\NETWORK SERVICE:R" "BUILTIN\Users:R"` + `Restart-Service Dnscache`; afterwards `/remove:g` and delete the entries. `Resolve-DnsName` always bypasses hosts — verify with ping.
+- Hands-free soft-segment (50s) evidence: main.log `dictation finalize: durationMs=5xxxx` (>50000 means the soft-segment path); a 60s session on the looping fake mic triggers it.
