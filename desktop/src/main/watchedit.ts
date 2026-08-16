@@ -95,6 +95,8 @@ export interface Diff {
 const ALNUM = /^[A-Za-z0-9]$/;
 const ASCII_SEG = /^[A-Za-z0-9-]+$/;
 const CJK_CH = /^[\u4e00-\u9fff]$/;
+/** 不含标点/空白的纯词段：短变化段只有两侧都是纯词才能当一处改动，否则交给 LCS 按处拆开 */
+const WORD_SEG = /^[\u4e00-\u9fffA-Za-z0-9-]*$/;
 
 interface Span {
   i0: number;
@@ -133,11 +135,19 @@ export function extractCorrections(before: string, after: string): Diff[] {
   }
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
-  // 整句/整段重写不是纠错：变化段占原文过半时不学（短句单词改动不受影响）
-  if (a.length >= 10 && ma.length > a.length * 0.6) return [];
-  // 短段或两侧均为单个英文词时直接当一处改动；长段可能是改了多个不相邻的地方，LCS 对齐后按连续变化段分组
-  if ((ma.length <= 6 && mb.length <= 6) || (ma.length > 0 && mb.length > 0 && ASCII_SEG.test(ma.join("")) && ASCII_SEG.test(mb.join("")))) {
-    return [{ wrong: ma.join(""), right: mb.join("") }];
+  // 整句/整段重写不是纠错：实际改动占原文过半时不学。按各变化段字符数之和判定，
+  // 不按首尾跨度——同一轮改句首和句尾两个词时跨度会覆盖全句，但真正的改动很小
+  const rewriteGuard = (diffs: Diff[]): Diff[] => {
+    const changed = diffs.reduce((s, d) => s + Math.max(Array.from(d.wrong).length, Array.from(d.right).length), 0);
+    return a.length >= 10 && changed > a.length * 0.6 ? [] : diffs;
+  };
+  // 两侧均为纯词的短段或均为单个英文词时直接当一处改动；
+  // 含标点/空白的段可能是相邻的多处改动（会→慧 + 预→域 隔个逗号），交给 LCS 按处拆开
+  if (
+    (ma.length <= 6 && mb.length <= 6 && WORD_SEG.test(ma.join("")) && WORD_SEG.test(mb.join(""))) ||
+    (ma.length > 0 && mb.length > 0 && ASCII_SEG.test(ma.join("")) && ASCII_SEG.test(mb.join("")))
+  ) {
+    return rewriteGuard([{ wrong: ma.join(""), right: mb.join("") }]);
   }
   if (ma.length > MAX_LCS || mb.length > MAX_LCS) return [];
   const n = ma.length;
@@ -216,9 +226,37 @@ export function extractCorrections(before: string, after: string): Diff[] {
       merged.push(s);
     }
   }
-  return merged
-    .map((s) => ({ wrong: ma.slice(s.i0, s.i1).join(""), right: mb.slice(s.j0, s.j1).join("") }))
-    .filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT);
+  const out: Diff[] = [];
+  for (const s of merged) {
+    let wrong = ma.slice(s.i0, s.i1).join("");
+    let right = mb.slice(s.j0, s.j1).join("");
+    // 段内单字同音改（会→慧）与外层同规则回扩 1 字，只在恰好一侧是中文时才扩
+    if ((wrong.length === 1 && CJK_CH.test(wrong)) || (right.length === 1 && CJK_CH.test(right))) {
+      const leftCh =
+        s.i0 > 0 && s.j0 > 0 && ma[s.i0 - 1] === mb[s.j0 - 1]
+          ? ma[s.i0 - 1]
+          : s.i0 === 0 && s.j0 === 0
+            ? a[start - 1]
+            : undefined;
+      const rightCh =
+        s.i1 < n && s.j1 < m && ma[s.i1] === mb[s.j1]
+          ? ma[s.i1]
+          : s.i1 === n && s.j1 === m
+            ? a[a.length - end]
+            : undefined;
+      const canLeft = CJK_CH.test(leftCh ?? "");
+      const canRight = CJK_CH.test(rightCh ?? "");
+      if (canRight && !canLeft) {
+        wrong += rightCh;
+        right += rightCh;
+      } else if (canLeft && !canRight) {
+        wrong = leftCh + wrong;
+        right = leftCh + right;
+      }
+    }
+    out.push({ wrong, right });
+  }
+  return rewriteGuard(out.filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT));
 }
 
 /** 英文错词须以完整词边界出现在文本里，防止 LCS 碎片（如 "w"）误学 */
