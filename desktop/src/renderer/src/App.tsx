@@ -188,7 +188,7 @@ export default function App() {
             statsSessions={(stats ?? init.stats).sessions}
             goSettings={() => setPage("settings")}
             goRemoteMic={() => {
-              setSettingsJump("general#remote-mic");
+              setSettingsJump("voice#remote-mic");
               setPage("settings");
             }}
           />

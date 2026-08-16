@@ -112,7 +112,7 @@ export const zhCN = {
 
   "settings.title": "设置",
   "settings.tab.general": "通用",
-  "settings.tab.model": "模型",
+  "settings.tab.model": "AI 润色",
   "settings.tab.voice": "语音识别",
   "settings.tab.about": "关于",
 

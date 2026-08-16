@@ -26,7 +26,7 @@ function SettingsPage(props: {
   const [anchor, setAnchor] = useState<string | null>(null);
   useEffect(() => {
     if (!props.jumpTab) return;
-    // 支持 "tab#区块" 形式：页内入口可直接滚到目标区块（如 general#remote-mic）
+    // 支持 "tab#区块" 形式：页内入口可直接滚到目标区块（如 voice#remote-mic）
     const [tabId, hash] = props.jumpTab.split("#");
     setTab(tabId as SettingsTab);
     setAnchor(hash ?? null);
@@ -68,11 +68,18 @@ function SettingsPage(props: {
             holdKeyChoices={props.holdKeyChoices}
             rewriteKeyChoices={props.rewriteKeyChoices}
             toggleKeyChoices={props.toggleKeyChoices}
+          />
+        )}
+        {tab === "voice" && (
+          <VoiceTab
+            t={t}
+            s={s}
+            update={props.update}
+            doubaoReady={props.doubaoReady}
             anchor={anchor}
             clearAnchor={() => setAnchor(null)}
           />
         )}
-        {tab === "voice" && <VoiceTab t={t} s={s} update={props.update} doubaoReady={props.doubaoReady} />}
         {tab === "model" && <ModelTab t={t} s={s} update={props.update} />}
         {tab === "about" && <AboutTab t={t} version={props.version} commit={props.commit} />}
       </div>

@@ -8,12 +8,15 @@ import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 import { ASR_PRESETS } from "../../constants";
+import { MicSection } from "./MicSection";
 
 function VoiceTab(props: {
   t: Translator;
   s: Settings;
   update: (patch: Partial<Settings>) => void;
   doubaoReady: boolean;
+  anchor: string | null;
+  clearAnchor: () => void;
 }) {
   const { t, s, update } = props;
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
@@ -61,6 +64,8 @@ function VoiceTab(props: {
     });
   };
   return (
+    <>
+    <MicSection t={t} s={s} update={update} anchor={props.anchor} clearAnchor={props.clearAnchor} />
     <section className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="font-medium">{t("settings.asr")}</div>
       <div className="mt-1 text-xs text-slate-400">
@@ -284,6 +289,7 @@ function VoiceTab(props: {
         />
       )}
     </section>
+    </>
   );
 }
 export { VoiceTab };

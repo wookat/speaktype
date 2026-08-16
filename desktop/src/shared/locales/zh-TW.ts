@@ -108,7 +108,7 @@ export const zhTW: LocaleDict = {
   "dict.search": "搜尋熱詞",
   "settings.title": "設定",
   "settings.tab.general": "通用",
-  "settings.tab.model": "模型",
+  "settings.tab.model": "AI 潤色",
   "settings.tab.voice": "語音識別",
   "settings.tab.about": "關於",
   "settings.hotkeys": "鍵盤快捷鍵",

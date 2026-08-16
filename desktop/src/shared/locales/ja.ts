@@ -116,7 +116,7 @@ export const ja: LocaleDict = {
 
   "settings.title": "設定",
   "settings.tab.general": "一般",
-  "settings.tab.model": "AI モデル",
+  "settings.tab.model": "AI 文章調整",
   "settings.tab.voice": "音声認識",
   "settings.tab.about": "情報",
 
