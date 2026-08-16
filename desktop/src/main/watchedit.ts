@@ -130,6 +130,8 @@ export function extractCorrections(before: string, after: string): Diff[] {
   }
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
+  // 整句/整段重写不是纠错：变化段占原文过半时不学（短句单词改动不受影响）
+  if (a.length >= 10 && ma.length > a.length * 0.6) return [];
   // 短段或两侧均为单个英文词时直接当一处改动；长段可能是改了多个不相邻的地方，LCS 对齐后按连续变化段分组
   if ((ma.length <= 6 && mb.length <= 6) || (ma.length > 0 && mb.length > 0 && ASCII_SEG.test(ma.join("")) && ASCII_SEG.test(mb.join("")))) {
     return [{ wrong: ma.join(""), right: mb.join("") }];
