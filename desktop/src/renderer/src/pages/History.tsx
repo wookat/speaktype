@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { HistoryItem, Settings } from "../../../shared/types";
@@ -25,6 +25,22 @@ function History(props: {
   const [diffOpen, setDiffOpen] = useState<string | null>(null);
   // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
   const [visible, setVisible] = useState(PAGE_SIZE);
+  // 单条删除唯一无后悔药：先删后置 Undo 栏，点撤销按原位插回
+  const [undoDel, setUndoDel] = useState<{ item: HistoryItem; index: number } | null>(null);
+  const undoTimer = useRef<number | null>(null);
+  const removeItem = (item: HistoryItem): void => {
+    const index = props.history.findIndex((h) => h.id === item.id);
+    void api.deleteHistory([item.id]).then(props.setHistory);
+    setUndoDel({ item, index });
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setUndoDel(null), 6000);
+  };
+  const undoDelete = (): void => {
+    if (!undoDel) return;
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    void api.restoreHistory(undoDel.item, undoDel.index).then(props.setHistory);
+    setUndoDel(null);
+  };
   const saveEdit = (item: HistoryItem): void => {
     if (!editing) return;
     const next = editing.text.trim();
@@ -167,7 +183,7 @@ function History(props: {
                       )}
                       <button
                         className="hover:text-red-500"
-                        onClick={() => void api.deleteHistory([item.id]).then(props.setHistory)}
+                        onClick={() => removeItem(item)}
                       >
                         {t("history.delete")}
                       </button>
@@ -273,6 +289,14 @@ function History(props: {
             </div>
           )}
         </>
+      )}
+      {undoDel && (
+        <div className="fixed bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-lg">
+          <span>{t("history.deleted")}</span>
+          <button className="font-medium text-indigo-300 hover:text-indigo-200" onClick={undoDelete}>
+            {t("toast.undo")}
+          </button>
+        </div>
       )}
     </div>
   );

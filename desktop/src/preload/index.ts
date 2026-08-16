@@ -42,6 +42,8 @@ const api = {
   history: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:list"),
   clearHistory: (): Promise<HistoryItem[]> => ipcRenderer.invoke("history:clear"),
   deleteHistory: (ids: string[]): Promise<HistoryItem[]> => ipcRenderer.invoke("history:delete", ids),
+  restoreHistory: (item: HistoryItem, index: number): Promise<HistoryItem[]> =>
+    ipcRenderer.invoke("history:restore", item, index),
   retryHistory: (id: string): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("history:retry", id),
   correctHistory: (id: string, text: string): Promise<HistoryItem[]> =>
     ipcRenderer.invoke("history:correct", id, text),

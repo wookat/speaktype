@@ -62,6 +62,7 @@ export const zhCN = {
   "history.emptyHint": "按住热键开始语音，这里会记录你的每一次输入",
   "history.copy": "复制",
   "history.delete": "删除",
+  "history.deleted": "已删除该条目",
   "history.raw": "原文",
   "history.failed": "落字失败",
   "history.today": "今天",

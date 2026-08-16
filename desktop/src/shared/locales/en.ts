@@ -64,6 +64,7 @@ export const en: LocaleDict = {
   "history.emptyHint": "Hold the hotkey and speak — every entry will be recorded here",
   "history.copy": "Copy",
   "history.delete": "Delete",
+  "history.deleted": "Entry deleted",
   "history.raw": "Original",
   "history.failed": "Paste failed",
   "history.today": "Today",

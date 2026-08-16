@@ -61,6 +61,7 @@ export const zhTW: LocaleDict = {
   "history.emptyHint": "按住熱鍵開始語音，這裡會記錄你的每一次輸入",
   "history.copy": "複製",
   "history.delete": "刪除",
+  "history.deleted": "已刪除該條目",
   "history.raw": "原文",
   "history.failed": "落字失敗",
   "history.today": "今天",
