@@ -256,7 +256,9 @@ export function extractCorrections(before: string, after: string): Diff[] {
     }
     out.push({ wrong, right });
   }
-  return rewriteGuard(out.filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT));
+  // 改动量求和必须在 MAX_SEGMENT 过滤之前：整句重写撞上零星同字会拆出大段，
+  // 先滤掉大段再求和会让幸存小段恒过阈值、学入垃圾词
+  return rewriteGuard(out).filter((d) => d.wrong.length <= MAX_SEGMENT && d.right.length <= MAX_SEGMENT);
 }
 
 /** 英文错词须以完整词边界出现在文本里，防止 LCS 碎片（如 "w"）误学 */
