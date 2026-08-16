@@ -150,6 +150,22 @@ export interface Stats {
   sessions: number;
 }
 
+/** 文件转录的一个分段（秒） */
+export interface TranscribeSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+/** 文件转录进行状态，主进程推给转录页 */
+export interface TranscribeState {
+  running: boolean;
+  /** 0-100 */
+  percent: number;
+  segments: TranscribeSegment[];
+  error?: string;
+}
+
 export interface StatusPayload {
   state: RecordState;
   message?: string;

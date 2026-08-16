@@ -3,6 +3,7 @@ import {
   BookOpen,
   Clock,
   Drama,
+  FileAudio,
   Home as HomeIcon,
   Minus,
   Settings as SettingsIcon,
@@ -26,9 +27,10 @@ import { Home } from "./pages/Home";
 import { History } from "./pages/History";
 import { Personas } from "./pages/Personas";
 import { Dictionary } from "./pages/Dictionary";
+import { Transcribe } from "./pages/Transcribe";
 import { SettingsPage } from "./pages/settings";
 
-type Page = "home" | "history" | "personas" | "dictionary" | "settings";
+type Page = "home" | "history" | "personas" | "dictionary" | "transcribe" | "settings";
 
 export default function App() {
   const [init, setInit] = useState<InitPayload | null>(null);
@@ -107,6 +109,7 @@ export default function App() {
     { id: "history", label: t("nav.history"), icon: Clock },
     { id: "personas", label: t("nav.personas"), icon: Drama },
     { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen },
+    { id: "transcribe", label: t("nav.transcribe"), icon: FileAudio },
     { id: "settings", label: t("nav.settings"), icon: SettingsIcon },
   ];
 
@@ -203,6 +206,16 @@ export default function App() {
           />
         )}
         {page === "dictionary" && <Dictionary t={t} settings={settings} update={update} />}
+        {page === "transcribe" && (
+          <Transcribe
+            t={t}
+            settings={settings}
+            goModelSettings={() => {
+              setSettingsJump("model");
+              setPage("settings");
+            }}
+          />
+        )}
         {page === "settings" && (
           <SettingsPage
             t={t}

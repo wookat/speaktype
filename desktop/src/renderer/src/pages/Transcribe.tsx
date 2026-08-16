@@ -1,0 +1,238 @@
+import { useEffect, useRef, useState } from "react";
+import { FileAudio, Loader2 } from "lucide-react";
+import { api } from "../api";
+import type { Translator } from "../i18n";
+import type { Settings, TranscribeState } from "../../../shared/types";
+
+const SR = 16000;
+/** 上限 3 小时：16k 浮点采样约 660MB，超过容易把主进程拖爆 */
+const MAX_SECONDS = 3 * 60 * 60;
+
+/** 秒 → SRT 时间戳 HH:MM:SS,mmm */
+function srtTime(sec: number): string {
+  const ms = Math.max(0, Math.round(sec * 1000));
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const rest = ms % 1000;
+  const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)},${pad(rest, 3)}`;
+}
+
+function clockTime(sec: number): string {
+  const s = Math.floor(sec);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return s >= 3600
+    ? `${Math.floor(s / 3600)}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`
+    : `${Math.floor(s / 60)}:${pad(s % 60)}`;
+}
+
+function saveText(content: string, filename: string, mime: string): void {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function Transcribe(props: {
+  t: Translator;
+  settings: Settings;
+  goModelSettings: () => void;
+}) {
+  const { t } = props;
+  const [state, setState] = useState<TranscribeState>({ running: false, percent: 0, segments: [] });
+  const [decoding, setDecoding] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [localError, setLocalError] = useState("");
+  const [modelReady, setModelReady] = useState(true);
+  const [dragOver, setDragOver] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // 切页回来接上进行中的任务
+    void api.transcribeState().then(setState);
+    return api.onTranscribeState(setState);
+  }, []);
+
+  const model = props.settings.localModel || "base-q5_1";
+  useEffect(() => {
+    void api.localModelStatus(model).then((s) => setModelReady(s.downloaded));
+  }, [model]);
+
+  const busy = decoding || state.running;
+
+  const handleFile = async (file: File) => {
+    if (busy) return;
+    setLocalError("");
+    setCopied(false);
+    setFileName(file.name);
+    setDecoding(true);
+    let ctx: AudioContext | null = null;
+    try {
+      const bytes = await file.arrayBuffer();
+      // 16k 采样率的 AudioContext：decodeAudioData 会顺带重采样到目标采样率
+      ctx = new AudioContext({ sampleRate: SR });
+      const decoded = await ctx.decodeAudioData(bytes);
+      if (decoded.duration > MAX_SECONDS) {
+        setLocalError(t("transcribe.tooLong"));
+        return;
+      }
+      // 多声道混为单声道
+      const mono = new Float32Array(decoded.length);
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const data = decoded.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) mono[i] = (mono[i] ?? 0) + data[i]! / decoded.numberOfChannels;
+      }
+      setDecoding(false);
+      await api.transcribeStart(mono.buffer);
+    } catch {
+      setLocalError(t("transcribe.decodeFailed"));
+    } finally {
+      setDecoding(false);
+      void ctx?.close();
+    }
+  };
+
+  const allText = state.segments.map((s) => s.text).join("\n");
+  const exportTxt = () => saveText(`${allText}\n`, `${fileName.replace(/\.[^.]+$/, "") || "transcript"}.txt`, "text/plain;charset=utf-8");
+  const exportSrt = () => {
+    const srt = state.segments
+      .map((s, i) => `${i + 1}\n${srtTime(s.start)} --> ${srtTime(s.end)}\n${s.text}\n`)
+      .join("\n");
+    saveText(srt, `${fileName.replace(/\.[^.]+$/, "") || "transcript"}.srt`, "text/plain;charset=utf-8");
+  };
+  const copyAll = () => {
+    void navigator.clipboard.writeText(allText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const done = !busy && state.percent === 100 && !state.error;
+  const error = localError || state.error;
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <h1 className="text-xl font-semibold">
+        {t("transcribe.title")}{" "}
+        <span className="ml-2 text-sm font-normal text-slate-400">{t("transcribe.subtitle")}</span>
+      </h1>
+
+      {!modelReady && (
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <span>{t("transcribe.noModel")}</span>
+          <button className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white" onClick={props.goModelSettings}>
+            {t("transcribe.goSettings")}
+          </button>
+        </div>
+      )}
+
+      <div
+        className={`mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-colors ${
+          dragOver ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white hover:border-indigo-300"
+        } ${busy ? "pointer-events-none opacity-60" : ""}`}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file) void handleFile(file);
+        }}
+      >
+        {busy ? (
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+        ) : (
+          <FileAudio className="h-8 w-8 text-slate-300" />
+        )}
+        <div className="mt-3 text-sm text-slate-600">
+          {decoding
+            ? t("transcribe.decoding")
+            : state.running
+              ? t("transcribe.working", { percent: state.percent })
+              : t("transcribe.drop")}
+        </div>
+        <div className="mt-1 text-xs text-slate-400">
+          {busy && fileName ? fileName : t("transcribe.formats")}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="audio/*,video/mp4,video/webm,.m4a,.aac,.opus"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFile(file);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {state.running && (
+        <div className="mt-3 flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${state.percent}%` }} />
+          </div>
+          <button
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+            onClick={() => void api.transcribeCancel()}
+          >
+            {t("transcribe.cancel")}
+          </button>
+        </div>
+      )}
+
+      {error && <div className="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</div>}
+      {done && state.segments.length === 0 && (
+        <div className="mt-6 text-center text-sm text-slate-400">{t("transcribe.empty")}</div>
+      )}
+
+      {state.segments.length > 0 && (
+        <>
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm font-medium">
+              {t("transcribe.result", { count: state.segments.length })}
+            </div>
+            <div className="flex gap-2">
+              <button
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                onClick={copyAll}
+              >
+                {copied ? t("transcribe.copied") : t("transcribe.copy")}
+              </button>
+              <button
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                onClick={exportTxt}
+              >
+                TXT
+              </button>
+              <button
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                onClick={exportSrt}
+              >
+                SRT
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {state.segments.map((s, i) => (
+              <div key={`${s.start}-${i}`} className="flex gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm">
+                <span className="shrink-0 pt-0.5 font-mono text-xs text-slate-400">{clockTime(s.start)}</span>
+                <span className="whitespace-pre-wrap">{s.text}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+export { Transcribe };

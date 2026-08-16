@@ -20,6 +20,7 @@ import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
+import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
 import { testPolish } from "./polish";
 import {
@@ -375,6 +376,11 @@ function registerIpc(): void {
   ipcMain.handle("vad:download", () => downloadVad());
   ipcMain.handle("punct:status", () => punctStatus());
   ipcMain.handle("punct:download", () => downloadPunct());
+  ipcMain.handle("transcribe:start", (_e, buffer: ArrayBuffer) =>
+    startTranscribe(getSettings(), new Float32Array(buffer)),
+  );
+  ipcMain.handle("transcribe:cancel", () => cancelTranscribe());
+  ipcMain.handle("transcribe:state", () => transcribeState());
   ipcMain.handle("polish:test", () => testPolish(getSettings()));
   ipcMain.handle("remotemic:info", () => remoteMicInfo());
   ipcMain.handle("asr:test", () => testAsr(getSettings()));
@@ -449,6 +455,9 @@ void app.whenReady().then(() => {
   cleanupLegacyVad();
   onPunctStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("punct:status", s);
+  });
+  onTranscribeState((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("transcribe:state", s);
   });
 
   const settings = getSettings();

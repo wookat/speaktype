@@ -7,6 +7,7 @@ import type {
   Settings,
   Stats,
   StatusPayload,
+  TranscribeState,
   VadStatus,
 } from "../shared/types";
 
@@ -89,6 +90,17 @@ const api = {
     ipcRenderer.on("vad:status", listener);
     return () => {
       ipcRenderer.removeListener("vad:status", listener);
+    };
+  },
+  transcribeStart: (samples: ArrayBuffer): Promise<TranscribeState> =>
+    ipcRenderer.invoke("transcribe:start", samples),
+  transcribeCancel: (): Promise<void> => ipcRenderer.invoke("transcribe:cancel"),
+  transcribeState: (): Promise<TranscribeState> => ipcRenderer.invoke("transcribe:state"),
+  onTranscribeState: (fn: (s: TranscribeState) => void) => {
+    const listener = (_e: unknown, s: TranscribeState) => fn(s);
+    ipcRenderer.on("transcribe:state", listener);
+    return () => {
+      ipcRenderer.removeListener("transcribe:state", listener);
     };
   },
   punctStatus: (): Promise<VadStatus> => ipcRenderer.invoke("punct:status"),
