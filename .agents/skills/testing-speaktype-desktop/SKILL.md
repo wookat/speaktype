@@ -319,3 +319,6 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - A hosts-file blackhole only blocks DNS, not connections to already-cached IPs - for strict A/B evidence prefer deleting/restoring the app-key cache (or outbound firewall rules) over hosts edits.
 - Quick check whether the packed build contains a fix: string-search `win-unpacked\resources\app.asar` as UTF-8 (IndexOf + surrounding context) to read the minified condition directly - faster than unpacking.
 - GitHub update-check dialing is legitimate baseline traffic: delete latest-release.json to force a prefetch; it shows as 140.82.x.x:443 and correlates with the `latest release prefetched` line in main.log.
+- Destroying a hidden BrowserWindow does NOT drop its connections instantly - Chromium's NetworkService keep-alive idle socket pool decays by timeout (~2.5min to zero on this box). Disconnect-type assertions should use "decays to zero + long window with zero reconnects", not a fixed 30s deadline.
+- `doubaoAppKeyCache` lives at the TOP level of speaktype.json (not under `settings`) - verification scripts checking the wrong path silently report False.
+- Inline PowerShell with `$_`/`$var` gets eaten by the shell wrapper and can loop on the same parse error - any command with pipeline filtering must be written to a .ps1 file first.
