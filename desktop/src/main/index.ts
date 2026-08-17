@@ -1,10 +1,10 @@
 // 必须最先 import：在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
 import "./migrate";
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
-import { join } from "node:path";
+import { basename, join } from "node:path";
+import { execFile } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import AutoLaunch from "auto-launch";
 import log from "electron-log/main.js";
 import pkg from "../../package.json";
 
@@ -223,21 +223,34 @@ function pushSettings(): void {
   broadcast(dictation.status());
 }
 
-// isHidden 会给自启命令行追加 --hidden，配合“开机时不展示应用窗口”判断静默启动
+// --hidden 配合「开机时不展示应用窗口」判断静默启动
 // 绿色版解压在临时目录运行，自启必须指向 exe 本体（PORTABLE_EXECUTABLE_FILE）
-const autoLaunch = new AutoLaunch({
-  name: "SpeakType",
-  path: process.env["PORTABLE_EXECUTABLE_FILE"] || undefined,
-  isHidden: true,
-});
+// Run 值名固定为 SpeakType：与 exe 文件名解耦，绿色版换名升级不留死链，卸载器也按此名清理
+const LOGIN_EXE = process.env["PORTABLE_EXECUTABLE_FILE"] || process.execPath;
 
 async function applyLaunchAtLogin(enabled: boolean): Promise<void> {
   try {
-    const current = await autoLaunch.isEnabled();
-    if (enabled && !current) await autoLaunch.enable();
-    if (!enabled && current) await autoLaunch.disable();
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      name: "SpeakType",
+      path: LOGIN_EXE,
+      args: ["--hidden"],
+    });
+    // 历史版本的 Run 值名取 exe 基名（绿色版带版本号），迁移时按需清掉旧值
+    if (process.platform === "win32") {
+      const legacy = basename(LOGIN_EXE, ".exe");
+      if (legacy !== "SpeakType") {
+        execFile("reg", [
+          "delete",
+          "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+          "/v",
+          legacy,
+          "/f",
+        ]).on("error", () => {});
+      }
+    }
   } catch (error) {
-    log.warn("auto-launch failed", error);
+    log.warn("launch-at-login apply failed", error);
   }
 }
 
