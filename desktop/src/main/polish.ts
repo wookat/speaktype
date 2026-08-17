@@ -185,9 +185,10 @@ function needsPunctuation(text: string): boolean {
   if (!CJK_RE.test(text)) {
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length < 6) return false;
-    // 逗号/分号也算已有标点（parakeet 输出自带完整标点），数字内的 "35,000"/"3.5" 不算
+    // 逗号/分号也算已有标点（parakeet 输出自带完整标点），数字内的 "35,000"/"3.5" 不算。
+    // 模型重打会拆坏金额/缩写（$35,000→$ 35, 000），已带标点的文本宁可少补也不重打：标点极稀才介入
     const punct = (text.match(/[,.!?;:](?!\d)/g) ?? []).length;
-    return punct <= words.length / 10;
+    return punct <= Math.max(1, words.length / 40);
   }
   if (text.length < 16) return false;
   const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
