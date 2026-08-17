@@ -177,7 +177,7 @@ async function transcribeSlice(
   const form = new FormData();
   form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "clip.wav");
   form.append("response_format", "json");
-  if (settings.language) form.append("language", settings.language);
+  if (settings.language && settings.language !== "auto") form.append("language", settings.language);
   const res = await fetch(url, { method: "POST", body: form });
   if (!res.ok) throw new Error(`Local ASR HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
   const data = (await res.json()) as { text?: string };

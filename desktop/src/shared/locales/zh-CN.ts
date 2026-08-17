@@ -206,6 +206,7 @@ export const zhCN = {
   "settings.asrAppKey": "豆包 App Key",
   "settings.asrAppKeyPlaceholder": "留空则使用自动获取到的 App Key",
   "settings.asrLanguage": "识别语言",
+  "settings.asrLanguageAuto": "自动检测",
   "settings.asrLanguageParakeetHint": "Parakeet 自动检测英语及 25 种欧洲语言——不支持中文/日语/韩语/粤语，说这些语言请把模型换回 sensevoice-small。",
   "settings.asrProvider": "识别服务商",
   "settings.asrProviderDoubao": "豆包（流式，需登录）",

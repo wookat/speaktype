@@ -272,6 +272,7 @@ function VoiceTab(props: {
           disabled={parakeetActive}
           onChange={(e) => update({ language: e.target.value })}
         >
+          <option value="auto">{t("settings.asrLanguageAuto")}</option>
           <option value="zh">中文 Chinese</option>
           <option value="en">English</option>
           <option value="ja">日本語 Japanese</option>
