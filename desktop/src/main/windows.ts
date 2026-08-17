@@ -49,7 +49,11 @@ export function createMainWindow(visible = true): BrowserWindow {
   if (saved?.x !== undefined && !screen.getAllDisplays().some((d) => intersects(win.getBounds(), d.workArea))) {
     win.center();
   }
-  if (saved?.maximized) win.maximize();
+  // 隐藏窗口调用 maximize() 会被 Electron 强制显示，推迟到首次 show 再恢复最大化
+  if (saved?.maximized) {
+    if (visible) win.maximize();
+    else win.once("show", () => win.maximize());
+  }
   const persistBounds = (): void => {
     if (win.isMinimized()) return;
     const maximized = win.isMaximized();
