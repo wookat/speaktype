@@ -15,7 +15,7 @@ import type { HistoryItem, Persona, Settings, StatusPayload } from "../shared/ty
 import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, showChatgptLogin, testChatgpt } from "./chatgpt";
-import { ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, testDoubao } from "./doubao";
+import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, testDoubao } from "./doubao";
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
@@ -332,6 +332,8 @@ function registerIpc(): void {
       releaseSherpaWorker();
       stopLocalServer();
     }
+    // 切走豆包 provider 时收掉隐藏预载的桥接窗口，不让其继续保持豆包连接
+    if ("asrProvider" in patch && next.asrProvider !== "doubao") closeBridge();
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
     if (
       "uiLanguage" in patch ||
