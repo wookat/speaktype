@@ -62,6 +62,11 @@ export function ensureBridge(): BrowserWindow {
   return bridge;
 }
 
+/** 收掉隐藏的桥接窗口，断开其保持的豆包连接；用户主动打开的可见登录窗不动 */
+export function closeBridge(): void {
+  if (bridge && !bridge.isDestroyed() && !bridge.isVisible()) bridge.destroy();
+}
+
 /** 让用户登录/激活豆包时把桥接窗口显示出来 */
 export function showBridge(): void {
   const win = ensureBridge();
