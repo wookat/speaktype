@@ -29,6 +29,7 @@ export const ko: LocaleDict = {
 
   "home.title": "{{key}} 를 누른 채 말하세요",
   "home.subtitle": "키를 떼면 커서 위치에 글자가 입력됩니다. {{toggle}} 로 핸즈프리 모드 전환.",
+  "home.subtitleNoToggle": "키를 떼면 커서 위치에 글자가 입력됩니다.",
   "home.activate.title": "마지막 단계: 음성 인식 설정",
   "home.activate.desc":
     "Doubao 에 로그인하고 내장 음성 입력을 한 번 사용하면 SpeakType 이 App Key 를 자동으로 가져옵니다. 설정에서 직접 입력할 수도 있습니다.",
@@ -148,8 +149,8 @@ export const ko: LocaleDict = {
   "settings.personaHotkeysHint": "Alt + 숫자로 페르소나를 빠르게 전환.",
   "settings.doubleTapHandsFree": "더블 탭으로 핸즈프리",
   "settings.doubleTapHandsFreeHint": "{{key}} 를 빠르게 두 번 누르면 연속 받아쓰기로 진입합니다. 다시 더블 탭하면 종료.",
-  "settings.vadAutoStop": "무음 시 자동 종료 (핸즈프리)",
-  "settings.vadAutoStopHint": "핸즈프리 모드에서 말이 끝나면 자동으로 녹음을 종료합니다. 누르고 말하기 모드에는 영향이 없습니다.",
+  "settings.vadAutoStop": "긴 무음 시 자동 종료 (핸즈프리)",
+  "settings.vadAutoStopHint": "핸즈프리 모드에서 약 1분간 무음이 지속되면 자동으로 듣기를 종료합니다. 켜짐 여부와 관계없이 문장마다 끊어서 자동 입력됩니다. 누르고 말하기 모드에는 영향이 없습니다.",
   "settings.vadSilence": "무음 시간",
   "settings.vadSilenceHint": "이 시간 동안 조용하면 종료로 판정합니다.",
 

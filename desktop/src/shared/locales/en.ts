@@ -29,6 +29,7 @@ export const en: LocaleDict = {
 
   "home.title": "Hold {{key}} to start voice typing",
   "home.subtitle": "Release the key and the text lands at your cursor; tap {{toggle}} for hands-free mode.",
+  "home.subtitleNoToggle": "Release the key and the text lands at your cursor.",
   "home.activate.title": "One more step: set up speech recognition",
   "home.activate.desc":
     "Sign in to Doubao and use its built-in voice input once — SpeakType will capture the app key automatically. You can also enter it manually in Settings.",
@@ -148,8 +149,8 @@ export const en: LocaleDict = {
   "settings.personaHotkeysHint": "Switch personas quickly with Alt + digit.",
   "settings.doubleTapHandsFree": "Double-tap for hands-free",
   "settings.doubleTapHandsFreeHint": "Tap {{key}} twice quickly to enter continuous dictation; double-tap again to exit.",
-  "settings.vadAutoStop": "Auto-stop on silence (hands-free)",
-  "settings.vadAutoStopHint": "In toggle mode, recording ends automatically after you stop talking; push-to-talk is unaffected.",
+  "settings.vadAutoStop": "Auto-exit on prolonged silence (hands-free)",
+  "settings.vadAutoStopHint": "In hands-free mode, listening stops by itself after about a minute of silence. Sentences are still typed as you pause either way; push-to-talk is unaffected.",
   "settings.vadSilence": "Silence duration",
   "settings.vadSilenceHint": "Considered done after staying quiet this long.",
 
