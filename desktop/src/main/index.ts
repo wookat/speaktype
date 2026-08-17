@@ -523,7 +523,8 @@ void app.whenReady().then(() => {
   applyHotkeys(settings);
   hotkeys.start();
   void applyLaunchAtLogin(settings.launchAtLogin);
-  if (hasAppKey()) ensureBridge();
+  // 仅当前 provider 是豆包才预载桥接窗口：其他 provider 下残留的 app key 缓存不应触发任何出网
+  if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
   if (settings.remoteMicEnabled) void syncRemoteMic(true);
   // 启动后空闲预热离线模型，把 ONNX 冷启动成本移出用户第一句
   if (settings.asrProvider === "local" && isSherpaModel(settings.localModel)) {
