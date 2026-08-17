@@ -11,6 +11,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
   const [dropped, setDropped] = useState(0);
+  const [kanaAdded, setKanaAdded] = useState(0);
   // 清空是本页唯一批量不可逆操作：两步确认，几秒不点自动复位
   const [confirmClear, setConfirmClear] = useState(false);
   useEffect(() => {
@@ -28,6 +29,8 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
     const unique = [...new Set([...words, ...incoming])];
     const merged = unique.slice(0, MAX_HOTWORDS);
     setDropped(unique.length - merged.length);
+    // 含假名的条目读音是日语，拼音同音纠错不适用（hotwords.ts 假名语境跳过），入库时如实告知避免静默死条目
+    setKanaAdded(merged.filter((w) => !words.includes(w) && /[\u3041-\u30ff]/.test(w)).length);
     props.update({ hotwords: merged });
     setText("");
   };
@@ -64,6 +67,11 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
       {dropped > 0 && (
         <div className="mt-2 rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-700">
           {t("dict.limitReached", { count: dropped })}
+        </div>
+      )}
+      {kanaAdded > 0 && (
+        <div className="mt-2 rounded-xl bg-slate-100 px-4 py-2 text-xs text-slate-500">
+          {t("dict.kanaNotCorrected", { count: kanaAdded })}
         </div>
       )}
       <div className="mt-2 flex justify-end gap-2">
