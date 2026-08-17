@@ -372,3 +372,9 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Since PR #253, any text containing kana (\u3041-\u30ff) skips the entire CJK pinyin-replacement branch of correctHotwords; the ASCII hotword branch is unaffected (English hotwords still corrected inside Japanese sentences).
 - The Force Simplified toggle (opencc t->cn) only applies on the whisper HTTP path (asr.ts/transcribe.ts); sensevoice's sherpa worker path bypasses it, so Japanese-kanji assertions are not polluted by that setting.
 
+- Judge whether enhanced punctuation intervened via log byte-offset isolation + the `punct worker started` line (absence = needsPunctuation skipped the model) - harder evidence than eyeballing output.
+- history.json top-level shape is `{history:[...],stats:{...}}` (not a bare array); the first history item carries both `raw` (pre-model) and `text` (final) - the best raw-vs-final probe for punctuation/hotword assertions.
+- Since PR #256 the English intervention threshold is `punct <= Math.max(1, words/40)` with `(?!\d)` excluding digit-internal `,`/`.` - English text with >=2 real punctuation marks always skips the model, so intervention fixtures need 0-1 marks.
+- Long-English discriminator fixture recipe `C:\Users\Administrator\tts\r164_maketts.ps1` ("thirty five thousand dollars" -> parakeet ITN emits `$35,000`, "three p m" -> `3 pm`).
+- When re-running shipped `needsPunctuation` via vm, also extract the `const CJK_RE = ...;` line into the vm context or it throws ReferenceError (script template `C:\Users\Administrator\r164b_shipped.cjs`).
+
