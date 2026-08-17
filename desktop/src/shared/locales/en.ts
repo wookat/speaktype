@@ -344,6 +344,7 @@ export const en: LocaleDict = {
 
   "tray.open": "Open SpeakType",
   "tray.activate": "Set up speech recognition",
+  "tray.settings": "Speech recognition settings",
   "tray.quit": "Quit",
 
   "error.noAppKey":

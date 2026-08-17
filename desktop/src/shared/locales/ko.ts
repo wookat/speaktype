@@ -344,6 +344,7 @@ export const ko: LocaleDict = {
 
   "tray.open": "SpeakType 열기",
   "tray.activate": "음성 인식 설정",
+  "tray.settings": "음성 인식 설정 열기",
   "tray.quit": "종료",
 
   "error.noAppKey":

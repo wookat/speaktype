@@ -318,6 +318,7 @@ export const zhTW: LocaleDict = {
   "toast.undoneManyBody": "「{{words}}」已從詞典移除",
   "tray.open": "開啟 SpeakType",
   "tray.activate": "配置語音識別",
+  "tray.settings": "語音識別設定",
   "tray.quit": "退出",
   "error.noAppKey": "尚未配置語音識別：請在設定中登入豆包並用一次它自帶的語音輸入，或手動填寫 App Key",
   "error.chatgptNotReady": "ChatGPT 頁面還沒載入完：請稍後重試，或先在設定裡點「登入 ChatGPT」",

@@ -337,6 +337,7 @@ export const zhCN = {
 
   "tray.open": "打开 SpeakType",
   "tray.activate": "配置语音识别",
+  "tray.settings": "语音识别设置",
   "tray.quit": "退出",
 
   "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
