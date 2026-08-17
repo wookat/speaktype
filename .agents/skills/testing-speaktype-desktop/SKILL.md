@@ -378,3 +378,5 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Long-English discriminator fixture recipe `C:\Users\Administrator\tts\r164_maketts.ps1` ("thirty five thousand dollars" -> parakeet ITN emits `$35,000`, "three p m" -> `3 pm`).
 - When re-running shipped `needsPunctuation` via vm, also extract the `const CJK_RE = ...;` line into the vm context or it throws ReferenceError (script template `C:\Users\Administrator\r164b_shipped.cjs`).
 
+- Dictionary kana hint (since #258) counts only newly-added kana entries in the current save (re-submitting an existing kana word does not count) - use brand-new words when asserting the count; the hint is one-shot state and disappears after the next pure-Chinese/ASCII save, which doubles as the "no false positive" discriminator.
+
