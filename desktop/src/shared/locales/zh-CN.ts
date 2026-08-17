@@ -273,6 +273,7 @@ export const zhCN = {
   "settings.modelTesting": "测试中…",
   "settings.modelTestOk": "连接成功：{{model}}",
   "settings.modelTestFail": "连接失败：{{error}}",
+  "settings.testErrNetwork": "无法连接服务器——请检查 Base URL 与网络连接",
 
   "settings.about": "关于",
   "settings.about.version": "版本信息",

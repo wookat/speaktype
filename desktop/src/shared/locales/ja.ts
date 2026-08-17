@@ -281,6 +281,7 @@ export const ja: LocaleDict = {
   "settings.modelTesting": "テスト中…",
   "settings.modelTestOk": "接続成功: {{model}}",
   "settings.modelTestFail": "失敗: {{error}}",
+  "settings.testErrNetwork": "サーバーに接続できません。Base URL とネットワーク接続を確認してください",
 
   "settings.about": "情報",
   "settings.about.version": "バージョン",

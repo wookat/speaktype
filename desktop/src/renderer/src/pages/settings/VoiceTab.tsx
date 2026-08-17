@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { humanDownloadError } from "../../lib/downloadError";
+import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { LocalModelStatus, Settings } from "../../../../shared/types";
@@ -60,7 +61,7 @@ function VoiceTab(props: {
     setTestState("testing");
     void api.testAsr().then(({ ok, detail }) => {
       setTestState(ok ? "ok" : "fail");
-      setTestDetail(detail.slice(0, 120));
+      setTestDetail((ok ? detail : humanTestError(detail, t)).slice(0, 120));
     });
   };
   return (

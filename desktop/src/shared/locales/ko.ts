@@ -281,6 +281,7 @@ export const ko: LocaleDict = {
   "settings.modelTesting": "테스트 중…",
   "settings.modelTestOk": "연결됨: {{model}}",
   "settings.modelTestFail": "실패: {{error}}",
+  "settings.testErrNetwork": "서버에 연결할 수 없습니다. Base URL과 네트워크 연결을 확인하세요",
 
   "settings.about": "정보",
   "settings.about.version": "버전",
