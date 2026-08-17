@@ -104,6 +104,8 @@ export class HotkeyManager {
   private rewritePressed = false;
   /** 免按热键按住未松时吃掉系统 key repeat 的 keydown，避免刚进免按就被重复键退出 */
   private togglePressed = false;
+  /** 自追 Alt 按下状态：uiohook 进程首个 Alt 组合事件的 ev.altKey 可能未同步，首次 Alt+Q 会被吞 */
+  private altDown = false;
   private started = false;
   private capture: ((name: string | null) => void) | null = null;
   /** 刚被录制的键：松开前吃掉系统 key repeat 的 keydown，避免误触发录音 */
@@ -244,6 +246,7 @@ export class HotkeyManager {
   }
 
   private onKeyDown(ev: UiohookKeyboardEvent): void {
+    if (ev.keycode === UiohookKey.Alt || ev.keycode === UiohookKey.AltRight) this.altDown = true;
     if (this.capture) {
       if (ev.keycode === UiohookKey.Escape) this.capture(null);
       else {
@@ -268,20 +271,21 @@ export class HotkeyManager {
       this.pressRewrite();
       return;
     }
-    if (ev.keycode === this.toggleKeycode && (this.toggleModAlt ? ev.altKey : true)) {
+    if (ev.keycode === this.toggleKeycode && (this.toggleModAlt ? ev.altKey || this.altDown : true)) {
       if (!this.togglePressed) {
         this.togglePressed = true;
         this.handlers.onToggle();
       }
       return;
     }
-    if (ev.altKey && this.personaHotkeys) {
+    if ((ev.altKey || this.altDown) && this.personaHotkeys) {
       const index = DIGIT_KEYCODES.indexOf(ev.keycode);
       if (index >= 0) this.handlers.onPersona(index);
     }
   }
 
   private onKeyUp(ev: UiohookKeyboardEvent): void {
+    if (ev.keycode === UiohookKey.Alt || ev.keycode === UiohookKey.AltRight) this.altDown = false;
     if (ev.keycode === this.captureSwallowKeycode) {
       this.captureSwallowKeycode = -1;
       return;
