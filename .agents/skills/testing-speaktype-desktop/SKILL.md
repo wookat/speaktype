@@ -367,3 +367,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - For whitespace assertions, use Notepad's status-bar Col number as an exact character count (e.g. a 15-char ja sentence ends at Col16) - harder evidence than eyeballing screenshots.
 - Since PR #251 sherpa results pass through collapseCjkSpaces: spaces between adjacent Han/kana chars are removed (Korean/Hangul and Latin/digit spacing preserved) - assert ja output as zero-space and ko word spacing as retained.
 
+- Reproducible test for Chinese hotword correction without crafting mispronounced wavs: add a hotword HOMOPHONOUS with the ASR's correct output (e.g. output "答复" + hotword "大付") - replacement firing proves the pinyin branch executed; clearing the dictionary and replaying the same wav restoring the original word is the counter-proof.
+- Shipped-bundle function extraction: the path inside app.asar is `out\main\index.js` with backslashes - `@electron/asar` extractFile with forward slashes reports "not found".
+- Since PR #253, any text containing kana (\u3041-\u30ff) skips the entire CJK pinyin-replacement branch of correctHotwords; the ASCII hotword branch is unaffected (English hotwords still corrected inside Japanese sentences).
+- The Force Simplified toggle (opencc t->cn) only applies on the whisper HTTP path (asr.ts/transcribe.ts); sensevoice's sherpa worker path bypasses it, so Japanese-kanji assertions are not polluted by that setting.
+
