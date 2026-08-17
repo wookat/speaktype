@@ -98,7 +98,7 @@ function History(props: {
     a.click();
     URL.revokeObjectURL(url);
   };
-  const q = query.toLowerCase();
+  const q = query.trim().toLowerCase();
   const filtered = q
     ? props.history.filter(
         (h) =>
