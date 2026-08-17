@@ -302,3 +302,7 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Timing-sensitive captures (10s Undo bar, 15s error linger) need a delayed background clock-jump script plus one coherent computer-use call; exec round-trip latency alone eats the window.
 - After a forward clock jump, a running Chromium process's Date.now catches up with up to ~1 min lag (base::Time resync); wait 60s before dictating evidence.
 - To prove a hotkey retry went through retryLast: finalize durationMs must equal the original failed recording and the history entry must be updated in place (at refreshed, no new entry).
+- Taskbar position recipe: StuckRects3\Settings byte at index 12 (0=left 1=top 2=right 3=bottom), then `Stop-Process explorer` (auto-restarts) to apply; icon order changes after restart, so screenshot before clicking.
+- Most reliable toast trigger for position evidence: a 0.2s RightCtrl tap (< minRecordMs 300) always pops "No speech detected"; the Alt+Q exit toast is hard to catch.
+- PowerShell logic needing Chinese/special chars: keep the .ps1 pure ASCII and load the text from a UTF-8 .json resource file (a BOM-less .ps1 is parsed as ANSI by PS5.1 and mojibakes).
+- History injection recipe: prepend `{id,at,text,raw,personaName,durationMs}` objects to the top-level `history` array in history.json while the app is stopped; effective on next launch. Export lands via the save dialog at Downloads\speaktype-history-<date>.md.
