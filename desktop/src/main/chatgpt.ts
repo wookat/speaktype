@@ -99,6 +99,11 @@ export function ensureChatgptBridge(): BrowserWindow {
   return bridge;
 }
 
+/** 收掉隐藏的 chatgpt.com 窗口，断开其保持的连接；用户主动打开的可见登录窗不动 */
+export function closeChatgptBridge(): void {
+  if (bridge && !bridge.isDestroyed() && !bridge.isVisible()) bridge.destroy();
+}
+
 /** 抢跑，但本机 Codex 已登录时无需拉起网页，省一个隐藏窗口 */
 export function warmChatgpt(): void {
   if (!authFromCodexHome()) ensureChatgptBridge();
