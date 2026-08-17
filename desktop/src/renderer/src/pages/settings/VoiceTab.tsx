@@ -266,10 +266,15 @@ function VoiceTab(props: {
         label={t("settings.asrLanguage")}
         hint={parakeetActive ? t("settings.asrLanguageParakeetHint") : undefined}
       >
+        {parakeetActive ? (
+          // Parakeet 自带语言检测且不吃 language 设置：禁用态显示其真实语义而非历史选中值（如「中文」会与 hint 矛盾）
+          <select className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm disabled:opacity-40" value="parakeet" disabled>
+            <option value="parakeet">{t("settings.asrLanguageParakeetAuto")}</option>
+          </select>
+        ) : (
         <select
-          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm disabled:opacity-40"
+          className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
           value={s.language}
-          disabled={parakeetActive}
           onChange={(e) => update({ language: e.target.value })}
         >
           <option value="auto">{t("settings.asrLanguageAuto")}</option>
@@ -279,6 +284,7 @@ function VoiceTab(props: {
           <option value="ko">한국어 Korean</option>
           <option value="yue">粤语 Cantonese</option>
         </select>
+        )}
       </Row>
       <EnhancedPunct t={t} s={s} update={update} />
       {!parakeetActive && (
