@@ -17,7 +17,8 @@ import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
-import { copySelection, pasteText, toggleSystemMute } from "./paste";
+import { muteForRecording, unmuteAfterRecording } from "./mute";
+import { copySelection, pasteText } from "./paste";
 import { deformatForTerminal, polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
 import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
@@ -327,7 +328,7 @@ export class Dictation {
       }
       if (settings.muteWhileRecording && !this.muted) {
         this.muted = true;
-        toggleSystemMute();
+        muteForRecording();
       }
       const opening = this.createSession(settings, (text) => this.setPartial(text));
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
@@ -382,7 +383,7 @@ export class Dictation {
   private unmute(): void {
     if (!this.muted) return;
     this.muted = false;
-    toggleSystemMute();
+    unmuteAfterRecording();
   }
 
   /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
