@@ -310,3 +310,7 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Single-instance evidence: sample `Get-Process SpeakType` count every 2s; a second launch shows a transient +1..+3 then falls back within 2-4s (second instance quit). The steady baseline fluctuates between 8/9 processes - assert "falls back and stabilizes", not a fixed number.
 - A "SpeakType phone mic" Chrome PWA shortcut sits next to the main app icon on the desktop/taskbar and is easy to misclick - zoom to confirm before clicking.
 - computer-use hold_key for RightCtrl needs key name `Control_R` (`ctrl` is left Ctrl and does not trigger the hold hotkey).
+- Transcribe persistence: transcribe-last.json is written only on completion (saveLastResult); mid-kill evidence = file MD5 unchanged + zero new history entries, and a restart must show the previous completed result.
+- Local sherpa transcription runs ~35x realtime on this box (20.9min audio in ~35s); to kill mid-transcribe act within ~10s of starting - after 30s it is already done.
+- Long-audio fixture: parse the RIFF data chunk, loop-concatenate, and patch both the RIFF and data length fields (r147_makelong.ps1); do not just append bytes.
+- Dictionary import = paste into the textarea + Save (no file dialog); feed adversarial fixtures via Set-Clipboard and judge by the n/300 counter and the amber over-limit bar. Separator lines like `===` enter as ordinary words (only filter is trim + len<=20) - design-level behavior, not a bug.
