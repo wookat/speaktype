@@ -517,6 +517,7 @@ export class Dictation {
       this.resolveFailedEntry(id, text, raw);
       addStats(countWords(text), entry.durationMs);
       clipboard.writeText(text);
+      this.deps.broadcast(this.status());
       this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
       return { ok: true, detail: text };
     } catch (error) {
