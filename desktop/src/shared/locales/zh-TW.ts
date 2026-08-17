@@ -98,7 +98,7 @@ export const zhTW: LocaleDict = {
   "dict.subtitle": "記住那些只屬於你的重要詞彙",
   "dict.placeholder": "請按每行一個詞的格式輸入；單個詞最多 20 個字元，首尾空格會被自動過濾，空行不會儲存。",
   "dict.count": "{{count}}/300 熱詞",
-  "dict.limitReached": "詞典最多 300 個熱詞，{{count}} 個詞未能加入。",
+  "dict.limitReached": "{{count}} 個詞未能加入（超出 300 個熱詞上限或超過 20 個字元）。",
   "dict.kanaNotCorrected": "{{count}} 個詞含日文假名——已儲存，但自動糾錯目前僅支援中文和英文詞。",
   "dict.manage": "管理熱詞",
   "dict.noResults": "沒有符合的熱詞。",

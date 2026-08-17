@@ -105,7 +105,7 @@ export const ko: LocaleDict = {
   "dict.placeholder":
     "한 줄에 한 단어, 각 20자까지. 앞뒤 공백은 제거되고 빈 줄은 건너뜁니다.",
   "dict.count": "{{count}}/300 핫워드",
-  "dict.limitReached": "사전은 최대 300개 핫워드까지 지원합니다. {{count}}개 단어는 추가되지 않았습니다.",
+  "dict.limitReached": "{{count}}개 단어가 추가되지 않았습니다(300개 핫워드 상한 초과 또는 20자 초과).",
   "dict.kanaNotCorrected":
     "{{count}}개 단어에 일본어 가나가 포함되어 있습니다. 저장되었지만 자동 교정은 현재 중국어와 영어 단어만 지원합니다.",
   "dict.manage": "핫워드 관리",

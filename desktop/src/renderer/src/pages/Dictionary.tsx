@@ -22,13 +22,14 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const words = props.settings.hotwords;
 
   const addFromText = () => {
-    const incoming = text
+    const lines = text
       .split("\n")
       .map((s) => s.trim())
-      .filter((s) => s && s.length <= MAX_HOTWORD_LEN);
+      .filter(Boolean);
+    const incoming = lines.filter((s) => s.length <= MAX_HOTWORD_LEN);
     const unique = [...new Set([...words, ...incoming])];
     const merged = unique.slice(0, MAX_HOTWORDS);
-    setDropped(unique.length - merged.length);
+    setDropped(unique.length - merged.length + (lines.length - incoming.length));
     // 含假名的条目读音是日语，拼音同音纠错不适用（hotwords.ts 假名语境跳过），入库时如实告知避免静默死条目
     setKanaAdded(merged.filter((w) => !words.includes(w) && /[\u3041-\u30ff]/.test(w)).length);
     props.update({ hotwords: merged });

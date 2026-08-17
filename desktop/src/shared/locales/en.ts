@@ -105,7 +105,7 @@ export const en: LocaleDict = {
   "dict.placeholder":
     "One word per line; up to 20 characters each. Leading/trailing spaces are trimmed and empty lines are skipped.",
   "dict.count": "{{count}}/300 hotwords",
-  "dict.limitReached": "Dictionary is limited to 300 hotwords — {{count}} word(s) were not added.",
+  "dict.limitReached": "{{count}} word(s) were not added (over the 300-hotword limit or longer than 20 characters).",
   "dict.kanaNotCorrected":
     "{{count}} word(s) contain Japanese kana — saved, but auto-correction currently only supports Chinese and ASCII words.",
   "dict.manage": "Manage hotwords",
