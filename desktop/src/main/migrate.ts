@@ -29,6 +29,8 @@ export function usePortableUserData(): void {
  */
 export function migrateLegacyUserData(): void {
   try {
+    // 绿色版是独立实例：不继承本机旧安装的配置（含登录缓存），保持真正“开箱干净”
+    if (process.env["PORTABLE_EXECUTABLE_FILE"]) return;
     const userData = app.getPath("userData");
     if (existsSync(join(userData, "speaktype.json"))) {
       log.info("userData config already present, no migration needed");

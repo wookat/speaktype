@@ -213,7 +213,12 @@ export function setWindowBounds(bounds: WindowBounds): void {
 }
 
 export function getSettings(): Settings {
-  const merged = { ...DEFAULT_SETTINGS, ...store.get("settings") };
+  const stored = store.get("settings");
+  const merged = { ...DEFAULT_SETTINGS, ...stored };
+  // 旧配置没有 localModel 字段时按识别语言回落：CJK 语言下 Parakeet 输出拉丁化文本，近乎不可用
+  if (stored.localModel === undefined && /^(zh|ja|ko|yue)/.test(merged.language)) {
+    merged.localModel = "sensevoice-small";
+  }
   // 中转地址留空时回落到官方中转，保证「公网中转」开箱即用
   if (!merged.remoteRelayUrl.trim()) merged.remoteRelayUrl = DEFAULT_SETTINGS.remoteRelayUrl;
   // 旧版官方地址（workers.dev 在部分地区不可达）迁移到新官方域名
