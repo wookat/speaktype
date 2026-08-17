@@ -231,6 +231,9 @@ function History(props: {
                         autoFocus
                         value={editing.text}
                         onChange={(e) => setEditing({ id: item.id, text: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setEditing(null);
+                        }}
                       />
                       <div className="mt-1 flex gap-2">
                         <button
@@ -250,7 +253,7 @@ function History(props: {
                   ) : (
                     <div className="mt-2">
                       <div
-                        className={`selectable break-words text-sm ${
+                        className={`selectable whitespace-pre-wrap break-words text-sm ${
                           isLong(item.text) && !expandedIds.has(item.id) ? "line-clamp-8" : ""
                         }`}
                       >
