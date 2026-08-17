@@ -361,3 +361,9 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Doubao recognizes Chinese speech correctly even when the session language resolves to en (auto fallback on a non-CJK-locale box): correct zh output under language=en is expected, not evidence the language field was honored.
 - Since PR #249 the language dropdown while parakeet is selected is a SEPARATE disabled select fixed to `settings.asrLanguageParakeetAuto` (not s.language): assert the new label semantics in disabled state, and verify value retention by switching back to sensevoice and reading the real dropdown.
 
+- Install ja/ko TTS voices with `Add-WindowsCapability -Online -Name Language.TextToSpeech~~~ja-JP~0.0.1.0` (same for ko-KR, ~1-2 min each); Haruka/Heami then appear directly in System.Speech with no manual OneCore-to-SAPI token registration.
+- Any .ps1 containing CJK text must be saved as UTF-8 WITH BOM: PS5.1 otherwise parses it as ANSI and fails with string-terminator errors.
+- Four-language (ja/ko/zh/en) padded-wav fixture recipe (16k/mono, 1s head + 10s tail silence) lives at `C:\Users\Administrator\tts\r162_maketts.ps1`.
+- For whitespace assertions, use Notepad's status-bar Col number as an exact character count (e.g. a 15-char ja sentence ends at Col16) - harder evidence than eyeballing screenshots.
+- Since PR #251 sherpa results pass through collapseCjkSpaces: spaces between adjacent Han/kana chars are removed (Korean/Hangul and Latin/digit spacing preserved) - assert ja output as zero-space and ko word spacing as retained.
+
