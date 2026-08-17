@@ -344,6 +344,7 @@ export const ja: LocaleDict = {
 
   "tray.open": "SpeakType を開く",
   "tray.activate": "音声認識を設定",
+  "tray.settings": "音声認識の設定",
   "tray.quit": "終了",
 
   "error.noAppKey":

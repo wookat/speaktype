@@ -245,6 +245,21 @@ function trayIcon(): Electron.NativeImage {
   return nativeImage.createFromPath(join(dir, "../../build/icon.png")).resize({ width: 16, height: 16 });
 }
 
+// 托盘菜单文案按配置状态选键：未配置显「配置语音识别」引导，已配置显中性「语音识别设置」
+function asrConfigured(): boolean {
+  const s = getSettings();
+  switch (s.asrProvider) {
+    case "local":
+      return localModelStatus(s.localModel || "base-q5_1").downloaded;
+    case "openai":
+      return Boolean(s.asrBaseUrl && s.asrApiKey);
+    case "doubao":
+      return hasAppKey();
+    default:
+      return true; // chatgpt 登录态为异步会话级状态，按已配置处理
+  }
+}
+
 function refreshTrayMenu(): void {
   if (!tray) return;
   tray.setToolTip(`SpeakType - ${t("app.tagline")}`);
@@ -253,7 +268,7 @@ function refreshTrayMenu(): void {
       { label: t("tray.open"), click: () => showMain() },
       {
         // 直接弹豆包桥接网页会让新用户误以为必须登录豆包：改为打开 设置→语音识别，桥接入口保留在豆包 provider 卡片里
-        label: t("tray.activate"),
+        label: asrConfigured() ? t("tray.settings") : t("tray.activate"),
         click: () => {
           showMain();
           mainWin?.webContents.send("goto", { page: "settings", tab: "voice" });
@@ -317,7 +332,15 @@ function registerIpc(): void {
       stopLocalServer();
     }
     if ("launchAtLogin" in patch) await applyLaunchAtLogin(next.launchAtLogin);
-    if ("uiLanguage" in patch) refreshTrayMenu();
+    if (
+      "uiLanguage" in patch ||
+      "asrProvider" in patch ||
+      "localModel" in patch ||
+      "asrBaseUrl" in patch ||
+      "asrApiKey" in patch
+    ) {
+      refreshTrayMenu();
+    }
     if ("remoteMicEnabled" in patch || "remoteMicMode" in patch || "remoteRelayUrl" in patch) {
       await syncRemoteMic(next.remoteMicEnabled);
     }
@@ -400,7 +423,10 @@ function registerIpc(): void {
   ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
   ipcMain.handle("local:download", async (_e, model: string) => {
     const result = await downloadLocalModel(model);
-    if (result.downloaded) showToast(t("toast.modelReady"), t("toast.modelReadyBody"));
+    if (result.downloaded) {
+      showToast(t("toast.modelReady"), t("toast.modelReadyBody"));
+      refreshTrayMenu();
+    }
     return result;
   });
   ipcMain.handle("vad:status", () => vadStatus());
