@@ -598,7 +598,8 @@ export class Dictation {
     this.handsFreeEndedByKey = false;
 
     this.deps.recorder()?.webContents.send("recorder:stop");
-    this.unmute();
+    // 免按会话内跨句保持系统静音，避免分段间隙声音短暂漏出；退出免按处统一解除
+    if (!(this.handsFree && this.mode === "toggle")) this.unmute();
 
     // 整段录音接近数字静音：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
     log.info(
@@ -643,6 +644,7 @@ export class Dictation {
       }
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
       this.handsFree = false;
+      this.unmute();
       this.busy = false;
       this.report("error", `${message} · ${t("error.retryHint")}`);
       return;
@@ -753,6 +755,7 @@ export class Dictation {
         : HANDS_FREE_MAX_SILENT_ROUNDS_NO_VAD;
       if (this.handsFreeSilentRounds >= maxRounds) {
         this.handsFree = false;
+        this.unmute();
         this.setPartial("");
         // 返回 true 让调用方跳过 noSpeech toast，否则退出提示会被它覆盖
         this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndBody"));
