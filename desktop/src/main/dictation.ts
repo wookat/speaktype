@@ -260,7 +260,8 @@ export class Dictation {
     }
     if (voiced) return;
     const settings = getSettings();
-    if (!settings.vadAutoStop) return;
+    // 免按模式始终按静音分句落字；vadAutoStop 只控制连续静默后是否退出会话
+    if (!settings.vadAutoStop && !this.handsFree) return;
     if (now - this.startedAt < VAD_MIN_RECORD_MS) return;
     // 静音倒计时只在检到过人声后才按 vadSilenceMs 判停；开口前给更长宽限
     const hadVoice = this.silero ? this.voicedMs > 0 : this.maxPeak >= VAD_SILENCE_PEAK;
@@ -735,7 +736,7 @@ export class Dictation {
   /** 免按模式未退出时自动开启下一句；连续多轮无人声（约 1 分钟）才自动退出 */
   private maybeContinueHandsFree(silent: boolean): boolean {
     if (!this.handsFree || this.mode !== "toggle") return false;
-    if (silent) {
+    if (silent && getSettings().vadAutoStop) {
       this.handsFreeSilentRounds++;
       if (this.handsFreeSilentRounds >= HANDS_FREE_MAX_SILENT_ROUNDS) {
         this.handsFree = false;

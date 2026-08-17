@@ -28,6 +28,7 @@ export const zhCN = {
 
   "home.title": "按住 {{key}} 键，开启语音输入",
   "home.subtitle": "松开按键即自动整理并落到光标处；按一下 {{toggle}} 可免按说话。",
+  "home.subtitleNoToggle": "松开按键即自动整理并落到光标处。",
   "home.activate.title": "还差一步：配置语音识别",
   "home.activate.desc": "登录豆包并用一次它自带的语音输入，SpeakType 会自动记住语音入口；也可以在设置里手动填 App Key。",
   "home.activate.button": "去配置",
@@ -143,8 +144,8 @@ export const zhCN = {
   "settings.personaHotkeysHint": "可通过 Alt + 数字快速切换人设。",
   "settings.doubleTapHandsFree": "双击进入免按模式",
   "settings.doubleTapHandsFreeHint": "快速连敲两下 {{key}} 进入连续听写；再双击一次退出。",
-  "settings.vadAutoStop": "免按模式静音自动结束",
-  "settings.vadAutoStopHint": "点按开关模式下，说完后保持安静即自动结束识别；长按说话不受影响。",
+  "settings.vadAutoStop": "免按模式长时间静默自动退出",
+  "settings.vadAutoStopHint": "免按模式下持续静默约一分钟自动停止聆听；无论开关，说完一句停顿即落字；长按说话不受影响。",
   "settings.vadSilence": "静音判定时长",
   "settings.vadSilenceHint": "持续安静超过该时长即视为说完。",
 

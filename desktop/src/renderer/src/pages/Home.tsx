@@ -47,7 +47,13 @@ function Home(props: {
         </span>
         {titleAfter}
       </h1>
-      <p className="mt-2 text-sm text-slate-500">{t("home.subtitle", { toggle: props.settings.hotkeyToggle })}</p>
+      <p className="mt-2 text-sm text-slate-500">
+        {props.settings.hotkeyToggle === props.settings.hotkeyHold ||
+        (props.settings.hotkeyRewrite !== "Off" &&
+          props.settings.hotkeyToggle === props.settings.hotkeyRewrite)
+          ? t("home.subtitleNoToggle")
+          : t("home.subtitle", { toggle: props.settings.hotkeyToggle })}
+      </p>
 
       {needsModel && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">

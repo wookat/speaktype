@@ -29,6 +29,7 @@ export const ja: LocaleDict = {
 
   "home.title": "{{key}} を押しながら話す",
   "home.subtitle": "キーを離すとカーソル位置に文字が入力されます。{{toggle}} でハンズフリーモードに切り替え。",
+  "home.subtitleNoToggle": "キーを離すとカーソル位置に文字が入力されます。",
   "home.activate.title": "あと一歩：音声認識を設定",
   "home.activate.desc":
     "Doubao にログインし、内蔵の音声入力を一度使うと、SpeakType が App Key を自動取得します。設定で手動入力も可能です。",
@@ -148,8 +149,8 @@ export const ja: LocaleDict = {
   "settings.personaHotkeysHint": "Alt + 数字でペルソナを素早く切り替え。",
   "settings.doubleTapHandsFree": "ダブルタップでハンズフリー",
   "settings.doubleTapHandsFreeHint": "{{key}} を素早く 2 回押すと連続ディクテーションに入ります。もう一度ダブルタップで終了。",
-  "settings.vadAutoStop": "無音で自動終了（ハンズフリー）",
-  "settings.vadAutoStopHint": "ハンズフリーモードでは話し終わると自動的に録音を終了します。押しながら話すモードには影響しません。",
+  "settings.vadAutoStop": "長い無音で自動終了（ハンズフリー）",
+  "settings.vadAutoStopHint": "ハンズフリーモードで約1分間無音が続くと自動的に聴取を終了します。オンオフに関わらず、一文ごとの区切りで自動入力されます。押しながら話すモードには影響しません。",
   "settings.vadSilence": "無音時間",
   "settings.vadSilenceHint": "この時間だけ静かになると終了と判定します。",
 
