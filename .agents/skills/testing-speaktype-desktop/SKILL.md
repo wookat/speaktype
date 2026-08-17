@@ -306,3 +306,7 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Most reliable toast trigger for position evidence: a 0.2s RightCtrl tap (< minRecordMs 300) always pops "No speech detected"; the Alt+Q exit toast is hard to catch.
 - PowerShell logic needing Chinese/special chars: keep the .ps1 pure ASCII and load the text from a UTF-8 .json resource file (a BOM-less .ps1 is parsed as ANSI by PS5.1 and mojibakes).
 - History injection recipe: prepend `{id,at,text,raw,personaName,durationMs}` objects to the top-level `history` array in history.json while the app is stopped; effective on next launch. Export lands via the save dialog at Downloads\speaktype-history-<date>.md.
+- speaktype.json structure: settings live under the nested `settings` key (`$j.settings.startMinimized` etc.); top level holds `history/stats/personas/mainWindowBounds` - keys written at top level are silently ignored by the app.
+- Single-instance evidence: sample `Get-Process SpeakType` count every 2s; a second launch shows a transient +1..+3 then falls back within 2-4s (second instance quit). The steady baseline fluctuates between 8/9 processes - assert "falls back and stabilizes", not a fixed number.
+- A "SpeakType phone mic" Chrome PWA shortcut sits next to the main app icon on the desktop/taskbar and is easy to misclick - zoom to confirm before clicking.
+- computer-use hold_key for RightCtrl needs key name `Control_R` (`ctrl` is left Ctrl and does not trigger the hold hotkey).
