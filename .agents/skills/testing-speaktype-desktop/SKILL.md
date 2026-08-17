@@ -283,3 +283,5 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Get-Clipboard with Chinese text needs `[Console]::OutputEncoding=UTF8` first, otherwise ?? output causes false negatives.
 - History Correct edit box: textarea autoFocus, Shift+Enter inserts newline, Esc cancels and discards (since #219); expand/collapse button copy is "Show all / Show less".
 - Inline PowerShell with `$var` passed through the exec tool gets eaten by the outer shell; write any assertion involving variables to a .ps1 file first and execute the file (pr219_check.ps1 / pr219_clip.ps1 pattern).
+- History search filters on three fields (text + raw + personaName); when asserting hit counts or Export line counts, tally each field via shell first (Export count = filtered count, not text-only hits). Export uses the Electron save dialog, defaults to Downloads\speaktype-history-YYYY-MM-DD.md - delete it during cleanup.
+- Literal Chinese regex inside a .ps1 without BOM is read as ANSI mojibake under PowerShell 5; build the pattern from code points instead (e.g. [char]0x660E).
