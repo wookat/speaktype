@@ -281,6 +281,7 @@ export const en: LocaleDict = {
   "settings.modelTesting": "Testing…",
   "settings.modelTestOk": "Connected: {{model}}",
   "settings.modelTestFail": "Failed: {{error}}",
+  "settings.testErrNetwork": "could not reach the server — check the Base URL and your network connection",
 
   "settings.about": "About",
   "settings.about.version": "Version",

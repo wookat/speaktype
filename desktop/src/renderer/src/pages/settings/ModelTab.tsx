@@ -5,6 +5,7 @@ import type { Settings } from "../../../../shared/types";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 import { MODEL_PRESETS } from "../../constants";
+import { humanTestError } from "../../lib/testError";
 
 function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<Settings>) => void }) {
   const { t, s, update } = props;
@@ -23,7 +24,7 @@ function ModelTab(props: { t: Translator; s: Settings; update: (patch: Partial<S
     setTestState("testing");
     void api.testPolish().then(({ ok, detail }) => {
       setTestState(ok ? "ok" : "fail");
-      setTestDetail(detail.slice(0, 120));
+      setTestDetail((ok ? detail : humanTestError(detail, t)).slice(0, 120));
     });
   };
 

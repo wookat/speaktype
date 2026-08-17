@@ -260,6 +260,7 @@ export const zhTW: LocaleDict = {
   "settings.modelTesting": "測試中…",
   "settings.modelTestOk": "連線成功：{{model}}",
   "settings.modelTestFail": "連線失敗：{{error}}",
+  "settings.testErrNetwork": "無法連線伺服器——請檢查 Base URL 與網路連線",
   "settings.about": "關於",
   "settings.about.version": "版本資訊",
   "settings.about.openSource": "開源專案",
