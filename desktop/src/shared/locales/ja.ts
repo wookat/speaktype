@@ -105,7 +105,7 @@ export const ja: LocaleDict = {
   "dict.placeholder":
     "1 行に 1 語、各 20 文字まで。前後の空白は削除され、空行はスキップされます。",
   "dict.count": "{{count}}/300 ホットワード",
-  "dict.limitReached": "辞書は最大 300 語までです。{{count}} 語は追加されませんでした。",
+  "dict.limitReached": "{{count}} 語は追加されませんでした（300 語の上限超過、または 20 文字を超えるため）。",
   "dict.kanaNotCorrected":
     "{{count}} 語にかなが含まれています。保存されましたが、自動補正は現在中国語と英単語のみ対応しています。",
   "dict.manage": "ホットワードを管理",
