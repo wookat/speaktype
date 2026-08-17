@@ -619,20 +619,26 @@ export class Dictation {
       raw = await session.finish();
     } catch (error) {
       const message = humanizeAsrError(error instanceof Error ? error.message : String(error));
-      const id = randomUUID();
-      const audioFile = saveFailedAudio(id, this.allFrames);
-      addHistory({
-        id,
-        at: Date.now(),
-        text: "",
-        raw: "",
-        personaName: persona.name,
-        durationMs,
-        status: "failed",
-        error: message,
-        audioFile,
-        provider: settings.asrProvider,
-      });
+      // 热键重试再失败：原地刷新既有失败条目，不追加重复条目与重复音频
+      const priorId = this.lastFailed?.historyId;
+      const id = priorId && getHistory().some((h) => h.id === priorId) ? priorId : randomUUID();
+      if (id === priorId) {
+        updateHistoryItem(id, { at: Date.now(), error: message, provider: settings.asrProvider });
+      } else {
+        const audioFile = saveFailedAudio(id, this.allFrames);
+        addHistory({
+          id,
+          at: Date.now(),
+          text: "",
+          raw: "",
+          personaName: persona.name,
+          durationMs,
+          status: "failed",
+          error: message,
+          audioFile,
+          provider: settings.asrProvider,
+        });
+      }
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
       this.handsFree = false;
       this.busy = false;
