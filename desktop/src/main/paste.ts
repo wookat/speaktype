@@ -20,7 +20,6 @@ const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
 const VK_C = 0x43;
-const VK_VOLUME_MUTE = 0xad;
 
 function loadWin32(): Win32Api {
   const user32 = koffi.load("user32.dll");
@@ -54,18 +53,6 @@ function osascript(script: string): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile("osascript", ["-e", script], (error) => (error ? reject(error) : resolve()));
   });
-}
-
-/** “录音时静音其他应用”：Windows 敲系统静音开关键；macOS 切换系统输出静音 */
-export function toggleSystemMute(): void {
-  if (isMac) {
-    void osascript('set curMuted to output muted of (get volume settings)\nset volume output muted (not curMuted)').catch(() => {});
-    return;
-  }
-  win32?.sendInputs([
-    { vk: VK_VOLUME_MUTE, up: false },
-    { vk: VK_VOLUME_MUTE, up: true },
-  ]);
 }
 
 async function sendShortcut(vk: number, macKey: string): Promise<void> {

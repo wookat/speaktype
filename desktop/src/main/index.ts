@@ -20,6 +20,7 @@ import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManage
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
 import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
+import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
@@ -493,6 +494,7 @@ function registerIpc(): void {
 }
 
 void app.whenReady().then(() => {
+  initMuteRecovery(app.getPath("userData"));
   pruneStalePersonaRefs();
   registerIpc();
   const startHidden = getSettings().startMinimized && process.argv.includes("--hidden");
