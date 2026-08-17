@@ -212,6 +212,7 @@ export const en: LocaleDict = {
   "settings.asrAppKeyPlaceholder": "Leave empty to use the auto-captured key",
   "settings.asrLanguage": "Recognition language",
   "settings.asrLanguageAuto": "Auto detect",
+  "settings.asrLanguageParakeetAuto": "Auto (English + 25 European languages)",
   "settings.asrLanguageParakeetHint": "Parakeet auto-detects English and 25 European languages — no Chinese/Japanese/Korean/Cantonese. For those, switch the model to sensevoice-small.",
   "settings.asrProvider": "Provider",
   "settings.asrProviderDoubao": "Doubao (streaming, requires login)",

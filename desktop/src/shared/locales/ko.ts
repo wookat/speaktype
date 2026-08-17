@@ -212,6 +212,7 @@ export const ko: LocaleDict = {
   "settings.asrAppKeyPlaceholder": "비워 두면 자동 획득한 키를 사용",
   "settings.asrLanguage": "인식 언어",
   "settings.asrLanguageAuto": "자동 감지",
+  "settings.asrLanguageParakeetAuto": "자동 (영어 + 유럽 25개 언어)",
   "settings.asrLanguageParakeetHint": "Parakeet는 영어와 유럽 25개 언어를 자동 감지합니다. 중국어/일본어/한국어/광동어는 지원하지 않으므로 모델을 sensevoice-small로 바꿔 주세요.",
   "settings.asrProvider": "제공자",
   "settings.asrProviderDoubao": "Doubao (스트리밍, 로그인 필요)",
