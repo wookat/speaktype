@@ -6,6 +6,8 @@ import { pinyin } from "pinyin-pro";
  * 只处理两字及以上的纯中文热词，避免单字误替换。
  */
 const CJK = /^[\u4e00-\u9fff]+$/;
+// 文本含假名即日文语境：汉字读音是日语而非拼音，同音替换会把日文汉字词改成中文词（電話→电话）
+const KANA = /[\u3041-\u30ff]/;
 
 function normalize(syllable: string): string {
   return syllable
@@ -106,6 +108,7 @@ function correctAsciiHotword(text: string, word: string): string {
 export function correctHotwords(text: string, hotwords: string[]): string {
   if (!text || !hotwords.length) return text;
   const dict = new Set(hotwords.map((w) => w.trim()));
+  const kanaContext = KANA.test(text);
   let out = text;
   for (const word of hotwords) {
     const trimmed = word.trim();
@@ -113,7 +116,7 @@ export function correctHotwords(text: string, hotwords: string[]): string {
       out = correctAsciiHotword(out, trimmed);
       continue;
     }
-    if (trimmed.length < 2 || !CJK.test(trimmed) || out.includes(trimmed)) continue;
+    if (kanaContext || trimmed.length < 2 || !CJK.test(trimmed) || out.includes(trimmed)) continue;
     const wordReadings = readings(trimmed);
     const n = trimmed.length;
     const chars = Array.from(out);
