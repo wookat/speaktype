@@ -185,8 +185,9 @@ function needsPunctuation(text: string): boolean {
   if (!CJK_RE.test(text)) {
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length < 6) return false;
-    const endPunct = (text.match(/[.!?]/g) ?? []).length;
-    return endPunct <= words.length / 10;
+    // 逗号/分号也算已有标点（parakeet 输出自带完整标点），数字内的 "35,000"/"3.5" 不算
+    const punct = (text.match(/[,.!?;:](?!\d)/g) ?? []).length;
+    return punct <= words.length / 10;
   }
   if (text.length < 16) return false;
   const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
