@@ -121,7 +121,8 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
       form.append("model", settings.asrModel || "whisper-1");
-      if (settings.language) form.append("language", settings.language);
+      // 自动检测：OpenAI 兼容接口的约定是缺省 language 即自动，传 "auto" 会被当非法 ISO 码拒掉
+      if (settings.language && settings.language !== "auto") form.append("language", settings.language);
       const res = await fetch(transcriptionsUrl(settings.asrBaseUrl), {
         method: "POST",
         headers: { Authorization: `Bearer ${settings.asrApiKey}` },
@@ -155,7 +156,7 @@ export function startChatgptAsrSession(settings: Settings): DoubaoSession {
     },
     async finish(): Promise<string> {
       if (cancelled || frames.length === 0) return "";
-      return transcribeViaChatgpt(pcmToWav(frames), settings.language ?? "");
+      return transcribeViaChatgpt(pcmToWav(frames), settings.language === "auto" ? "" : (settings.language ?? ""));
     },
   };
 }
@@ -244,7 +245,7 @@ export function startLocalAsrSession(
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
       form.append("response_format", "json");
-      if (settings.language) form.append("language", settings.language);
+      if (settings.language && settings.language !== "auto") form.append("language", settings.language);
       const res = await fetch(url, { method: "POST", body: form });
       if (!res.ok) {
         const body = (await res.text()).slice(0, 160);

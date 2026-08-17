@@ -197,6 +197,7 @@ export const zhTW: LocaleDict = {
   "settings.asrAppKey": "豆包 App Key",
   "settings.asrAppKeyPlaceholder": "留空則使用自動獲取到的 App Key",
   "settings.asrLanguage": "識別語言",
+  "settings.asrLanguageAuto": "自動偵測",
   "settings.asrLanguageParakeetHint": "Parakeet 自動偵測英語及 25 種歐洲語言——不支援中文/日語/韓語/粵語，說這些語言請把模型換回 sensevoice-small。",
   "settings.asrProvider": "識別服務商",
   "settings.asrProviderDoubao": "豆包（流式，需登入）",

@@ -10,7 +10,7 @@ import {
 } from "../shared/doubao-protocol";
 import { t } from "./i18n";
 import { createBridgeWindow } from "./windows";
-import { getAppKeyCache, getSettings, setAppKeyCache } from "./store";
+import { DEFAULT_SETTINGS, getAppKeyCache, getSettings, setAppKeyCache } from "./store";
 
 const PING_INTERVAL_MS = 5000;
 const FINAL_WAIT_MS = 2500;
@@ -133,6 +133,8 @@ export async function startDoubaoSession(
   language: string,
   onPartial: (text: string) => void,
 ): Promise<DoubaoSession> {
+  // 豆包协议要具体语种：「自动」回落到系统语言推导的默认识别语言
+  if (language === "auto") language = DEFAULT_SETTINGS.language;
   const settings = getSettings();
   const appKey = settings.doubaoAppKey || getAppKeyCache();
   if (!appKey) {
