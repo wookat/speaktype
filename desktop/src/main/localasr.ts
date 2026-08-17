@@ -148,7 +148,9 @@ function modelPartialPercent(model: string): number | null {
   }
   // 有完好文件在盘（got > 0）时，缺失/损坏其余文件也算部分进度；全新用户 got = 0 仍走全量文案
   if ((!hasProgress && got <= 0) || total <= 0) return null;
-  return Math.min(99, Math.floor((got / total) * 100));
+  const percent = Math.min(99, Math.floor((got / total) * 100));
+  // 不足 1% 的「进度」（如只有 tokens.txt 这类小文件在盘）对用户等于从头下：走全量文案，避免「继续下载 0%」自相矛盾
+  return percent < 1 ? null : percent;
 }
 
 function push(patch: Partial<LocalModelStatus>): void {
