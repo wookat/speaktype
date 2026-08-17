@@ -281,3 +281,5 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Home stats cards (Sessions/Words/Voice time) read the `stats` key inside history.json; the renderer only pulls them at init and on idle status broadcasts. For "stats refresh" changes, assert with a Home screenshot + shell read of h.stats (double evidence), and restore stats together with history.json.bak during cleanup.
 - History failed-entry layout: red error line with a purple Retry chip on the right; on successful Retry the entry upgrades in place (timestamp suffix flips Cloud API -> Local offline).
 - Get-Clipboard with Chinese text needs `[Console]::OutputEncoding=UTF8` first, otherwise ?? output causes false negatives.
+- History Correct edit box: textarea autoFocus, Shift+Enter inserts newline, Esc cancels and discards (since #219); expand/collapse button copy is "Show all / Show less".
+- Inline PowerShell with `$var` passed through the exec tool gets eaten by the outer shell; write any assertion involving variables to a .ps1 file first and execute the file (pr219_check.ps1 / pr219_clip.ps1 pattern).
