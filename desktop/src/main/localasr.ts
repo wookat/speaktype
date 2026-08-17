@@ -249,6 +249,14 @@ function scheduleIdleShutdown(): void {
 }
 const pending = new Map<number, { resolve: (text: string) => void; reject: (error: Error) => void }>();
 
+// 汉字/假名之间不使用空格（韩语空格属正字法，不处理）；SenseVoice 日文输出会夹杂空格，落字前收敛
+const CJK_NO_SPACE = "\\u3005\\u3041-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff";
+const CJK_SPACE_RE = new RegExp(`([${CJK_NO_SPACE}])[ \\t]+(?=[${CJK_NO_SPACE}])`, "g");
+
+function collapseCjkSpaces(text: string): string {
+  return text.replace(CJK_SPACE_RE, "$1");
+}
+
 function ensureWorker(modelId: string): Worker {
   const files = modelFiles(modelId);
   const paths = files.map(([, p]) => p);
@@ -287,7 +295,7 @@ function ensureWorker(modelId: string): Worker {
     if (!job) return;
     pending.delete(msg.id);
     if (msg.error) job.reject(new Error(msg.error));
-    else job.resolve(msg.text ?? "");
+    else job.resolve(collapseCjkSpaces(msg.text ?? ""));
     if (pending.size === 0) scheduleIdleShutdown();
   });
   worker.on("error", (error) => {
