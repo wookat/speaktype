@@ -33,8 +33,10 @@ const VAD_MIN_RECORD_MS = 1500;
 const NO_SPEECH_PEAK = 250;
 // 开口前的宽限：按下后还没检到人声时不按 vadSilenceMs 判停，给用户思考时间，超时才收尾走 noSpeech
 const VAD_NO_VOICE_TIMEOUT_MS = 10000;
-// 免按模式连续这么多轮无人声（每轮约 10s）自动退出，避免忘关后麦克风常开
+// 免按模式连续这么多轮无人声（每轮约 10s）自动退出，避免忘关后麦克风常开；
+// 关掉 vadAutoStop 时用更宽松的绝对上限（约 5 分钟）兜底，长停顿不被踢但不至于彻底不设防
 const HANDS_FREE_MAX_SILENT_ROUNDS = 6;
+const HANDS_FREE_MAX_SILENT_ROUNDS_NO_VAD = 30;
 // 免按模式单段上限：超过软上限后遇到第一个非人声帧就分段落字，硬上限即使一直有人声也强制分段，
 // 避免连续说话「一段到底」——中途崩溃全丢、实时字幕 20s 后也不再更新
 const HANDS_FREE_SOFT_SEGMENT_MS = 50000;
@@ -736,9 +738,12 @@ export class Dictation {
   /** 免按模式未退出时自动开启下一句；连续多轮无人声（约 1 分钟）才自动退出 */
   private maybeContinueHandsFree(silent: boolean): boolean {
     if (!this.handsFree || this.mode !== "toggle") return false;
-    if (silent && getSettings().vadAutoStop) {
+    if (silent) {
       this.handsFreeSilentRounds++;
-      if (this.handsFreeSilentRounds >= HANDS_FREE_MAX_SILENT_ROUNDS) {
+      const maxRounds = getSettings().vadAutoStop
+        ? HANDS_FREE_MAX_SILENT_ROUNDS
+        : HANDS_FREE_MAX_SILENT_ROUNDS_NO_VAD;
+      if (this.handsFreeSilentRounds >= maxRounds) {
         this.handsFree = false;
         this.setPartial("");
         // 返回 true 让调用方跳过 noSpeech toast，否则退出提示会被它覆盖
