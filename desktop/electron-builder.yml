@@ -64,5 +64,7 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: SpeakType
   artifactName: SpeakType-Setup-${version}.exe
+  # 卸载时清掉 auto-launch 写的开机自启注册表项（见 build/uninstaller.nsh）
+  include: build/uninstaller.nsh
 electronDownload:
   cache: .electron-cache
