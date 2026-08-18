@@ -725,6 +725,7 @@ export class Dictation {
     }
 
     let failed: string | undefined;
+    let pastedOk = true;
     const noTarget = !rewriteTarget && settings.autoPaste && !hasPasteTarget();
     if (noTarget) {
       // 前台是桌面壳等非输入目标：盲发 Ctrl+V 会静默丢字，改为提示已存历史
@@ -748,11 +749,17 @@ export class Dictation {
           : "";
       try {
         // 改写模式：选区还选着，直接粘贴就是替换
-        await pasteText(glue + text);
-        if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
-        if (this.mode === "hold" && !rewriteTarget) {
-          this.lastHoldPasteAt = Date.now();
-          this.lastHoldPasteWin = pasteWin;
+        const pasted = await pasteText(glue + text);
+        if (!pasted) {
+          // 修饰键超时未松（如持续按住 Alt），盲发会静默丢字；文字留在剪贴板+历史
+          pastedOk = false;
+          this.deps.showToast(t("toast.pasteBlocked"), t("toast.pasteBlockedBody"));
+        } else {
+          if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
+          if (this.mode === "hold" && !rewriteTarget) {
+            this.lastHoldPasteAt = Date.now();
+            this.lastHoldPasteWin = pasteWin;
+          }
         }
       } catch (error) {
         failed = error instanceof Error ? error.message : String(error);
@@ -776,7 +783,7 @@ export class Dictation {
     addStats(countWords(text), durationMs);
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
-    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
+    if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && pastedOk && !noTarget && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
       watchPastedText(text, (items) => this.learnCorrections(historyId, items));
     }
 

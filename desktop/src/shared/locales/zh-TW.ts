@@ -297,6 +297,8 @@ export const zhTW: LocaleDict = {
   "toast.historyRecoveredBody": "歷史檔案損壞，已重建；原檔備份為 history.json.bad，設定不受影響",
   "toast.noPasteTarget": "目前沒有可輸入的視窗",
   "toast.noPasteTargetBody": "內容已儲存到歷史，可從歷史頁複製。",
+  "toast.pasteBlocked": "文字未落入——有按鍵一直按著",
+  "toast.pasteBlockedBody": "內容已在剪貼簿，按 Ctrl+V 即可貼上；歷史裡也有。",
   "toast.noSpeech": "沒聽清",
   "toast.configRecovered": "設定已重建",
   "toast.saveFailed": "設定無法儲存",

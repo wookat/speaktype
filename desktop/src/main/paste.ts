@@ -85,11 +85,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * 等物理修饰键（Shift/Alt/Win）全部松开再发快捷键：短句识别极快，用户退出免按的
  * Alt 还没松时 Ctrl+V 会变成 Ctrl+Alt+V 被目标程序忽略，造成静默丢字。
- * 封顶 1s：超时仍发送，避免用户持续按键时永久卡住。
+ * 封顶 1s；超时返回 false，由调用方改走提示而非盲发。
  */
-async function waitModifiersReleased(): Promise<void> {
-  if (!win32) return;
+async function waitModifiersReleased(): Promise<boolean> {
+  if (!win32) return true;
   for (let i = 0; i < 50 && win32.modifiersDown(); i++) await sleep(20);
+  return !win32.modifiersDown();
 }
 
 /**
@@ -109,18 +110,20 @@ export async function copySelection(): Promise<string> {
   return selection;
 }
 
-export async function pasteText(text: string): Promise<void> {
+/** 返回是否真的发出了粘贴；修饰键超时未发时文字留在剪贴板供手动粘贴 */
+export async function pasteText(text: string): Promise<boolean> {
   const prevText = clipboard.readText();
   // 文本为空时快照图片剪贴板（如截图后立刻口述），文件列表等其余格式不保
   const prevImage = prevText ? null : clipboard.readImage();
   clipboard.writeText(text);
   await sleep(60);
-  await waitModifiersReleased();
+  if (!(await waitModifiersReleased())) return false;
   await sendShortcut(VK_V, "v");
   // 等目标程序完成粘贴再还原，太快还原会粘到旧内容
   await sleep(350);
   // 剪贴板已被用户/其他程序改写时放弃还原，避免覆盖用户新复制的内容
-  if (clipboard.readText() !== text) return;
+  if (clipboard.readText() !== text) return true;
   if (prevText) clipboard.writeText(prevText);
   else if (prevImage && !prevImage.isEmpty()) clipboard.writeImage(prevImage);
+  return true;
 }

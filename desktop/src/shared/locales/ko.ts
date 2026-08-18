@@ -323,6 +323,8 @@ export const ko: LocaleDict = {
   "toast.historyRecoveredBody": "기록 파일이 손상되어 다시 만들었습니다. 백업: history.json.bad. 설정은 영향이 없습니다",
   "toast.noPasteTarget": "입력할 수 있는 창이 없습니다",
   "toast.noPasteTargetBody": "내용이 기록에 저장되었습니다. 기록에서 복사할 수 있습니다.",
+  "toast.pasteBlocked": "입력되지 않았습니다 — 키가 계속 눌려 있습니다",
+  "toast.pasteBlockedBody": "텍스트가 클립보드에 있습니다. Ctrl+V로 붙여넣으세요. 기록에도 저장되었습니다.",
   "toast.noSpeech": "잘 들리지 않았습니다",
   "toast.configRecovered": "설정을 다시 만들었습니다",
   "toast.saveFailed": "설정을 저장할 수 없습니다",

@@ -323,6 +323,8 @@ export const ja: LocaleDict = {
   "toast.historyRecoveredBody": "履歴ファイルが破損していたため再構築しました。バックアップは history.json.bad です。設定は影響を受けません",
   "toast.noPasteTarget": "入力先のウィンドウがありません",
   "toast.noPasteTargetBody": "テキストは履歴に保存されました。履歴からコピーできます。",
+  "toast.pasteBlocked": "入力されませんでした — キーが押されたままです",
+  "toast.pasteBlockedBody": "テキストはクリップボードにあります。Ctrl+V で貼り付けできます。履歴にも保存済みです。",
   "toast.noSpeech": "聞き取れませんでした",
   "toast.configRecovered": "設定を再構築しました",
   "toast.saveFailed": "設定を保存できません",
