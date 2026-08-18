@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { app, clipboard, globalShortcut, type BrowserWindow } from "electron";
+import { app, BrowserWindow, clipboard, globalShortcut } from "electron";
 import { blockEscape, unblockEscape } from "./escblock";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
-import { foregroundWindowKey, hasPasteTarget, isTerminalForeground, personaForActiveApp } from "./activeapp";
+import { foregroundPid, foregroundWindowKey, hasPasteTarget, isTerminalForeground, personaForActiveApp } from "./activeapp";
 import {
   pcmToWav,
   preconnectAsr,
@@ -61,6 +61,24 @@ function humanizeAsrError(message: string): string {
   return /fetch failed|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|EPIPE|socket hang up|network error/i.test(message)
     ? t("error.asrNetwork")
     : message;
+}
+
+/**
+ * 前台是自家窗口时，Win32 焦点探测不可靠（Chromium 的 hwndFocus 恒为顶层 HWND），
+ * 改为直接问渲染进程 document.activeElement 是否可输入控件。前台非本进程时不干预。
+ */
+async function selfWindowPasteable(): Promise<boolean> {
+  if (process.platform === "darwin" || foregroundPid() !== process.pid) return true;
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) return false;
+  try {
+    return await win.webContents.executeJavaScript(
+      "(() => { const e = document.activeElement; " +
+        "return !!e && (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.isContentEditable); })()",
+    );
+  } catch {
+    return true;
+  }
 }
 
 function failedAudioDir(): string {
@@ -726,7 +744,8 @@ export class Dictation {
 
     let failed: string | undefined;
     let pastedOk = true;
-    const noTarget = !rewriteTarget && settings.autoPaste && !hasPasteTarget();
+    const noTarget =
+      !rewriteTarget && settings.autoPaste && (!hasPasteTarget() || !(await selfWindowPasteable()));
     if (noTarget) {
       // 前台是桌面壳等非输入目标：盲发 Ctrl+V 会静默丢字，改为提示已存历史
       this.deps.showToast(t("toast.noPasteTarget"), t("toast.noPasteTargetBody"));
