@@ -194,7 +194,17 @@ export default function App() {
           />
         )}
         {page === "history" && (
-          <History t={t} history={history} setHistory={setHistory} settings={settings} update={update} />
+          <History
+            t={t}
+            history={history}
+            setHistory={(h) => {
+              setHistory(h);
+              // 清空历史会同步清统计，首页卡片跟着刷新
+              void api.stats().then(setStats);
+            }}
+            settings={settings}
+            update={update}
+          />
         )}
         {page === "personas" && (
           <Personas

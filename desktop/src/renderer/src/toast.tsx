@@ -20,7 +20,7 @@ function Toast() {
         onMouseLeave={() => api.toastHover(false)}
         className="flex max-w-full items-center gap-2 overflow-hidden rounded-[28px] border border-white/10 bg-[#292929] px-[13px] py-[5px] text-[14px] font-medium leading-6 tracking-[0.3px] text-[#fafafa] shadow-lg">
         <span className="shrink-0">{msg.title}</span>
-        {msg.body && <span className="line-clamp-2 leading-5 text-slate-300">{msg.body}</span>}
+        {msg.body && <span className="line-clamp-3 leading-5 text-slate-300">{msg.body}</span>}
         {msg.actionLabel && (
           <button
             type="button"

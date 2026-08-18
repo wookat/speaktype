@@ -276,6 +276,8 @@ export function addHistory(item: HistoryItem): void {
 
 export function clearHistory(): void {
   historyStore.set("history", []);
+  // 清空历史同时归零统计：首页还显示已删会话的计数会让人以为数据没删干净
+  historyStore.set("stats", { words: 0, durationMs: 0, sessions: 0 });
 }
 
 export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): HistoryItem | null {
