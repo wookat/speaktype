@@ -425,3 +425,9 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Button layout-stability fixes (e.g. Dictionary Clear confirm bounce) are proven by three zooms of the SAME screen region (identical coordinates) across states: baseline → confirm state → after the revert timeout. Compare edges of neighboring buttons pixel-by-pixel; a single after-state screenshot cannot prove absence of transient jumps.
 - clearHistory() zeroes stats since PR #274; History "Clear all" is two-step (click Clear all, then confirm button appears in the same header row). To prove the Home cards refresh without reload, screenshot nonzero cards first, clear, then navigate Home directly — do not restart the app.
 - pasteBlocked/noPasteTarget dictations performed AFTER a history clear re-create history entries; cleanup must clear history.json again at the end (config restore alone is not enough).
+
+## Round 185: hands-free multi-sentence punctuation testing
+
+- Hands-free multi-sentence output is easy to synthesize: with a looping fake-mic wav, VAD auto-segments on the trailing silence of each loop, so one atomic 30s+ sequence (Alt+Q enter → wait → Alt+Q exit) reliably produces 3+ finalized sentences in a single target document.
+- The pasteBlocked toast's appearance time jitters (~3.5–4s after the atomic rkey sequence starts). If a single screenshot misses it, immediately re-run the whole sequence instead of lengthening the wait — the toast lifetime is short and a longer wait usually lands after it disappears.
+- The screenshots directory accumulates artifacts across rounds: sorting by LastWriteTime can surface stale screenshots from earlier rounds (even older app versions). Assert only against filenames produced in the current round.
