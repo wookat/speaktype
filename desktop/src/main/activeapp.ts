@@ -13,6 +13,7 @@ const isMac = process.platform === "darwin";
 interface Win32Api {
   activeApp(): { app: string; title: string } | null;
   foregroundWindowKey(): string | null;
+  foregroundPid(): number | null;
   hasPasteTarget(): boolean;
 }
 
@@ -73,6 +74,13 @@ function loadWin32(): Win32Api | null {
       foregroundWindowKey() {
         const hwnd = GetForegroundWindow();
         return hwnd ? String(koffi.address(hwnd)) : null;
+      },
+      foregroundPid() {
+        const hwnd = GetForegroundWindow();
+        if (!hwnd) return null;
+        const pid = [0];
+        GetWindowThreadProcessId(hwnd, pid);
+        return pid[0] || null;
       },
       hasPasteTarget() {
         const hwnd = GetForegroundWindow();
@@ -187,6 +195,12 @@ export function foregroundWindowKey(): string | null {
 export function hasPasteTarget(): boolean {
   if (isMac) return true;
   return win32?.hasPasteTarget() ?? true;
+}
+
+/** 前台窗口所属进程 id；取不到时返回 null */
+export function foregroundPid(): number | null {
+  if (isMac) return null;
+  return win32?.foregroundPid() ?? null;
 }
 
 /** 终端类前台进程：落字后一回车就执行，句级格式（尾句号/句首大写）会让命令出错 */
