@@ -737,8 +737,13 @@ export class Dictation {
       }
       text = rewritten;
     } else {
-      text = await polishText(settings, persona, raw, () =>
-        this.deps.showToast(t("toast.polishFallback"), t("toast.polishFallbackBody")),
+      // 免按连续听写保留中文句尾句号：多句依次落字，没有它们就连成一片不可读
+      text = await polishText(
+        settings,
+        persona,
+        raw,
+        () => this.deps.showToast(t("toast.polishFallback"), t("toast.polishFallbackBody")),
+        this.mode === "toggle",
       );
     }
 

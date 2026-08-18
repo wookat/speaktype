@@ -167,7 +167,12 @@ export function addLocalPunctuation(text: string): string {
  * 本地自我纠正是保守的子句替换（会丢前缀语义），润色通道开启时交给 LLM 处理。
  * rulePunct=false 时跳过规则断句（由调用方用标点模型补，见 applyModelPunctuation）。
  */
-export function localCleanup(text: string, selfCorrect = true, rulePunct = true): string {
+export function localCleanup(
+  text: string,
+  selfCorrect = true,
+  rulePunct = true,
+  keepCjkPeriod = false,
+): string {
   let out = text.trim();
   for (const re of FILLERS) out = out.replace(re, "");
   if (selfCorrect) out = out.replace(SELF_CORRECTION, "");
@@ -176,8 +181,9 @@ export function localCleanup(text: string, selfCorrect = true, rulePunct = true)
   // 上游 ASR 的 ITN 把 "costs eleven dollars" 重写成 "costs$11"：单词紧跟 $数字 之间补空格
   out = out.replace(/([A-Za-z])\$(\d)/g, "$1 $$$2");
   if (selfCorrect && rulePunct) out = addLocalPunctuation(out);
-  // 去尾句号是中文语音输入习惯；英文句尾句号要保留，否则和 addEnglishPunctuation 互搏
-  return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+  // 去尾句号是中文单次语音输入习惯；免按连续听写需保留，否则多句无分隔连成一片不可读；
+  // 英文句尾句号一律保留，否则和 addEnglishPunctuation 互搏
+  return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
 }
 
 /** 与 addLocalPunctuation/addEnglishPunctuation 同口径的介入门槛：文本几乎没标点才补 */
@@ -216,19 +222,19 @@ function toEnglishPunct(text: string): string {
  * 增强标点：用 ct-transformer 模型补标点，未下载/加载失败时回退规则断句。
  * 输入应是 localCleanup(text, true, false) 后的文本（已清理、未补标点）。
  */
-export async function applyModelPunctuation(text: string): Promise<string> {
+export async function applyModelPunctuation(text: string, keepCjkPeriod = false): Promise<string> {
   if (!needsPunctuation(text)) return text;
   const modeled = await punctuate(text);
   if (modeled === null) {
     const out = addLocalPunctuation(text);
-    return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+    return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
   }
   if (!CJK_RE.test(modeled)) return toEnglishPunct(modeled);
-  return modeled
+  const merged = modeled
     .replace(/[，、；：]+(?=[。！？])/g, "")
     .replace(/([。！？])[。！？，、；：]+/g, "$1")
-    .replace(/[。．.]+$/, "")
     .replace(/^[，。]/, "");
+  return keepCjkPeriod ? merged : merged.replace(/[。．.]+$/, "");
 }
 
 /** 终端目标降格式：去尾部终止标点、还原句首自动大写。驼峰专名（首词后续仍含大写，如 SpeakType）不动 */
@@ -342,10 +348,11 @@ export async function polishText(
   persona: Persona,
   transcript: string,
   onLlmFallback?: () => void,
+  keepCjkPeriod = false,
 ): Promise<string> {
   const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl);
-  let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct);
-  if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base);
+  let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct, keepCjkPeriod);
+  if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base, keepCjkPeriod);
   if (settings.itn) base = applyItn(base);
   const cleaned = correctHotwords(base, settings.hotwords);
   if (!useLlm || !cleaned) return cleaned;
