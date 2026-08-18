@@ -310,6 +310,8 @@ export const ko: LocaleDict = {
 
   "toast.persona": "페르소나",
   "toast.personaBody": "{{name}} (Alt+{{index}})",
+  "toast.canceled": "받아쓰기를 취소했습니다",
+  "toast.canceledBody": "입력된 텍스트가 없습니다",
   "toast.handsFreeEnd": "핸즈프리 모드 종료",
   "toast.handsFreeEndBody": "한동안 음성이 감지되지 않아 중지했습니다. 단축키로 다시 시작할 수 있습니다",
   "toast.handsFreeEndByKey": "다른 단축키가 눌려 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",

@@ -464,6 +464,8 @@ export class Dictation {
   }
 
   cancel(): void {
+    // 免按退出已有专属提示；普通取消给一条短提示，让用户能区分「已取消」与「识别失败」
+    const wasHandsFree = this.handsFree;
     if (this.handsFree) {
       this.handsFree = false;
       this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
@@ -482,6 +484,7 @@ export class Dictation {
     this.unmute();
     this.partial = "";
     this.report("idle");
+    if (!wasHandsFree) this.deps.showToast(t("toast.canceled"), t("toast.canceledBody"), undefined, 2500);
   }
 
   /** 连接建立期间用户已经松手/取消：连上后立刻按当时的意图收尾 */

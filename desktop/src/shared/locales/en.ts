@@ -310,6 +310,8 @@ export const en: LocaleDict = {
 
   "toast.persona": "Persona",
   "toast.personaBody": "{{name}} (Alt+{{index}})",
+  "toast.canceled": "Dictation canceled",
+  "toast.canceledBody": "Nothing was typed",
   "toast.handsFreeEnd": "Hands-free mode ended",
   "toast.handsFreeEndBody": "No speech detected for a while, so listening stopped. Press the hotkey to start again.",
   "toast.handsFreeEndByKey": "Another hotkey was pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",
