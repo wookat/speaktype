@@ -129,13 +129,18 @@ export function createToastWindow(): BrowserWindow {
 }
 
 /** 隐藏的录音渲染进程：主进程没有 getUserMedia，麦克风必须在渲染层开 */
-export function createRecorderWindow(): BrowserWindow {
+export function createRecorderWindow(pcmPipe: string): BrowserWindow {
   const win = new BrowserWindow({
     show: false,
     width: 320,
     height: 200,
     skipTaskbar: true,
-    webPreferences: { preload: recorderPreload, sandbox: false, backgroundThrottling: false },
+    webPreferences: {
+      preload: recorderPreload,
+      sandbox: false,
+      backgroundThrottling: false,
+      additionalArguments: [`--pcm-pipe=${pcmPipe}`],
+    },
   });
   load(win, "recorder");
   return win;

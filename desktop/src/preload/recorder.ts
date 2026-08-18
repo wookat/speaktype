@@ -1,9 +1,12 @@
 import { ipcRenderer } from "electron";
+import { type Socket, connect } from "node:net";
 
 /**
  * 隐藏录音窗口专用 preload：开麦、AudioWorklet 采集 16kHz/mono/PCM16、200ms 一帧。
- * PCM 帧经 MessagePort 以 transfer 方式直达主进程——不走 contextBridge 与
- * ipcRenderer.send 的逐帧结构化拷贝路径，长录音时渲染进程原生内存不再线性累积。
+ * PCM 帧走命名管道（Node net）直达主进程：逐帧 Chromium IPC（无论
+ * ipcRenderer.send 还是 MessagePort 结构化拷贝）实测都会在录音渲染进程
+ * 原生内存里线性累积不释放；管道是纯 Node Buffer，完全绕开序列化。
+ * 帧格式：u32le pcm 字节数 + f32le peak + pcm。
  * 低频控制消息（start/stop/枚举/错误）仍走常规 ipc。
  */
 
@@ -46,18 +49,22 @@ class PcmCollector extends AudioWorkletProcessor {
 registerProcessor("pcm-collector", PcmCollector);
 `;
 
+const PCM_PIPE = (process.argv.find((a) => a.startsWith("--pcm-pipe=")) ?? "").slice("--pcm-pipe=".length);
+
 let ctx: AudioContext | null = null;
 let stream: MediaStream | null = null;
 let node: AudioWorkletNode | null = null;
 let source: MediaStreamAudioSourceNode | null = null;
-let pcmPort: MessagePort | null = null;
+let pcmSock: Socket | null = null;
 
-function ensurePort(): MessagePort {
-  if (pcmPort) return pcmPort;
-  const channel = new MessageChannel();
-  pcmPort = channel.port1;
-  ipcRenderer.postMessage("recorder:port", null, [channel.port2]);
-  return pcmPort;
+function ensurePipe(): Socket {
+  if (pcmSock && !pcmSock.destroyed) return pcmSock;
+  pcmSock = connect(PCM_PIPE);
+  pcmSock.on("error", () => {
+    pcmSock?.destroy();
+    pcmSock = null;
+  });
+  return pcmSock;
 }
 
 async function start(deviceId = ""): Promise<void> {
@@ -74,11 +81,15 @@ async function start(deviceId = ""): Promise<void> {
     URL.revokeObjectURL(url);
     source = ctx.createMediaStreamSource(stream);
     node = new AudioWorkletNode(ctx, "pcm-collector");
-    const port = ensurePort();
+    ensurePipe();
     node.port.onmessage = (ev: MessageEvent<{ pcm: Int16Array; peak: number }>) => {
-      // 不能带 transfer：Electron 的 MessagePortMain 收到 transfer 的 ArrayBuffer
-      // 消息时 ev.data 为 null（实测 43.3.0），结构化克隆一份即可
-      port.postMessage({ pcm: ev.data.pcm, peak: ev.data.peak });
+      const pcm = ev.data.pcm;
+      const frame = Buffer.allocUnsafe(8 + pcm.byteLength);
+      frame.writeUInt32LE(pcm.byteLength, 0);
+      frame.writeFloatLE(ev.data.peak, 4);
+      Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength).copy(frame, 8);
+      // 每帧重取：连接意外断开时自动重连，坏帧不阻塞后续
+      ensurePipe().write(frame);
     };
     source.connect(node);
   } catch (error) {
