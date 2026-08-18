@@ -16,6 +16,10 @@ function History(props: {
 }) {
   const { t } = props;
   const [query, setQuery] = useState("");
+  // 听写/文件转录混流后可按来源筛选；仅当两类条目同时存在时展示筛选器
+  const [sourceFilter, setSourceFilter] = useState<"all" | "dictation" | "file">("all");
+  const hasFileEntries = props.history.some((h) => h.source === "file");
+  const hasDictationEntries = props.history.some((h) => h.source !== "file");
   const [retrying, setRetrying] = useState("");
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
@@ -28,6 +32,10 @@ function History(props: {
   // 万字级转录条目全文展开会霸屏：默认 line-clamp，按需展开
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const isLong = (text: string): boolean => text.split("\n").length > 8 || text.length > 600;
+  // 文件转录多为长文，默认折叠避免霸屏
+  const clamp = (item: HistoryItem): boolean =>
+    (item.source === "file" ? item.text.split("\n").length > 2 || item.text.length > 160 : isLong(item.text)) &&
+    !expandedIds.has(item.id);
   const toggleExpand = (id: string): void => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -99,15 +107,19 @@ function History(props: {
     URL.revokeObjectURL(url);
   };
   const q = query.trim().toLowerCase();
+  const bySource =
+    sourceFilter === "all"
+      ? props.history
+      : props.history.filter((h) => (sourceFilter === "file") === (h.source === "file"));
   const filtered = q
-    ? props.history.filter(
+    ? bySource.filter(
         (h) =>
           h.text.toLowerCase().includes(q) ||
           h.raw.toLowerCase().includes(q) ||
           // 转录条目的 personaName 是来源文件名，是最自然的检索键；听写条目按人设名筛也合理
           h.personaName.toLowerCase().includes(q),
       )
-    : props.history;
+    : bySource;
 
   const groups: Array<{ label: string; items: HistoryItem[] }> = [];
   for (const item of filtered.slice(0, visible)) {
@@ -122,6 +134,17 @@ function History(props: {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t("history.title")}</h1>
         <div className="flex items-center gap-3">
+          {hasFileEntries && hasDictationEntries && (
+            <select
+              className="rounded-xl border border-slate-200 px-2 py-1.5 text-sm text-slate-500"
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value as "all" | "dictation" | "file")}
+            >
+              <option value="all">{t("history.filterAll")}</option>
+              <option value="dictation">{t("history.filterDictation")}</option>
+              <option value="file">{t("history.filterFile")}</option>
+            </select>
+          )}
           {props.history.length > 0 && (
             <input
               className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
@@ -180,6 +203,11 @@ function History(props: {
                 <li key={item.id} className="group rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
                     <span className="min-w-0 truncate">
+                      {item.source === "file" && (
+                        <span className="mr-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-600">
+                          {t("history.sourceFile")}
+                        </span>
+                      )}
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
                       {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
@@ -254,12 +282,12 @@ function History(props: {
                     <div className="mt-2">
                       <div
                         className={`selectable whitespace-pre-wrap break-words text-sm ${
-                          isLong(item.text) && !expandedIds.has(item.id) ? "line-clamp-8" : ""
+                          clamp(item) ? (item.source === "file" ? "line-clamp-3" : "line-clamp-8") : ""
                         }`}
                       >
                         {item.text}
                       </div>
-                      {isLong(item.text) && (
+                      {(item.source === "file" ? item.text.split("\n").length > 2 || item.text.length > 160 : isLong(item.text)) && (
                         <button
                           className="mt-1 text-xs text-slate-400 hover:text-slate-600"
                           onClick={() => toggleExpand(item.id)}
