@@ -97,7 +97,13 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
             } else setConfirmClear(true);
           }}
         >
-          {confirmClear ? t("dict.clearConfirm") : t("dict.clear")}
+          {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
+          <span className="relative inline-block">
+            <span className="invisible">{t("dict.clearConfirm")}</span>
+            <span className="absolute inset-0 text-center">
+              {confirmClear ? t("dict.clearConfirm") : t("dict.clear")}
+            </span>
+          </span>
         </button>
         <button
           className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
