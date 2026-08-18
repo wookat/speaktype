@@ -146,17 +146,6 @@ const api = {
   },
   toastAction: () => ipcRenderer.send("toast:action"),
   toastHover: (hovering: boolean) => ipcRenderer.send("toast:hover", hovering),
-
-  recorder: {
-    onStart: (fn: (opts: { deviceId: string }) => void) =>
-      ipcRenderer.on("recorder:start", (_e, opts: { deviceId: string }) => fn(opts ?? { deviceId: "" })),
-    onStop: (fn: () => void) => ipcRenderer.on("recorder:stop", fn),
-    onEnumerate: (fn: () => void) => ipcRenderer.on("recorder:enumerate", fn),
-    sendPcm: (chunk: ArrayBuffer) => ipcRenderer.send("recorder:pcm", chunk),
-    sendLevel: (level: number) => ipcRenderer.send("recorder:level", level),
-    sendError: (message: string) => ipcRenderer.send("recorder:error", message),
-    sendDevices: (list: MicDevice[]) => ipcRenderer.send("recorder:devices", list),
-  },
 };
 
 export type SpeakTypeApi = typeof api;

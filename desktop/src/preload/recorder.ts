@@ -1,8 +1,10 @@
-import { api } from "./api";
+import { ipcRenderer } from "electron";
 
 /**
- * 隐藏录音页：主进程发 recorder:start 后开麦，16kHz/mono/PCM16、200ms 一帧回传。
- * 仅在用户主动按热键时开麦，不做后台常驻录音。
+ * 隐藏录音窗口专用 preload：开麦、AudioWorklet 采集 16kHz/mono/PCM16、200ms 一帧。
+ * PCM 帧经 MessagePort 以 transfer 方式直达主进程——不走 contextBridge 与
+ * ipcRenderer.send 的逐帧结构化拷贝路径，长录音时渲染进程原生内存不再线性累积。
+ * 低频控制消息（start/stop/枚举/错误）仍走常规 ipc。
  */
 
 const SAMPLE_RATE = 16000;
@@ -48,6 +50,15 @@ let ctx: AudioContext | null = null;
 let stream: MediaStream | null = null;
 let node: AudioWorkletNode | null = null;
 let source: MediaStreamAudioSourceNode | null = null;
+let pcmPort: MessagePort | null = null;
+
+function ensurePort(): MessagePort {
+  if (pcmPort) return pcmPort;
+  const channel = new MessageChannel();
+  pcmPort = channel.port1;
+  ipcRenderer.postMessage("recorder:port", null, [channel.port2]);
+  return pcmPort;
+}
 
 async function start(deviceId = ""): Promise<void> {
   if (ctx) return;
@@ -63,19 +74,18 @@ async function start(deviceId = ""): Promise<void> {
     URL.revokeObjectURL(url);
     source = ctx.createMediaStreamSource(stream);
     node = new AudioWorkletNode(ctx, "pcm-collector");
+    const port = ensurePort();
     node.port.onmessage = (ev: MessageEvent<{ pcm: Int16Array; peak: number }>) => {
-      const pcm = ev.data.pcm;
-      const copy = new Int16Array(pcm.length);
-      copy.set(pcm);
-      api.recorder.sendPcm(copy.buffer);
-      api.recorder.sendLevel(ev.data.peak);
+      const buffer = ev.data.pcm.buffer as ArrayBuffer;
+      port.postMessage({ pcm: buffer, peak: ev.data.peak }, [buffer]);
     };
     source.connect(node);
   } catch (error) {
     await stop();
     const name = error instanceof DOMException ? error.name : "";
     // 发送错误码，由主进程按界面语言翻译成提示文案
-    api.recorder.sendError(
+    ipcRenderer.send(
+      "recorder:error",
       name === "NotAllowedError"
         ? "@micDenied"
         : name === "NotFoundError"
@@ -105,16 +115,17 @@ async function enumerate(): Promise<void> {
     const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
     const devices = await navigator.mediaDevices.enumerateDevices();
     for (const track of probe.getTracks()) track.stop();
-    api.recorder.sendDevices(
+    ipcRenderer.send(
+      "recorder:devices",
       devices
         .filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default" && d.deviceId !== "communications")
         .map((d) => ({ deviceId: d.deviceId, label: d.label || d.deviceId.slice(0, 8) })),
     );
   } catch {
-    api.recorder.sendDevices([]);
+    ipcRenderer.send("recorder:devices", []);
   }
 }
 
-api.recorder.onStart(({ deviceId }) => void start(deviceId));
-api.recorder.onStop(() => void stop());
-api.recorder.onEnumerate(() => void enumerate());
+ipcRenderer.on("recorder:start", (_e, opts: { deviceId: string }) => void start(opts?.deviceId ?? ""));
+ipcRenderer.on("recorder:stop", () => void stop());
+ipcRenderer.on("recorder:enumerate", () => void enumerate());

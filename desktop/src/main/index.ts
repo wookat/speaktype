@@ -97,6 +97,7 @@ let mainWin: BrowserWindow | null = null;
 let panelWin: BrowserWindow | null = null;
 let toastWin: BrowserWindow | null = null;
 let recorderWin: BrowserWindow | null = null;
+let recorderPort: Electron.MessagePortMain | null = null;
 let tray: Tray | null = null;
 let quitting = false;
 let toastTimer: NodeJS.Timeout | null = null;
@@ -522,13 +523,21 @@ function registerIpc(): void {
   ipcMain.handle("open:external", (_e, url: string) => shell.openExternal(url));
   ipcMain.handle("log:open", () => shell.showItemInFolder(log.transports.file.getFile().path));
 
-  ipcMain.on("recorder:pcm", (_e, chunk: ArrayBuffer) => {
-    dictation.pushPcm(new Int16Array(chunk));
-  });
-  ipcMain.on("recorder:level", (_e, level: number) => {
-    for (const win of [panelWin, mainWin]) {
-      if (win && !win.isDestroyed()) win.webContents.send("level", level);
-    }
+  // PCM 帧走 MessagePort transfer（非 ipcRenderer.send）：逐帧结构化拷贝会在录音
+  // 渲染进程原生内存里线性累积不释放（长录音 ≈1.4MB/min）
+  ipcMain.on("recorder:port", (event) => {
+    recorderPort?.close();
+    const port = event.ports[0];
+    if (!port) return;
+    recorderPort = port;
+    port.on("message", (ev) => {
+      const { pcm, peak } = ev.data as { pcm: ArrayBuffer; peak: number };
+      dictation.pushPcm(new Int16Array(pcm));
+      for (const win of [panelWin, mainWin]) {
+        if (win && !win.isDestroyed()) win.webContents.send("level", peak);
+      }
+    });
+    port.start();
   });
   ipcMain.on("recorder:error", (_e, message: string) => {
     dictation.cancel();

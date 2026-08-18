@@ -11,6 +11,7 @@ function isDarkTheme(): boolean {
 const dir = fileURLToPath(new URL(".", import.meta.url));
 const preload = join(dir, "../preload/index.mjs");
 const doubaoPreload = join(dir, "../preload/doubao.mjs");
+const recorderPreload = join(dir, "../preload/recorder.mjs");
 const rendererDir = join(dir, "../renderer");
 const devServer = process.env["ELECTRON_RENDERER_URL"];
 
@@ -134,7 +135,7 @@ export function createRecorderWindow(): BrowserWindow {
     width: 320,
     height: 200,
     skipTaskbar: true,
-    webPreferences: { preload, sandbox: false, backgroundThrottling: false },
+    webPreferences: { preload: recorderPreload, sandbox: false, backgroundThrottling: false },
   });
   load(win, "recorder");
   return win;

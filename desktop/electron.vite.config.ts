@@ -25,6 +25,7 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, "src/preload/index.ts"),
           doubao: resolve(__dirname, "src/preload/doubao.ts"),
+          recorder: resolve(__dirname, "src/preload/recorder.ts"),
         },
       },
     },
