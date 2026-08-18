@@ -4,6 +4,7 @@ import "./reset";
 import "./migrate";
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import { basename, join } from "node:path";
+import { createServer } from "node:net";
 import { execFile } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -93,11 +94,13 @@ if (process.argv.includes("--test-crash")) {
 const single = app.requestSingleInstanceLock();
 if (!single) app.quit();
 
+// 带 pid 防多实例撞名（单实例锁之外的短暂共存窗口）
+const PCM_PIPE = `\\\\.\\pipe\\speaktype-pcm-${process.pid}`;
+
 let mainWin: BrowserWindow | null = null;
 let panelWin: BrowserWindow | null = null;
 let toastWin: BrowserWindow | null = null;
 let recorderWin: BrowserWindow | null = null;
-let recorderPort: Electron.MessagePortMain | null = null;
 let tray: Tray | null = null;
 let quitting = false;
 let toastTimer: NodeJS.Timeout | null = null;
@@ -523,32 +526,37 @@ function registerIpc(): void {
   ipcMain.handle("open:external", (_e, url: string) => shell.openExternal(url));
   ipcMain.handle("log:open", () => shell.showItemInFolder(log.transports.file.getFile().path));
 
-  // PCM 帧走 MessagePort transfer（非 ipcRenderer.send）：逐帧结构化拷贝会在录音
-  // 渲染进程原生内存里线性累积不释放（长录音 ≈1.4MB/min）
-  ipcMain.on("recorder:port", (event) => {
-    recorderPort?.close();
-    const port = event.ports[0];
-    if (!port) return;
-    recorderPort = port;
-    port.on("message", (ev) => {
-      // 设防：形态不符的消息（如 transfer 反序列化失败时的 null）不能打穿 uncaughtException
-      const data = ev.data as { pcm?: Int16Array | Uint8Array | ArrayBuffer; peak?: number } | null;
-      if (!data || data.pcm == null) return;
-      const pcm = data.pcm;
-      const frame =
-        pcm instanceof Int16Array
-          ? pcm
-          : ArrayBuffer.isView(pcm)
-            ? new Int16Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 2)
-            : new Int16Array(pcm);
-      dictation.pushPcm(frame);
-      const peak = typeof data.peak === "number" ? data.peak : 0;
-      for (const win of [panelWin, mainWin]) {
-        if (win && !win.isDestroyed()) win.webContents.send("level", peak);
+  // PCM 帧走命名管道（Node net）而非 Chromium IPC：实测逐帧结构化拷贝（无论
+  // ipcRenderer.send 还是 MessagePort）都会在录音渲染进程原生内存里线性累积
+  // 不释放（≈1.4~2MB/min）；Electron 43 的 MessagePort transfer 到主进程
+  // ev.data 恒为 null。管道走纯 Node Buffer，完全绕开 Chromium 序列化。
+  // 帧格式：u32le pcm 字节数 + f32le peak + pcm。
+  const pipeServer = createServer((sock) => {
+    let pending = Buffer.alloc(0);
+    sock.on("data", (chunk) => {
+      pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
+      while (pending.length >= 8) {
+        const size = pending.readUInt32LE(0);
+        if (size === 0 || size > 1024 * 1024) {
+          // 坏帧头：丢弃整条连接的缓冲，防御性重来
+          pending = Buffer.alloc(0);
+          return;
+        }
+        if (pending.length < 8 + size) break;
+        const peak = pending.readFloatLE(4);
+        const frame = new Int16Array(size / 2);
+        for (let i = 0; i < frame.length; i++) frame[i] = pending.readInt16LE(8 + i * 2);
+        pending = pending.subarray(8 + size);
+        dictation.pushPcm(frame);
+        for (const win of [panelWin, mainWin]) {
+          if (win && !win.isDestroyed()) win.webContents.send("level", peak);
+        }
       }
     });
-    port.start();
+    sock.on("error", (error) => log.warn("pcm pipe socket error", error));
   });
+  pipeServer.on("error", (error) => log.error("pcm pipe server error", error));
+  pipeServer.listen(PCM_PIPE);
   ipcMain.on("recorder:error", (_e, message: string) => {
     dictation.cancel();
     const body =
@@ -569,7 +577,7 @@ void app.whenReady().then(() => {
   mainWin = createMainWindow(!startHidden);
   panelWin = createPanelWindow();
   toastWin = createToastWindow();
-  recorderWin = createRecorderWindow();
+  recorderWin = createRecorderWindow(PCM_PIPE);
   setupTray();
 
   onAppKeyCaptured(() => pushSettings());
