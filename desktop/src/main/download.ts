@@ -195,7 +195,7 @@ export function partialProgress(dest: string): { got: number; total: number } | 
   const part = `${dest}.part`;
   if (!existsSync(part)) return null;
   const meta = readMeta(`${part}.json`);
-  if (!meta || meta.total <= 0) return null;
+  if (!meta || !Number.isFinite(meta.total) || meta.total <= 0) return null;
   return { got: Math.min(statSync(part).size, meta.total), total: meta.total };
 }
 
