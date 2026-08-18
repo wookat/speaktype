@@ -274,6 +274,8 @@ export class Dictation {
   }
 
   pushPcm(frame: Int16Array): void {
+    // 免按跨句保持采集：句间空档（转写/落字期间）到达的帧不属于任何会话，直接丢弃
+    if (!this.busy) return;
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
     if (this.allFrames.length < RETRY_MAX_FRAMES) this.allFrames.push(frame);
@@ -465,6 +467,12 @@ export class Dictation {
       this.handsFree = false;
       this.handsFreeEndedByKey = true;
       this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+      // 句间空档（无进行中会话）退出：麦克风跨句保持着，这里必须停麦解除静音
+      if (!this.busy) {
+        this.deps.recorder()?.webContents.send("recorder:stop");
+        this.unmute();
+        return;
+      }
     }
     if (!this.busy) return;
     if (!this.session) {
@@ -489,7 +497,14 @@ export class Dictation {
       this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
     }
     this.rewriteTarget = null;
-    if (!this.busy) return;
+    if (!this.busy) {
+      // 免按句间空档取消：麦克风跨句保持着，一样要停麦解除静音
+      if (wasHandsFree) {
+        this.deps.recorder()?.webContents.send("recorder:stop");
+        this.unmute();
+      }
+      return;
+    }
     if (!this.session) {
       this.pendingEnd = "cancel";
       return;
@@ -656,9 +671,12 @@ export class Dictation {
     const endedByKey = this.handsFreeEndedByKey;
     this.handsFreeEndedByKey = false;
 
-    this.deps.recorder()?.webContents.send("recorder:stop");
-    // 免按会话内跨句保持系统静音，避免分段间隙声音短暂漏出；退出免按处统一解除
-    if (!(this.handsFree && this.mode === "toggle")) this.unmute();
+    // 免按会话内跨句保持麦克风与系统静音：每句都整轮拆建 getUserMedia/AudioContext/AudioWorklet
+    // 会让录音渲染进程原生内存每句累积不归还；退出免按处统一停麦解除
+    if (!(this.handsFree && this.mode === "toggle")) {
+      this.deps.recorder()?.webContents.send("recorder:stop");
+      this.unmute();
+    }
 
     // 整段录音接近数字静音：不白耗一次识别调用，也避免 ASR 对噪声幻听落字
     log.info(
@@ -703,6 +721,7 @@ export class Dictation {
       }
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
       this.handsFree = false;
+      this.deps.recorder()?.webContents.send("recorder:stop");
       this.unmute();
       this.busy = false;
       this.report("error", `${message} · ${t("error.retryHint")}`);
@@ -830,6 +849,7 @@ export class Dictation {
         : HANDS_FREE_MAX_SILENT_ROUNDS_NO_VAD;
       if (this.handsFreeSilentRounds >= maxRounds) {
         this.handsFree = false;
+        this.deps.recorder()?.webContents.send("recorder:stop");
         this.unmute();
         this.setPartial("");
         // 返回 true 让调用方跳过 noSpeech toast，否则退出提示会被它覆盖
