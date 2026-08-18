@@ -409,3 +409,11 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Check `dictation finalize: durationMs` lines in `%APPDATA%\SpeakType\logs\main.log` to tell apart early-stop vs full-duration vs canceled (canceled sessions log no finalize).
 
 - 第 181 轮（PR #269 粘贴前等修饰键）：复现免按快退丢字用单条 rkey 序列 `down:alt,down:q,sleep:120,up:q,up:alt,sleep:2500,down:alt,down:q,sleep:120,up:q,sleep:160,up:alt`（尾部 sleep 控制 Alt 残留时长，160ms 为坏版丢字窗口、800ms 验 1s 等待封顶内释放）；F8 改写路径可用本地 node mock /v1/chat/completions 返回固定 content（如 MOCK-REWRITE-OK），选区被替换即证明 copySelection+替换粘贴链路完好；AI polish 可全程在 Settings→AI polish UI 配置（Custom preset），测后还原 speaktype.json 备份即可。注意 alt+Tab 可能切到 mock node 控制台而非记事本，用任务栏图标切窗更稳。
+
+## Round 183/183b: paste-fallback (noTarget / pasteBlocked) testing
+
+- **Clipboard sentinel is the iron-clad discriminator for blind-paste vs noTarget branches**: preset a unique string (e.g. `OLD-CLIP-183B`) before dictating. `pasteText()` always overwrites the clipboard with the recognized text when called, so an intact sentinel proves the noTarget branch was taken; an overwritten sentinel proves blind paste.
+- **Chromium/Electron foreground windows always report a non-zero `GetGUIThreadInfo().hwndFocus`** (equals the top-level `Chrome_WidgetWin_1` HWND for title-bar click, page blank click, and Alt+Tab alike) — `hwndFocus == 0` never fires for them. Since #272 the app asks the renderer (`document.activeElement` editable check) when the foreground pid is its own.
+- Self-window negative test: focus the History search box, dictate — text must land in the box and filter instantly (proves no noTarget false positive). Positive test: click the title bar (no input focus), dictate — expect the `No text field in focus` toast, sentinel intact, entry in History.
+- `pasteBlocked` (P2-1, #271): hold Alt ≥1600ms past finalize → toast `Text not typed — a key was held down`, recognized text left on clipboard, target column unchanged; 160/800ms residual Alt must still auto-paste.
+- Taskbar quirk: the first click on the SpeakType taskbar icon occasionally does not raise the window — click twice.
