@@ -531,8 +531,18 @@ function registerIpc(): void {
     if (!port) return;
     recorderPort = port;
     port.on("message", (ev) => {
-      const { pcm, peak } = ev.data as { pcm: ArrayBuffer; peak: number };
-      dictation.pushPcm(new Int16Array(pcm));
+      // 设防：形态不符的消息（如 transfer 反序列化失败时的 null）不能打穿 uncaughtException
+      const data = ev.data as { pcm?: Int16Array | Uint8Array | ArrayBuffer; peak?: number } | null;
+      if (!data || data.pcm == null) return;
+      const pcm = data.pcm;
+      const frame =
+        pcm instanceof Int16Array
+          ? pcm
+          : ArrayBuffer.isView(pcm)
+            ? new Int16Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 2)
+            : new Int16Array(pcm);
+      dictation.pushPcm(frame);
+      const peak = typeof data.peak === "number" ? data.peak : 0;
       for (const win of [panelWin, mainWin]) {
         if (win && !win.isDestroyed()) win.webContents.send("level", peak);
       }

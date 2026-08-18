@@ -76,8 +76,9 @@ async function start(deviceId = ""): Promise<void> {
     node = new AudioWorkletNode(ctx, "pcm-collector");
     const port = ensurePort();
     node.port.onmessage = (ev: MessageEvent<{ pcm: Int16Array; peak: number }>) => {
-      const buffer = ev.data.pcm.buffer as ArrayBuffer;
-      port.postMessage({ pcm: buffer, peak: ev.data.peak }, [buffer]);
+      // 不能带 transfer：Electron 的 MessagePortMain 收到 transfer 的 ArrayBuffer
+      // 消息时 ev.data 为 null（实测 43.3.0），结构化克隆一份即可
+      port.postMessage({ pcm: ev.data.pcm, peak: ev.data.peak });
     };
     source.connect(node);
   } catch (error) {
