@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { FileAudio, Loader2 } from "lucide-react";
 import { api } from "../api";
+import { humanDownloadError } from "../lib/downloadError";
 import type { Translator } from "../i18n";
-import type { Settings, TranscribeState } from "../../../shared/types";
+import type { LocalModelStatus, Settings, TranscribeState } from "../../../shared/types";
 
 const SR = 16000;
 /** 上限 3 小时：16k 浮点采样约 660MB，超过容易把主进程拖爆 */
@@ -41,14 +42,13 @@ function saveText(content: string, filename: string, mime: string): void {
 function Transcribe(props: {
   t: Translator;
   settings: Settings;
-  goModelSettings: () => void;
 }) {
   const { t } = props;
   const [state, setState] = useState<TranscribeState>({ running: false, percent: 0, segments: [] });
   const [decoding, setDecoding] = useState(false);
   const [fileName, setFileName] = useState("");
   const [localError, setLocalError] = useState("");
-  const [modelReady, setModelReady] = useState(true);
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   // 完成后短暂保留进度行占位，避免下方导出按钮瞬间上移到 Cancel 原位被误点
@@ -75,8 +75,12 @@ function Transcribe(props: {
 
   const model = props.settings.localModel || "base-q5_1";
   useEffect(() => {
-    void api.localModelStatus(model).then((s) => setModelReady(s.downloaded));
+    void api.localModelStatus(model).then(setLocal);
+    return api.onLocalModel((s) => {
+      if (s.model === model) setLocal(s);
+    });
   }, [model]);
+  const modelReady = Boolean(local?.downloaded);
 
   const busy = decoding || state.running;
 
@@ -139,11 +143,29 @@ function Transcribe(props: {
       </h1>
 
       {!modelReady && (
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          <span>{t("transcribe.noModel")}</span>
-          <button className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white" onClick={props.goModelSettings}>
-            {t("transcribe.goSettings")}
-          </button>
+        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>{t("transcribe.noModel", { model })}</span>
+            <button
+              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
+              disabled={Boolean(local?.downloading)}
+              onClick={() => void api.localModelDownload(model).then(setLocal)}
+            >
+              {local?.downloading
+                ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                : local?.partial != null
+                  ? t("settings.localModelResume", { progress: String(local.partial) })
+                  : t("settings.localModelDownload")}
+            </button>
+          </div>
+          {local?.downloading && (
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
+              <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />
+            </div>
+          )}
+          {local?.error && !local.downloading && (
+            <div className="mt-2 text-xs text-red-600">{humanDownloadError(local.error, t)}</div>
+          )}
         </div>
       )}
 

@@ -24,8 +24,7 @@ export const en: LocaleDict = {
   "transcribe.empty": "No speech detected.",
   "transcribe.tooLong": "File exceeds the 3-hour limit — please split it first.",
   "transcribe.decodeFailed": "Could not decode this file: make sure it is a common audio format (mp3 / wav / m4a / ogg / flac).",
-  "transcribe.noModel": "The offline model is not downloaded yet — download it in Settings before transcribing.",
-  "transcribe.goSettings": "Download",
+  "transcribe.noModel": "File transcription runs on the offline model {{model}} (independent of your cloud dictation provider) — download it first.",
 
   "home.title": "Hold {{key}} to start voice typing",
   "home.subtitle": "Release the key and the text lands at your cursor; tap {{toggle}} for hands-free mode.",
