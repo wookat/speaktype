@@ -224,6 +224,7 @@ export async function startTranscribe(
         raw: full,
         personaName: fileName || t("transcribe.title"),
         durationMs: Math.round((samples.length / SR) * 1000),
+        source: "file",
       });
     }
     log.info(`file transcribe done (${segments.length} segments)`);

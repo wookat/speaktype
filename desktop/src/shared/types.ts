@@ -142,6 +142,8 @@ export interface HistoryItem {
   audioFile?: string;
   /** 产生该条目的 ASR 通道 */
   provider?: AsrProvider;
+  /** 条目来源：文件转录标记为 "file"，未设即听写 */
+  source?: "file";
 }
 
 export interface Stats {
