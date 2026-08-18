@@ -96,6 +96,8 @@ if (!single) app.quit();
 
 // 带 pid 防多实例撞名（单实例锁之外的短暂共存窗口）
 const PCM_PIPE = `\\\\.\\pipe\\speaktype-pcm-${process.pid}`;
+// 停录后空闲多久回收录音窗口：短于连续口述的自然间隔会白重建，过长则内存迟迟不归还
+const RECORDER_RECYCLE_IDLE_MS = 30_000;
 
 let mainWin: BrowserWindow | null = null;
 let panelWin: BrowserWindow | null = null;
@@ -104,8 +106,30 @@ let recorderWin: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let quitting = false;
 let toastTimer: NodeJS.Timeout | null = null;
+let recorderRecycleTimer: NodeJS.Timeout | null = null;
+let micTestOn = false;
+
+// 录音渲染进程的原生内存随录音时长缓慢累积且停录后不归还：
+// 空闲一段时间后整窗重建（隐藏窗口，重建对用户无感）把内存还给系统
+function scheduleRecorderRecycle(): void {
+  if (recorderRecycleTimer) clearTimeout(recorderRecycleTimer);
+  recorderRecycleTimer = setTimeout(() => {
+    recorderRecycleTimer = null;
+    if (quitting || micTestOn || dictation.isRecording()) return;
+    const old = recorderWin;
+    recorderWin = createRecorderWindow(PCM_PIPE);
+    if (old && !old.isDestroyed()) old.destroy();
+  }, RECORDER_RECYCLE_IDLE_MS);
+}
+
+function cancelRecorderRecycle(): void {
+  if (recorderRecycleTimer) clearTimeout(recorderRecycleTimer);
+  recorderRecycleTimer = null;
+}
 
 function broadcast(payload: StatusPayload): void {
+  if (payload.state === "idle" || payload.state === "error") scheduleRecorderRecycle();
+  else cancelRecorderRecycle();
   for (const win of [mainWin, panelWin]) {
     if (win && !win.isDestroyed()) win.webContents.send("status", payload);
   }
@@ -512,8 +536,14 @@ function registerIpc(): void {
     if (dictation.isRecording()) return; // 正在语音输入时不抢麦
     const win = recorderWin;
     if (!win || win.isDestroyed()) return;
-    if (on) win.webContents.send("recorder:start", { deviceId: getSettings().micDeviceId });
-    else win.webContents.send("recorder:stop");
+    micTestOn = on;
+    if (on) {
+      cancelRecorderRecycle();
+      win.webContents.send("recorder:start", { deviceId: getSettings().micDeviceId });
+    } else {
+      win.webContents.send("recorder:stop");
+      scheduleRecorderRecycle();
+    }
   });
   ipcMain.handle("window:minimize", () => BrowserWindow.getFocusedWindow()?.minimize());
   ipcMain.handle("window:maximize", () => {
