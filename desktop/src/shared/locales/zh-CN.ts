@@ -308,6 +308,8 @@ export const zhCN = {
   "toast.personaBody": "{{name}}（Alt+{{index}} 切换）",
   "toast.noPasteTarget": "当前没有可输入的窗口",
   "toast.noPasteTargetBody": "内容已保存到历史，可从历史页复制。",
+  "toast.pasteBlocked": "文字未落入——有按键一直按着",
+  "toast.pasteBlockedBody": "内容已在剪贴板，按 Ctrl+V 即可粘贴；历史里也有。",
   "toast.noSpeech": "没听清",
   "toast.canceled": "听写已取消",
   "toast.canceledBody": "未落入任何文字",

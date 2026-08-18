@@ -26,6 +26,20 @@ function loadWin32(): Win32Api | null {
     const GetWindowThreadProcessId = user32.func(
       "uint32 GetWindowThreadProcessId(void *hWnd, _Out_ uint32 *pid)",
     );
+    const GUITHREADINFO = koffi.struct("GUITHREADINFO", {
+      cbSize: "uint32",
+      flags: "uint32",
+      hwndActive: "uintptr",
+      hwndFocus: "uintptr",
+      hwndCapture: "uintptr",
+      hwndMenuOwner: "uintptr",
+      hwndMoveSize: "uintptr",
+      hwndCaret: "uintptr",
+      rcCaret: koffi.array("int32", 4),
+    });
+    const GetGUIThreadInfo = user32.func(
+      "bool GetGUIThreadInfo(uint32 idThread, _Inout_ GUITHREADINFO *info)",
+    );
     const OpenProcess = kernel32.func("void *OpenProcess(uint32 access, bool inherit, uint32 pid)");
     const CloseHandle = kernel32.func("bool CloseHandle(void *h)");
     const QueryFullProcessImageNameW = kernel32.func(
@@ -67,7 +81,24 @@ function loadWin32(): Win32Api | null {
         GetClassNameW(hwnd, classBuf, classBuf.length);
         const cls = decode(classBuf);
         // 桌面壳窗口（Progman/WorkerW）不是输入目标，盲发 Ctrl+V 会静默丢字
-        return cls !== "Progman" && cls !== "WorkerW";
+        if (cls === "Progman" || cls === "WorkerW") return false;
+        // 窗口在但没有键盘焦点控件（如点在空白区）时粘贴同样不会生效
+        const tid = GetWindowThreadProcessId(hwnd, [0]);
+        if (tid) {
+          const info = {
+            cbSize: koffi.sizeof(GUITHREADINFO),
+            flags: 0,
+            hwndActive: 0,
+            hwndFocus: 0,
+            hwndCapture: 0,
+            hwndMenuOwner: 0,
+            hwndMoveSize: 0,
+            hwndCaret: 0,
+            rcCaret: [0, 0, 0, 0],
+          };
+          if (GetGUIThreadInfo(tid, info) && !info.hwndFocus) return false;
+        }
+        return true;
       },
     };
   } catch (error) {

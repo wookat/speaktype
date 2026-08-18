@@ -323,6 +323,8 @@ export const en: LocaleDict = {
   "toast.historyRecoveredBody": "The history file was corrupted and has been reset; a backup was saved as history.json.bad. Settings are unaffected.",
   "toast.noPasteTarget": "No text field in focus",
   "toast.noPasteTargetBody": "Your words were saved to History — copy them from there.",
+  "toast.pasteBlocked": "Text not typed — a key was held down",
+  "toast.pasteBlockedBody": "It's on your clipboard — press Ctrl+V to paste. Also saved to History.",
   "toast.noSpeech": "Didn't catch that",
   "toast.configRecovered": "Settings rebuilt",
   "toast.saveFailed": "Couldn't save settings",
