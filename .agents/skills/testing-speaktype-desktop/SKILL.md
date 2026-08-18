@@ -417,3 +417,11 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Self-window negative test: focus the History search box, dictate — text must land in the box and filter instantly (proves no noTarget false positive). Positive test: click the title bar (no input focus), dictate — expect the `No text field in focus` toast, sentinel intact, entry in History.
 - `pasteBlocked` (P2-1, #271): hold Alt ≥1600ms past finalize → toast `Text not typed — a key was held down`, recognized text left on clipboard, target column unchanged; 160/800ms residual Alt must still auto-paste.
 - Taskbar quirk: the first click on the SpeakType taskbar icon occasionally does not raise the window — click twice.
+
+## Round 184/184c: verifying toast truncation & layout-stability fixes
+
+- Toast clamp/truncation checks MUST be pixel-level: after triggering the toast, zoom into the toast region and confirm the last line's ending characters — a wider clamp (e.g. line-clamp-3) can still end in an ellipsis if the localized body needs more lines than the clamp allows. DOM text is not proof; only the rendered pixels are.
+- When a toast is short-lived, put the zoom as the LAST step of a single computer-actions sequence (wait ≈3.3s after starting the atomic rkey sequence → screenshot → zoom). Intermediate zoom results in a multi-action call are not returned — only the final action's image comes back, so a mid-sequence zoom wastes the toast window.
+- Button layout-stability fixes (e.g. Dictionary Clear confirm bounce) are proven by three zooms of the SAME screen region (identical coordinates) across states: baseline → confirm state → after the revert timeout. Compare edges of neighboring buttons pixel-by-pixel; a single after-state screenshot cannot prove absence of transient jumps.
+- clearHistory() zeroes stats since PR #274; History "Clear all" is two-step (click Clear all, then confirm button appears in the same header row). To prove the Home cards refresh without reload, screenshot nonzero cards first, clear, then navigate Home directly — do not restart the app.
+- pasteBlocked/noPasteTarget dictations performed AFTER a history clear re-create history entries; cleanup must clear history.json again at the end (config restore alone is not enough).
