@@ -440,8 +440,20 @@ export class Dictation {
   /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
   toggleHandsFree(): void {
     if (this.busy || this.handsFree) {
+      const wasHandsFree = this.handsFree;
       this.handsFree = false;
       this.handsFreeEndedByKey = true; // 用户主动退出：本轮静音不再弹「没听清」
+      if (wasHandsFree) {
+        // stop() 只在旗标仍在时提示，这里已先清旗标，退出提示由本入口负责
+        this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+        if (!this.busy) {
+          // 句间空档退出：没有进行中会话可收尾，直接停麦、解除静音
+          this.deps.recorder()?.webContents.send("recorder:stop");
+          this.unmute();
+          this.setPartial("");
+          return;
+        }
+      }
       void this.stop();
       return;
     }
