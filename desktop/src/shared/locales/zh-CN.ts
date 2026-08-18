@@ -327,6 +327,7 @@ export const zhCN = {
   "toast.rewriteNoModelBody": "去 设置 → AI 润色 配置一个 OpenAI 兼容模型",
   "toast.rewriteFailed": "改写失败",
   "toast.rewriteFailedBody": "润色模型没有返回结果，原文未改动",
+  "toast.rewriteFailedNetworkBody": "无法连接润色服务——请检查 Base URL 与网络连接，原文未改动",
   "toast.polishFallback": "润色服务不可用",
   "toast.polishFallbackBody": "已按未润色的原文落字",
   "toast.learned": "已学会新词",

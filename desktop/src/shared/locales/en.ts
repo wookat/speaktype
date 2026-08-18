@@ -335,6 +335,7 @@ export const en: LocaleDict = {
   "toast.rewriteNoModelBody": "Configure an OpenAI-compatible model in Settings → AI polish",
   "toast.rewriteFailed": "Rewrite failed",
   "toast.rewriteFailedBody": "The polish model returned nothing; the text was left unchanged",
+  "toast.rewriteFailedNetworkBody": "Could not reach the polish service — check the Base URL and your network; the text was left unchanged",
   "toast.polishFallback": "Polish service unavailable",
   "toast.polishFallbackBody": "Inserted the raw transcript without AI polish",
   "toast.learned": "New word learned",

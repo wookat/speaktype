@@ -335,6 +335,7 @@ export const ja: LocaleDict = {
   "toast.rewriteNoModelBody": "設定 → AI 文章調整 で OpenAI 互換モデルを設定してください",
   "toast.rewriteFailed": "書き換えに失敗しました",
   "toast.rewriteFailedBody": "推敲モデルから結果が返らなかったため、原文は変更されていません",
+  "toast.rewriteFailedNetworkBody": "推敲サービスに接続できません。Base URL とネットワークを確認してください。原文は変更されていません",
   "toast.polishFallback": "推敲サービスを利用できません",
   "toast.polishFallbackBody": "推敲なしの原文を入力しました",
   "toast.learned": "新しい語を学習しました",

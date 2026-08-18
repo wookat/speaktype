@@ -294,14 +294,14 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
 
 /**
  * 选中文字 + 语音指令改写/翻译：把选区和口述指令交给润色模型，只回改写后的正文。
- * 没配润色模型时返回 null，由调用方提示用户去配置。
+ * 失败时区分连不上服务（network）与模型空结果（empty），由调用方分别提示。
  */
 export async function rewriteSelection(
   settings: Settings,
   selection: string,
   instruction: string,
-): Promise<string | null> {
-  if (!settings.polishBaseUrl) return null;
+): Promise<string | { error: "network" | "empty" }> {
+  if (!settings.polishBaseUrl) return { error: "empty" };
   // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
   instruction = correctHotwords(instruction, settings.hotwords);
   const prompt = [
@@ -324,12 +324,12 @@ export async function rewriteSelection(
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { error: "network" };
     const data = (await res.json()) as ChatResponse;
     const content = data.choices?.[0]?.message?.content?.trim();
-    return content ? stripLlmWrapper(content) : null;
+    return content ? stripLlmWrapper(content) : { error: "empty" };
   } catch {
-    return null;
+    return { error: "network" };
   }
 }
 
