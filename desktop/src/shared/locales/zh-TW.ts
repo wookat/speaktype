@@ -284,6 +284,8 @@ export const zhTW: LocaleDict = {
   "panel.cancel": "取消",
   "toast.persona": "當前人設",
   "toast.personaBody": "{{name}}（Alt+{{index}} 切換）",
+  "toast.canceled": "聽寫已取消",
+  "toast.canceledBody": "未輸入任何文字",
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "長時間沒檢到人聲，已自動停止聆聽；再按一次熱鍵可重新開始",
   "toast.handsFreeEndByKey": "按了其他熱鍵，連續聽寫已停止；再按免按熱鍵可重新開始",

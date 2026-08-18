@@ -310,6 +310,8 @@ export const ja: LocaleDict = {
 
   "toast.persona": "ペルソナ",
   "toast.personaBody": "{{name}} (Alt+{{index}})",
+  "toast.canceled": "入力をキャンセルしました",
+  "toast.canceledBody": "テキストは入力されていません",
   "toast.handsFreeEnd": "ハンズフリーモードを終了しました",
   "toast.handsFreeEndBody": "しばらく音声が検出されなかったため停止しました。ホットキーで再開できます",
   "toast.handsFreeEndByKey": "他のホットキーが押されたため連続入力を停止しました。ハンズフリーキーで再開できます",
