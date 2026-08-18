@@ -14,6 +14,10 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
   `netsh ipsec static add policy name=P; add filterlist name=F; add filter filterlist=F srcaddr=me dstaddr=<ip-or-net> [dstmask=...] protocol=TCP mirrored=yes; add filteraction name=A action=block; add rule name=R policy=P filterlist=F filteraction=A; set policy name=P assign=y`.
   Block 143.204.0.0/16 (huggingface CF), hf-mirror IP, github.com IP, 185.199.108.0/22 (GH release CDN). Verify with node fetch (UND_ERR_CONNECT_TIMEOUT ≈10s per source). Cleanup: `set policy assign=n; delete policy/filterlist/filteraction`.
 
+- **Simplest reliable block for packaged builds: patch app.asar** — `npx asar extract resources/app.asar tmp`, string-replace the three source hosts in `out/main/index.js` (`https://huggingface.co/`, `https://hf-mirror.com/`, the GH models-v1 release base) with `https://127.0.0.1:1/…`, `npx asar pack` back (back up app.asar first). Fetch to 127.0.0.1:1 fails instantly (no 10s/source timeout like IPsec) and exercises the genuine network-error path; asar integrity is not enforced (app boots fine, verified 0.15.1/Electron 43). Restore the original asar afterwards.
+- Re-confirmed 2026-08-17: `HTTPS_PROXY=http://127.0.0.1:1` is ignored by Node fetch in Electron main (status 200 through "fake proxy"); hosts blocking remains dead on this box — always `ping` to verify before trusting any block.
+- Partial-progress display: since #130 (d383cbe) any COMPLETE file on disk counts as progress, but since #261 (652f34e) percent <1% returns null — tokens.txt-only (no .part) shows plain `Download model` again; a real .part with meta still shows `Resume download (x% done)`. A resumed download's final file can be verified by sha256 == c71f0ce0… (the HF LFS oid in download.ts GH_ASSET_SHA256).
+
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
 ## Launch (dev and installed)
@@ -85,6 +89,13 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - `C:\Users\Administrator\tts\mock_whisper.mjs` now matches the exact path `/v1/audio/transcriptions` (404 otherwise) — usable for both the success path and the HTTP-404 error branch of the ASR test-connection button. It can also return arbitrary text from `C:\Users\Administrator\tts\mock_text.txt` (useful for long/punctuation test cases).
 - Clicking buttons on the floating panel: always `mouse_move` to the target first, then `click` — a direct click sometimes doesn't land in the panel window at all. To verify a click actually hit, inject a CDP click probe into panel.html and check for events.
 - In hands-free/hold modes, VAD auto-ends ~2s after sample.wav's speech finishes (history items ~10s). When testing cancel/long-hold behaviors, separate the auto-stop timing from your own action, or a working cancel will look broken.
+
+## Window-state (maximize/hidden) verification
+
+- Judge maximized objectively with user32 `IsZoomed(MainWindowHandle)` + `GetWindowRect` (maximized rect = -8,-8,workarea+8 on this box), not by the title-bar glyph — at this scaled resolution the restore glyph is ambiguous in screenshots.
+- `--hidden` only takes effect when `settings.startMinimized=true` (index.ts); hidden state is provable via `Get-Process SpeakType` all MainWindowHandle=0 plus a desktop screenshot.
+- launchAtLogin writes HKCU Run value name `SpeakType` pointing at the launched exe with `--hidden`; clean up with `reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v SpeakType /f` after tests, or the packaged test build will autostart on the next VM boot.
+- AutoGLM on this box can spontaneously pop a 智谱 login window into the foreground mid-test (not only swallow Alt+Space) — kill AutoGLM.exe before recording window-visibility tests.
 
 ## Remote mic relay (relay/ Cloudflare Worker) local testing
 
@@ -380,3 +391,21 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 
 - Dictionary kana hint (since #258) counts only newly-added kana entries in the current save (re-submitting an existing kana word does not count) - use brand-new words when asserting the count; the hint is one-shot state and disappears after the next pure-Chinese/ASCII save, which doubles as the "no false positive" discriminator.
 
+- rkey.ps1 already includes esc/f8 keys. To test Esc cancelling hands-free mode, send Esc mid-speech (~3s after Alt+Q); pressing Esc after a VAD segment has committed only affects later speech - the committed sentence typing is existing behavior, not a cancel failure.
+- The rewrite empty-result branch can be triggered with a local node mock serving /v1/chat/completions returning content:''; the network branch with Base URL http://127.0.0.1:9/v1.
+- Toasts disappear after ~5s; screenshotting ~9.5s after releasing F8 catches the rewrite-failure toast reliably.
+
+- Ctrl+Esc is a Windows shell reserved combo: Electron globalShortcut/RegisterHotKey cannot suppress the Start menu (round 177 measured). Only a WH_KEYBOARD_LL hook returning 1 for VK_ESCAPE works (PR #266 escblock.ts via koffi) - verify by screenshotting for the Start menu right after Esc, not just by observing app cancellation.
+- Hook-unload regression check: open Notepad's File menu and press Esc while idle AND after a completed dictation - if the LL hook leaked, Esc is swallowed and the menu stays open.
+- After Esc closes a Notepad menu, Notepad may remain in menu-bar state and a subsequent dictation finalizes without pasting (main.log shows `dictation finalize` but no text lands). Click back into the text area before the next dictation.
+- Keyboard-stability check while a session records: type letters during hands-free (Alt+Q) - they land normally, proving the hook only intercepts Esc. Don't type during RightCtrl hold (letters become Ctrl+shortcuts, unrelated to the hook).
+- The hands-free exit toast still appears on the LL-hook cancel path; it's short-lived - screenshot ~0.5-1s after Esc.
+
+
+## Cancel toast and floating-bar x clicking (round 178, PR #267)
+- Cancel (Esc or floating-bar x) in a non-hands-free session shows a 2.5s toast `Dictation canceled / Nothing was typed`; hands-free cancel keeps only the handsFreeEnd toast (wasHandsFree suppresses it). Toast is short: take a burst of screenshots ~1s after the cancel, not one delayed shot.
+- **Computer-tool clicks flush held modifiers**: clicking while rkey.ps1 holds RightCtrl releases the synthetic RightCtrl first, so the hold ENDS as a normal stop (finalize) before the click lands — you can never hit the recording-state x this way. Native SetCursorPos+mouse_event clicks did NOT reach the panel button either (cause unclear; WindowFromPoint does return the panel).
+- **Working recipe to click x mid-hold**: temporarily set `settings.hotkeyHold` to `F8` in speaktype.json (restart app). F8 is not a modifier so tool clicks don't flush it; hold F8 via rkey, then a normal computer-tool click on the x cancels and the toast appears. Restore RightCtrl afterwards.
+- Check `dictation finalize: durationMs` lines in `%APPDATA%\SpeakType\logs\main.log` to tell apart early-stop vs full-duration vs canceled (canceled sessions log no finalize).
+
+- 第 181 轮（PR #269 粘贴前等修饰键）：复现免按快退丢字用单条 rkey 序列 `down:alt,down:q,sleep:120,up:q,up:alt,sleep:2500,down:alt,down:q,sleep:120,up:q,sleep:160,up:alt`（尾部 sleep 控制 Alt 残留时长，160ms 为坏版丢字窗口、800ms 验 1s 等待封顶内释放）；F8 改写路径可用本地 node mock /v1/chat/completions 返回固定 content（如 MOCK-REWRITE-OK），选区被替换即证明 copySelection+替换粘贴链路完好；AI polish 可全程在 Settings→AI polish UI 配置（Custom preset），测后还原 speaktype.json 备份即可。注意 alt+Tab 可能切到 mock node 控制台而非记事本，用任务栏图标切窗更稳。
