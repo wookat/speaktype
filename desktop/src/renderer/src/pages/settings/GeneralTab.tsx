@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import { UI_LANGUAGES } from "../../../../shared/i18n";
@@ -16,6 +16,13 @@ function GeneralTab(props: {
   toggleKeyChoices: string[];
 }) {
   const { t, s, update } = props;
+  // 两个重置均不可逆：两步确认，几秒不点自动复位
+  const [confirmReset, setConfirmReset] = useState<"" | "settings" | "all">("");
+  useEffect(() => {
+    if (!confirmReset) return;
+    const timer = setTimeout(() => setConfirmReset(""), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmReset]);
   const [capturing, setCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
   const recordKey = (): void => {
@@ -254,6 +261,55 @@ function GeneralTab(props: {
             <option value="light">{t("settings.themeLight")}</option>
             <option value="dark">{t("settings.themeDark")}</option>
           </select>
+        </Row>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="font-medium">{t("settings.resetSection")}</div>
+        <Row label={t("settings.resetSettings")} hint={t("settings.resetSettingsHint")}>
+          <button
+            className={`rounded-xl border px-4 py-2 text-sm ${
+              confirmReset === "settings"
+                ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50"
+            }`}
+            onClick={() => {
+              if (confirmReset === "settings") {
+                setConfirmReset("");
+                void api.resetSettings();
+              } else setConfirmReset("settings");
+            }}
+          >
+            {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
+            <span className="relative inline-block">
+              <span className="invisible">{t("settings.resetSettingsConfirm")}</span>
+              <span className="absolute inset-0 text-center">
+                {confirmReset === "settings" ? t("settings.resetSettingsConfirm") : t("settings.resetSettingsBtn")}
+              </span>
+            </span>
+          </button>
+        </Row>
+        <Row label={t("settings.factoryReset")} hint={t("settings.factoryResetHint")}>
+          <button
+            className={`rounded-xl border px-4 py-2 text-sm ${
+              confirmReset === "all"
+                ? "border-red-300 bg-red-500 font-medium text-white hover:bg-red-600"
+                : "border-red-200 text-red-500 hover:bg-red-50"
+            }`}
+            onClick={() => {
+              if (confirmReset === "all") {
+                setConfirmReset("");
+                void api.factoryReset();
+              } else setConfirmReset("all");
+            }}
+          >
+            <span className="relative inline-block">
+              <span className="invisible">{t("settings.factoryResetConfirm")}</span>
+              <span className="absolute inset-0 text-center">
+                {confirmReset === "all" ? t("settings.factoryResetConfirm") : t("settings.factoryResetBtn")}
+              </span>
+            </span>
+          </button>
         </Row>
       </section>
     </>

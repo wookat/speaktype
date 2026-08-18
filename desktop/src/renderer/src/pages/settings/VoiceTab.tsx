@@ -34,6 +34,15 @@ function VoiceTab(props: {
     void api.localModelStatus(localModel).then(setLocal);
   }, [localModel]);
 
+  // 删除模型是百 MB 级不可逆操作：两步确认，几秒不点自动复位
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
+  useEffect(() => setConfirmDelete(false), [localModel]);
+
   const [chatgptReady, setChatgptReady] = useState(false);
   const [chatgptDetail, setChatgptDetail] = useState("");
   const [doubaoDetail, setDoubaoDetail] = useState("");
@@ -138,6 +147,29 @@ function VoiceTab(props: {
               <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
                 <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
               </div>
+            )}
+            {!local?.downloading && (local?.downloaded || local?.partial != null) && (
+              <button
+                className={`rounded-xl border px-4 py-2 text-sm ${
+                  confirmDelete
+                    ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
+                    : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+                onClick={() => {
+                  if (confirmDelete) {
+                    setConfirmDelete(false);
+                    void api.localModelDelete(localModel).then(setLocal);
+                  } else setConfirmDelete(true);
+                }}
+              >
+                {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
+                <span className="relative inline-block">
+                  <span className="invisible">{t("settings.localModelDeleteConfirm")}</span>
+                  <span className="absolute inset-0 text-center">
+                    {confirmDelete ? t("settings.localModelDeleteConfirm") : t("settings.localModelDelete")}
+                  </span>
+                </span>
+              </button>
             )}
             {local?.error && <span className="text-sm text-red-500">{humanDownloadError(local.error, t)}</span>}
           </div>
