@@ -13,6 +13,7 @@ const isMac = process.platform === "darwin";
 
 interface Win32Api {
   sendInputs(keys: Array<{ vk: number; up: boolean }>): void;
+  modifiersDown(): boolean;
 }
 
 const INPUT_KEYBOARD = 1;
@@ -20,6 +21,10 @@ const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
 const VK_C = 0x43;
+const VK_SHIFT = 0x10;
+const VK_MENU = 0x12;
+const VK_LWIN = 0x5b;
+const VK_RWIN = 0x5c;
 
 function loadWin32(): Win32Api {
   const user32 = koffi.load("user32.dll");
@@ -35,7 +40,13 @@ function loadWin32(): Win32Api {
     padding: koffi.array("uint8", 8),
   });
   const SendInput = user32.func("uint32 SendInput(uint32 cInputs, INPUT *pInputs, int cbSize)");
+  const GetAsyncKeyState = user32.func("int16 GetAsyncKeyState(int vKey)");
   return {
+    modifiersDown() {
+      return [VK_SHIFT, VK_MENU, VK_LWIN, VK_RWIN].some(
+        (vk) => (GetAsyncKeyState(vk) & 0x8000) !== 0,
+      );
+    },
     sendInputs(keys) {
       const inputs = keys.map(({ vk, up }) => ({
         type: INPUT_KEYBOARD,
@@ -72,6 +83,16 @@ async function sendShortcut(vk: number, macKey: string): Promise<void> {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * 等物理修饰键（Shift/Alt/Win）全部松开再发快捷键：短句识别极快，用户退出免按的
+ * Alt 还没松时 Ctrl+V 会变成 Ctrl+Alt+V 被目标程序忽略，造成静默丢字。
+ * 封顶 1s：超时仍发送，避免用户持续按键时永久卡住。
+ */
+async function waitModifiersReleased(): Promise<void> {
+  if (!win32) return;
+  for (let i = 0; i < 50 && win32.modifiersDown(); i++) await sleep(20);
+}
+
+/**
  * 读取当前前台窗口的选中文字：清空剪贴板 → 发 Ctrl/Cmd+C → 读回。
  * 没有选中时剪贴板不会被写入，返回空串；原剪贴板内容会还原。
  */
@@ -94,6 +115,7 @@ export async function pasteText(text: string): Promise<void> {
   const prevImage = prevText ? null : clipboard.readImage();
   clipboard.writeText(text);
   await sleep(60);
+  await waitModifiersReleased();
   await sendShortcut(VK_V, "v");
   // 等目标程序完成粘贴再还原，太快还原会粘到旧内容
   await sleep(350);
