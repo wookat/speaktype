@@ -380,3 +380,8 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 
 - Dictionary kana hint (since #258) counts only newly-added kana entries in the current save (re-submitting an existing kana word does not count) - use brand-new words when asserting the count; the hint is one-shot state and disappears after the next pure-Chinese/ASCII save, which doubles as the "no false positive" discriminator.
 
+- main.log lives at `%APPDATA%\SpeakType\logs\main.log` (a `logs` subdir), NOT at the profile root — scripts probing `%APPDATA%\SpeakType\main.log` silently fail.
+- The tts helper dir gets cleaned between rounds: rkey.ps1/toastpoll scripts may be gone. Re-creatable in minutes: SendInput scancode injector (rctrl=0x1D extended, esc=0x01) and a CDP poller against the toast.html target on the debug port diffing `{visibilityState, body.innerText}` every 150ms (reference: C:\Users\Administrator\tts\rk179.ps1 / toastpoll179.cjs). Esc-cancel evidence trio: toast text 「听写已取消|未落入任何文字」 visible→hidden via CDP, no new `dictation finalize` line, history count unchanged.
+- 「杨梓瑄」 in a zh sentence is a RELIABLE SenseVoice misrecognition (→杨子轩) — a real hotword-correction fixture needing no homophone-swap fallback; assert via history[0] raw(杨子轩) vs text(杨梓瑄) plus the History raw-diff view (查看识别原文 shows strikethrough old + red corrected).
+- 148s zh audio transcribes in ~2s warm — the wav progress row is uncatchable; capture the 转录中…0%+取消 row on the SECOND file (m4a decode is slower) with a screenshot ~0.6s after clicking 打开.
+
