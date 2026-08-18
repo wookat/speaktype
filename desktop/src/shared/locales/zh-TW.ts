@@ -309,6 +309,7 @@ export const zhTW: LocaleDict = {
   "toast.rewriteNoModelBody": "到 設定 → AI 潤色 設定一個 OpenAI 相容模型",
   "toast.rewriteFailed": "改寫失敗",
   "toast.rewriteFailedBody": "潤色模型沒有回傳結果，原文未變動",
+  "toast.rewriteFailedNetworkBody": "無法連線潤色服務——請檢查 Base URL 與網路連線，原文未變動",
   "toast.polishFallback": "潤色服務無法使用",
   "toast.polishFallbackBody": "已按未潤色的原文輸入",
   "toast.learned": "已學會新詞",

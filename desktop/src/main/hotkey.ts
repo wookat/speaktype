@@ -18,6 +18,8 @@ export interface HotkeyHandlers {
   onPersona(index: number): void;
   /** 按下瞬间就回调（判定时长之前），用于抢跑建联 */
   onWarmUp(): void;
+  /** 录音中按 Esc 取消；返回是否真的取消了会话（否则 Esc 保持系统默认行为） */
+  onEscape(): boolean;
 }
 
 const KEY_NAMES: Record<string, number> = {
@@ -261,6 +263,22 @@ export class HotkeyManager {
       return;
     }
     if (ev.keycode === this.captureSwallowKeycode) return;
+    if (ev.keycode === UiohookKey.Escape) {
+      // 取消后清掉本次按住状态：随后的松键不再触发落字/改写
+      if (this.handlers.onEscape()) {
+        this.holdActive = false;
+        this.rewriteActive = false;
+        if (this.holdTimer) {
+          clearTimeout(this.holdTimer);
+          this.holdTimer = null;
+        }
+        if (this.rewriteTimer) {
+          clearTimeout(this.rewriteTimer);
+          this.rewriteTimer = null;
+        }
+      }
+      return;
+    }
     if (ev.keycode === this.holdKeycode) {
       this.pressHold();
       return;

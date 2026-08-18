@@ -335,6 +335,7 @@ export const ko: LocaleDict = {
   "toast.rewriteNoModelBody": "설정 → AI 다듬기에서 OpenAI 호환 모델을 설정하세요",
   "toast.rewriteFailed": "다시 쓰기 실패",
   "toast.rewriteFailedBody": "다듬기 모델이 결과를 반환하지 않아 원문이 그대로 유지되었습니다",
+  "toast.rewriteFailedNetworkBody": "다듬기 서비스에 연결할 수 없습니다. Base URL과 네트워크를 확인하세요. 원문은 그대로 유지되었습니다",
   "toast.polishFallback": "다듬기 서비스를 사용할 수 없습니다",
   "toast.polishFallbackBody": "다듬지 않은 원문을 입력했습니다",
   "toast.learned": "새 단어를 학습했습니다",

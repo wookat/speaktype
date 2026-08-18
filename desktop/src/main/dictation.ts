@@ -425,6 +425,13 @@ export class Dictation {
     await this.finalize();
   }
 
+  /** 录音/转写进行中按 Esc 一键取消；无进行中会话时返回 false，让 Esc 保持系统默认行为 */
+  cancelByKey(): boolean {
+    if (!this.busy && !this.handsFree) return false;
+    this.cancel();
+    return true;
+  }
+
   cancel(): void {
     if (this.handsFree) {
       this.handsFree = false;
@@ -666,11 +673,14 @@ export class Dictation {
     let text: string;
     if (rewriteTarget) {
       const rewritten = await rewriteSelection(settings, rewriteTarget, raw);
-      if (!rewritten) {
+      if (typeof rewritten !== "string") {
         this.busy = false;
         this.partial = "";
         this.report("idle");
-        this.deps.showToast(t("toast.rewriteFailed"), t("toast.rewriteFailedBody"));
+        this.deps.showToast(
+          t("toast.rewriteFailed"),
+          t(rewritten.error === "network" ? "toast.rewriteFailedNetworkBody" : "toast.rewriteFailedBody"),
+        );
         return;
       }
       text = rewritten;

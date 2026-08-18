@@ -192,6 +192,7 @@ const hotkeys = new HotkeyManager({
   onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
   onHoldEnd: () => void dictation.stop(),
   onToggle: () => dictation.toggleHandsFree(),
+  onEscape: () => dictation.cancelByKey(),
   onDoubleTap: () => dictation.toggleHandsFree(),
   onPersona: (index) => {
     const personas = getPersonas();
