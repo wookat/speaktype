@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { app, clipboard, type BrowserWindow } from "electron";
+import { app, clipboard, globalShortcut, type BrowserWindow } from "electron";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
@@ -203,6 +203,8 @@ export class Dictation {
   private report(state: RecordState, message = ""): void {
     this.state = state;
     this.message = message;
+    if (state === "idle" || state === "error") this.releaseEscape();
+    else this.grabEscape();
     this.deps.broadcast(this.status());
     if (state === "error") {
       // 可重试的失败多给些时间让用户读完提示并按键重试
@@ -214,6 +216,30 @@ export class Dictation {
         }
       }, linger);
     }
+  }
+
+  /**
+   * 录音/转写期间临时注册 Esc 与 Ctrl+Esc 全局快捷键：把按键在系统层吞掉，
+   * 按住 RightCtrl 时按 Esc 不再弹出 Windows 开始菜单；回到空闲立即注销，不影响其他应用的 Esc。
+   */
+  private escGrabbed = false;
+
+  private grabEscape(): void {
+    if (this.escGrabbed) return;
+    this.escGrabbed = true;
+    for (const acc of ["Escape", "Control+Escape"]) {
+      try {
+        globalShortcut.register(acc, () => this.cancelByKey());
+      } catch (error) {
+        log.warn(`register ${acc} failed`, error);
+      }
+    }
+  }
+
+  private releaseEscape(): void {
+    if (!this.escGrabbed) return;
+    this.escGrabbed = false;
+    for (const acc of ["Escape", "Control+Escape"]) globalShortcut.unregister(acc);
   }
 
   private setPartial(text: string): void {
