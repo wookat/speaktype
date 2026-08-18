@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app, clipboard, globalShortcut, type BrowserWindow } from "electron";
+import { blockEscape, unblockEscape } from "./escblock";
 import log from "electron-log/main.js";
 import type { RecordState, StatusPayload } from "../shared/types";
 import { localizePersona } from "../shared/personas";
@@ -219,17 +220,20 @@ export class Dictation {
   }
 
   /**
-   * 录音/转写期间临时注册 Esc 与 Ctrl+Esc 全局快捷键：把按键在系统层吞掉，
-   * 按住 RightCtrl 时按 Esc 不再弹出 Windows 开始菜单；回到空闲立即注销，不影响其他应用的 Esc。
+   * 录音/转写期间在系统层吞掉 Esc：按住 RightCtrl 时按 Esc 不再弹出 Windows 开始菜单。
+   * Windows 上 Ctrl+Esc 是 shell 保留组合，globalShortcut/RegisterHotKey 拦不住，
+   * 改用 WH_KEYBOARD_LL 低级钩子（escblock.ts）；其他平台退回 globalShortcut。
+   * 回到空闲立即卸载/注销，不影响其他应用的 Esc。
    */
   private escGrabbed = false;
 
   private grabEscape(): void {
     if (this.escGrabbed) return;
     this.escGrabbed = true;
+    if (blockEscape(() => this.cancelByKey())) return;
     for (const acc of ["Escape", "Control+Escape"]) {
       try {
-        globalShortcut.register(acc, () => this.cancelByKey());
+        if (!globalShortcut.register(acc, () => this.cancelByKey())) log.warn(`register ${acc} returned false`);
       } catch (error) {
         log.warn(`register ${acc} failed`, error);
       }
@@ -239,6 +243,7 @@ export class Dictation {
   private releaseEscape(): void {
     if (!this.escGrabbed) return;
     this.escGrabbed = false;
+    unblockEscape();
     for (const acc of ["Escape", "Control+Escape"]) globalShortcut.unregister(acc);
   }
 
