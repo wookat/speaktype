@@ -230,6 +230,19 @@ export function getSettings(): Settings {
   return merged;
 }
 
+/** 恢复默认设置：只重置偏好项，用户资产（词典热词、按应用人设规则、手机配对码）保留 */
+export function resetSettingsToDefaults(): Settings {
+  const current = getSettings();
+  const next: Settings = {
+    ...DEFAULT_SETTINGS,
+    hotwords: current.hotwords,
+    appPersonas: current.appPersonas,
+    remoteRelayRoom: current.remoteRelayRoom,
+  };
+  persist("settings", next, true);
+  return next;
+}
+
 export function setSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
   persist("settings", next, true);

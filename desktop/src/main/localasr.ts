@@ -1,6 +1,6 @@
 import { app } from "electron";
 import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -186,6 +186,20 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
     log.warn(`local model ${model} download failed`, error);
   }
   return { ...status };
+}
+
+/** 删除模型的全部落盘文件（含可续传残片）；调用方需先停掉占用模型的 worker/server */
+export function deleteLocalModel(model: string): LocalModelStatus {
+  if (status.downloading && status.model === model) return { ...status };
+  for (const [, dest] of modelFiles(model)) {
+    rmSync(dest, { force: true });
+    rmSync(`${dest}.part`, { force: true });
+    rmSync(`${dest}.part.json`, { force: true });
+  }
+  if (isSherpaModel(model)) rmSync(join(modelsDir(), model), { recursive: true, force: true });
+  lastError.delete(model);
+  log.info(`local model ${model} deleted`);
+  return localModelStatus(model);
 }
 
 /**

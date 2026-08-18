@@ -70,6 +70,9 @@ const api = {
   localModels: (): Promise<Array<{ id: string; size: string }>> => ipcRenderer.invoke("local:models"),
   localModelStatus: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:status", model),
   localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),
+  localModelDelete: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:delete", model),
+  resetSettings: (): Promise<Settings> => ipcRenderer.invoke("settings:reset"),
+  factoryReset: (): Promise<void> => ipcRenderer.invoke("app:factoryReset"),
   onLocalModel: (fn: (s: LocalModelStatus) => void) => {
     const listener = (_e: unknown, s: LocalModelStatus) => fn(s);
     ipcRenderer.on("local:model", listener);

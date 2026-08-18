@@ -1,4 +1,6 @@
-// 必须最先 import：在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
+// 必须最先 import：完全重置的 userData 擦除要在任何 store/日志初始化之前
+import "./reset";
+// 在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
 import "./migrate";
 import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
 import { basename, join } from "node:path";
@@ -19,7 +21,7 @@ import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, tes
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { LOCAL_MODELS, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
+import { LOCAL_MODELS, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
@@ -43,6 +45,7 @@ import {
   isOnboarded,
   onPersistError,
   pruneStalePersonaRefs,
+  resetSettingsToDefaults,
   restoreHistory,
   setCustomPersonas,
   setOnboarded,
@@ -446,6 +449,35 @@ function registerIpc(): void {
       refreshTrayMenu();
     }
     return result;
+  });
+  ipcMain.handle("local:delete", (_e, model: string) => {
+    // 先停掉可能占用模型文件的推理进程/线程，Windows 下否则删不掉
+    releaseSherpaWorker();
+    stopLocalServer();
+    const result = deleteLocalModel(model);
+    refreshTrayMenu();
+    return result;
+  });
+  ipcMain.handle("settings:reset", async () => {
+    const next = resetSettingsToDefaults();
+    applyHotkeys(next);
+    releaseSherpaWorker();
+    stopLocalServer();
+    closeBridge();
+    closeChatgptBridge();
+    await applyLaunchAtLogin(next.launchAtLogin);
+    await syncRemoteMic(next.remoteMicEnabled);
+    refreshTrayMenu();
+    pushSettings();
+    return next;
+  });
+  ipcMain.handle("app:factoryReset", () => {
+    quitting = true;
+    hotkeys.stop();
+    stopLocalServer();
+    // 带标记重启：新实例在一切初始化前整体删除 userData（见 reset.ts），避开本实例对日志/缓存文件的占用
+    app.relaunch({ args: process.argv.slice(1).filter((a) => a !== "--factory-reset").concat("--factory-reset") });
+    app.exit(0);
   });
   ipcMain.handle("vad:status", () => vadStatus());
   ipcMain.handle("vad:download", () => downloadVad());
