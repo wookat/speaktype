@@ -102,9 +102,10 @@ export default {
     if (path === "/health") return new Response("ok");
 
     // PWA 资源：装到主屏幕后从 /app 启动，房间号取 localStorage 里上次配对的电脑
-    if (path === "/app") return new Response(phonePage(null, base), { headers: HTML_HEADERS });
+    const lang = url.searchParams.get("lang");
+    if (path === "/app") return new Response(phonePage(null, base, lang), { headers: HTML_HEADERS });
     if (path === "/manifest.webmanifest") {
-      return new Response(manifest(base), { headers: { "content-type": "application/manifest+json" } });
+      return new Response(manifest(base, lang), { headers: { "content-type": "application/manifest+json" } });
     }
     if (path === "/sw.js") {
       return new Response(swJs(base), { headers: { "content-type": "text/javascript; charset=utf-8" } });
@@ -114,7 +115,7 @@ export default {
 
     const page = path.match(/^\/m\/([0-9a-f]+)$/);
     if (page && ROOM_RE.test(page[1]!)) {
-      return new Response(phonePage(page[1]!, base), { headers: HTML_HEADERS });
+      return new Response(phonePage(page[1]!, base, lang), { headers: HTML_HEADERS });
     }
 
     const ws = path.match(/^\/ws\/([0-9a-f]+)$/);

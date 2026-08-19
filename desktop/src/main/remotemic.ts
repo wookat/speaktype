@@ -334,19 +334,40 @@ export async function stopRemoteMic(): Promise<void> {
   info = { running: false, url: "", qrDataUrl: "", clients: 0 };
 }
 
+// 中转连接心跳：半开 TCP 不会触发 close，靠协议层 ping/pong 探活，超时即 terminate 让现有重连接管
+const RELAY_PING_INTERVAL = 25_000;
+
 function connectRelay(d: RemoteMicDeps): void {
   const ws = new WebSocket(`wss://${relayBase}/ws/${relayRoom}?role=desktop`);
   relayWs = ws;
+  let alive = true;
+  let heartbeat: NodeJS.Timeout | null = null;
   ws.on("open", () => {
     relayFails = 0;
     if (info.error) {
       info.error = undefined;
       d.onClients(info.clients);
     }
+    heartbeat = setInterval(() => {
+      if (!alive) {
+        log.warn("relay ws heartbeat timeout, terminating");
+        ws.terminate();
+        return;
+      }
+      alive = false;
+      ws.ping();
+    }, RELAY_PING_INTERVAL);
+  });
+  ws.on("pong", () => {
+    alive = true;
   });
   ws.on("message", (data, isBinary) => handlePhoneMessage(d, ws, data, isBinary));
   ws.on("error", (error) => log.warn("relay ws error", error));
   ws.on("close", () => {
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
     if (activeWs === ws) {
       activeWs = null;
       d.cancel();
@@ -377,7 +398,7 @@ async function startRelayMic(relayUrl: string, room: string): Promise<RemoteMicI
   relayStopped = false;
   relayFails = 0;
   connectRelay(d);
-  const url = `https://${relayBase}/m/${relayRoom}`;
+  const url = `https://${relayBase}/m/${relayRoom}?lang=${currentLanguage()}`;
   const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
   info = { running: true, url, qrDataUrl, clients: 0, pairCode: relayRoom };
   log.info(`remote mic relaying via ${url}`);
