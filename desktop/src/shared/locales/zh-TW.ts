@@ -24,6 +24,7 @@ export const zhTW: LocaleDict = {
   "transcribe.tooLong": "檔案超過 3 小時上限，請先分割後再轉錄。",
   "transcribe.decodeFailed": "無法解碼該檔案：請確認是常見音訊格式（mp3 / wav / m4a / ogg / flac）。",
   "transcribe.noModel": "檔案轉錄使用離線模型 {{model}}（與即時聽寫的雲端服務無關），請先下載。",
+  "transcribe.parakeetHint": "目前模型 parakeet 僅支援英語和 25 種歐洲語言——中文、日語、韓語、粵語音訊請到設定將離線模型切換為 sensevoice-small。",
   "nav.settings": "設定",
   "home.title": "按住 {{key}} 鍵，開啟語音輸入",
   "home.subtitle": "鬆開按鍵即自動整理並落到游標處；按一下 {{toggle}} 可免按說話。",

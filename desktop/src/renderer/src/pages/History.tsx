@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { HistoryItem, Settings } from "../../../shared/types";
@@ -48,15 +48,21 @@ function History(props: {
   const [undoDel, setUndoDel] = useState<{ item: HistoryItem; index: number } | null>(null);
   const undoTimer = useRef<number | null>(null);
   const undoBtn = useRef<HTMLButtonElement>(null);
+  // 倒计时进度条：窗口关闭前可见地消耗，避免静默失效
+  const [undoArm, setUndoArm] = useState<{ ms: number; seq: number } | null>(null);
   const armUndoTimer = (ms: number): void => {
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
-    undoTimer.current = window.setTimeout(() => setUndoDel(null), ms);
+    undoTimer.current = window.setTimeout(() => {
+      setUndoDel(null);
+      setUndoArm(null);
+    }, ms);
+    setUndoArm((prev) => ({ ms, seq: (prev?.seq ?? 0) + 1 }));
   };
   const removeItem = (item: HistoryItem): void => {
     const index = props.history.findIndex((h) => h.id === item.id);
     void api.deleteHistory([item.id]).then(props.setHistory);
     setUndoDel({ item, index });
-    armUndoTimer(10000);
+    armUndoTimer(15000);
     // 键盘用户无需穿越整页列表即可撤销
     requestAnimationFrame(() => undoBtn.current?.focus());
   };
@@ -65,6 +71,7 @@ function History(props: {
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
     void api.restoreHistory(undoDel.item, undoDel.index).then(props.setHistory);
     setUndoDel(null);
+    setUndoArm(null);
   };
   const saveEdit = (item: HistoryItem): void => {
     if (!editing) return;
@@ -360,10 +367,12 @@ function History(props: {
           className="fixed bottom-6 right-6 z-10 flex items-center gap-3 rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-100 shadow-lg"
           onMouseEnter={() => {
             if (undoTimer.current) window.clearTimeout(undoTimer.current);
+            setUndoArm(null);
           }}
-          onMouseLeave={() => armUndoTimer(2000)}
+          onMouseLeave={() => armUndoTimer(3000)}
         >
           <span>{t("history.deleted")}</span>
+          {undoArm && <UndoCountdown key={undoArm.seq} ms={undoArm.ms} />}
           <button ref={undoBtn} className="font-medium text-indigo-300 hover:text-indigo-200" onClick={undoDelete}>
             {t("toast.undo")}
           </button>
@@ -372,4 +381,21 @@ function History(props: {
     </div>
   );
 }
+/** Undo 栏剩余时间进度条：满宽起步线性缩到 0，与关闭定时器同长 */
+function UndoCountdown({ ms }: { ms: number }) {
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setStarted(true)));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <span className="h-1 w-14 overflow-hidden rounded-full bg-white/20">
+      <span
+        className="block h-full rounded-full bg-indigo-300"
+        style={{ width: started ? "0%" : "100%", transition: started ? `width ${ms}ms linear` : "none" }}
+      />
+    </span>
+  );
+}
+
 export { History };

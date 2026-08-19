@@ -39,6 +39,30 @@ function saveText(content: string, filename: string, mime: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** WAV（RIFF/WAVE）从头部直接读出时长，免去全量解码；非 WAV 或解析失败返回 null */
+async function wavDurationSeconds(file: File): Promise<number | null> {
+  try {
+    const head = new DataView(await file.slice(0, 65536).arrayBuffer());
+    if (head.byteLength < 44) return null;
+    if (head.getUint32(0, false) !== 0x52494646 || head.getUint32(8, false) !== 0x57415645) return null;
+    let offset = 12;
+    let byteRate = 0;
+    while (offset + 8 <= head.byteLength) {
+      const id = head.getUint32(offset, false);
+      const size = head.getUint32(offset + 4, true);
+      if (id === 0x666d7420 && offset + 20 <= head.byteLength) byteRate = head.getUint32(offset + 16, true);
+      if (id === 0x64617461) {
+        if (!byteRate || size === 0xffffffff) return null;
+        return size / byteRate;
+      }
+      offset += 8 + size + (size % 2);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function Transcribe(props: {
   t: Translator;
   settings: Settings;
@@ -92,6 +116,12 @@ function Transcribe(props: {
     setDecoding(true);
     let ctx: AudioContext | null = null;
     try {
+      // WAV 先读头预检时长：超长文件不必先全量解码占数百 MB 再报限
+      const wavDur = await wavDurationSeconds(file);
+      if (wavDur != null && wavDur > MAX_SECONDS) {
+        setLocalError(t("transcribe.tooLong"));
+        return;
+      }
       const bytes = await file.arrayBuffer();
       // 16k 采样率的 AudioContext：decodeAudioData 会顺带重采样到目标采样率
       ctx = new AudioContext({ sampleRate: SR });
@@ -166,6 +196,12 @@ function Transcribe(props: {
           {local?.error && !local.downloading && (
             <div className="mt-2 text-xs text-red-600">{humanDownloadError(local.error, t)}</div>
           )}
+        </div>
+      )}
+
+      {model.startsWith("parakeet") && (
+        <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-2.5 text-xs text-indigo-600">
+          {t("transcribe.parakeetHint")}
         </div>
       )}
 
