@@ -33,16 +33,26 @@ function Panel() {
     const offLevel = api.onLevel((level) => {
       levelRef.current = level;
     });
-    const timer = setInterval(() => {
-      setLevels((prev) => [...prev.slice(1), Math.min(1, 0.08 + levelRef.current * 1.6)]);
-    }, 60);
     return () => {
       offSettings();
       offStatus();
       offLevel();
-      clearInterval(timer);
     };
   }, []);
+
+  const recording = status?.state === "recording" || status?.state === "connecting";
+
+  // 波形刷新循环只在录音期间运行，空闲时不空转
+  useEffect(() => {
+    if (!recording) return;
+    const timer = setInterval(() => {
+      setLevels((prev) => [...prev.slice(1), Math.min(1, 0.08 + levelRef.current * 1.6)]);
+    }, 60);
+    return () => {
+      clearInterval(timer);
+      setLevels(new Array(BAR_COUNT).fill(0.08));
+    };
+  }, [recording]);
 
   // 实时字幕总是滚到最新一个字
   useEffect(() => {
@@ -58,7 +68,6 @@ function Panel() {
     if (!status?.partial) return null;
   }
 
-  const recording = status?.state === "recording" || status?.state === "connecting";
   const working = status?.state === "transcribing" || status?.state === "polishing";
 
   return (
