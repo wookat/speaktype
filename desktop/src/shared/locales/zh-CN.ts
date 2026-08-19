@@ -24,6 +24,7 @@ export const zhCN = {
   "transcribe.tooLong": "文件超过 3 小时上限，请先分割后再转录。",
   "transcribe.decodeFailed": "无法解码该文件：请确认是常见音频格式（mp3 / wav / m4a / ogg / flac）。",
   "transcribe.noModel": "文件转录使用离线模型 {{model}}（与实时听写的云端服务无关），请先下载。",
+  "transcribe.parakeetHint": "当前模型 parakeet 只支持英语和 25 种欧洲语言——中文、日语、韩语、粤语音频请到设置把离线模型切换为 sensevoice-small。",
 
   "home.title": "按住 {{key}} 键，开启语音输入",
   "home.subtitle": "松开按键即自动整理并落到光标处；按一下 {{toggle}} 可免按说话。",

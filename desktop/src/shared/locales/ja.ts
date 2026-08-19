@@ -24,6 +24,7 @@ export const ja: LocaleDict = {
   "transcribe.tooLong": "ファイルが 3 時間の上限を超えています。先に分割してください。",
   "transcribe.decodeFailed": "このファイルをデコードできません：一般的な音声形式（mp3 / wav / m4a / ogg / flac）か確認してください。",
   "transcribe.noModel": "ファイル文字起こしはオフラインモデル {{model}} を使用します（リアルタイム入力のクラウドサービスとは無関係）。先にダウンロードしてください。",
+  "transcribe.parakeetHint": "現在のモデル parakeet は英語と欧州 25 言語のみ対応です——中国語・日本語・韓国語・広東語の音声は、設定でオフラインモデルを sensevoice-small に切り替えてください。",
   "nav.settings": "設定",
 
   "home.title": "{{key}} を押しながら話す",

@@ -25,6 +25,7 @@ export const en: LocaleDict = {
   "transcribe.tooLong": "File exceeds the 3-hour limit — please split it first.",
   "transcribe.decodeFailed": "Could not decode this file: make sure it is a common audio format (mp3 / wav / m4a / ogg / flac).",
   "transcribe.noModel": "File transcription runs on the offline model {{model}} (independent of your cloud dictation provider) — download it first.",
+  "transcribe.parakeetHint": "The current model parakeet supports English and 25 European languages only — for Chinese, Japanese, Korean or Cantonese audio, switch the offline model to sensevoice-small in Settings.",
 
   "home.title": "Hold {{key}} to start voice typing",
   "home.subtitle": "Release the key and the text lands at your cursor; tap {{toggle}} for hands-free mode.",
