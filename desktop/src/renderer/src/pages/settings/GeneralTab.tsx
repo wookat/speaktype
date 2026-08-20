@@ -313,7 +313,7 @@ function GeneralTab(props: {
         <div className="font-medium">{t("settings.resetSection")}</div>
         <Row label={t("settings.resetSettings")} hint={t("settings.resetSettingsHint")}>
           <button
-            className={`rounded-xl border px-4 py-2 text-sm ${
+            className={`whitespace-nowrap rounded-xl border px-4 py-2 text-sm ${
               confirmReset === "settings"
                 ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
                 : "border-slate-200 text-slate-500 hover:bg-slate-50"
@@ -336,7 +336,7 @@ function GeneralTab(props: {
         </Row>
         <Row label={t("settings.factoryReset")} hint={t("settings.factoryResetHint")}>
           <button
-            className={`rounded-xl border px-4 py-2 text-sm ${
+            className={`whitespace-nowrap rounded-xl border px-4 py-2 text-sm ${
               confirmReset === "all"
                 ? "border-red-300 bg-red-500 font-medium text-white hover:bg-red-600"
                 : "border-red-200 text-red-500 hover:bg-red-50"
