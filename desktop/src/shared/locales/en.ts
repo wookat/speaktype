@@ -409,6 +409,7 @@ export const en: LocaleDict = {
   "history.hotwordAdd": "Add to dictionary",
   "error.retryHint": "Recording kept — press the hotkey again to retry",
   "error.asrNetwork": "Cannot reach the speech recognition service — check your network or switch provider in Settings",
+  "error.asrTimeout": "The speech recognition service took too long to respond — try again or switch provider in Settings",
   "history.expand": "Show all",
   "history.collapse": "Show less",
   "error.localServerFailed": "Local recognition engine failed to start: check main.log via About → Open log folder and report the issue",

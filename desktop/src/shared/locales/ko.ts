@@ -409,6 +409,7 @@ export const ko: LocaleDict = {
   "history.hotwordAdd": "사전에 추가",
   "error.retryHint": "녹음이 보관되어 있습니다 — 단축키를 다시 누르면 재시도합니다",
   "error.asrNetwork": "음성 인식 서비스에 연결할 수 없습니다 — 네트워크를 확인하거나 설정에서 인식 방식을 변경하세요",
+  "error.asrTimeout": "음성 인식 서비스가 응답하지 않습니다 — 다시 시도하거나 설정에서 인식 방식을 변경하세요",
   "history.expand": "전체 보기",
   "history.collapse": "접기",
   "error.localServerFailed": "로컬 인식 엔진 시작 실패: 정보 → 로그 폴더 열기 에서 main.log 를 확인하고 문제를 신고하세요",

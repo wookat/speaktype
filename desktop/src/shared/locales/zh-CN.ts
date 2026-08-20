@@ -400,6 +400,7 @@ export const zhCN = {
   "history.hotwordAdd": "加入词典",
   "error.retryHint": "刚才的录音已保留，再按一次热键立即重试",
   "error.asrNetwork": "无法连接识别服务：请检查网络，或在设置中切换识别方式",
+  "error.asrTimeout": "识别服务长时间无响应：请重试，或在设置中切换识别方式",
   "history.expand": "展开全文",
   "history.collapse": "收起",
   "error.localServerFailed": "本地识别引擎启动失败：请从「关于 → 打开日志目录」查看 main.log 并反馈",

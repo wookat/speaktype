@@ -19,6 +19,8 @@ const PARTIAL_TICK_MS = 250;
 const PARTIAL_INTERVAL_MS = 1000;
 const PARTIAL_MIN_SAMPLES = SAMPLE_RATE;
 const PARTIAL_MAX_SAMPLES = SAMPLE_RATE * 20;
+// 云端整句转写的客户端超时：undici 默认 headersTimeout 300s，服务端挂起会卡「处理中」数分钟
+const CLOUD_FINISH_TIMEOUT_MS = 60_000;
 
 function transcriptionsUrl(baseUrl: string): string {
   const base = baseUrl.replace(/\/$/, "");
@@ -106,6 +108,7 @@ export function preconnectAsr(settings: Settings): void {
 export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
   const frames: Int16Array[] = [];
   let cancelled = false;
+  let controller: AbortController | null = null;
 
   return {
     pushPcm(frame: Int16Array): void {
@@ -114,6 +117,7 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
     cancel(): void {
       cancelled = true;
       frames.length = 0;
+      controller?.abort();
     },
     async finish(): Promise<string> {
       if (cancelled || frames.length === 0) return "";
@@ -123,14 +127,24 @@ export function startOpenAiAsrSession(settings: Settings): DoubaoSession {
       form.append("model", settings.asrModel || "whisper-1");
       // 自动检测：OpenAI 兼容接口的约定是缺省 language 即自动，传 "auto" 会被当非法 ISO 码拒掉
       if (settings.language && settings.language !== "auto") form.append("language", settings.language);
-      const res = await fetch(transcriptionsUrl(settings.asrBaseUrl), {
-        method: "POST",
-        headers: { Authorization: `Bearer ${settings.asrApiKey}` },
-        body: form,
-      });
+      controller = new AbortController();
+      const timer = setTimeout(() => controller?.abort(new Error(t("error.asrTimeout"))), CLOUD_FINISH_TIMEOUT_MS);
+      let res: Response;
+      try {
+        res = await fetch(transcriptionsUrl(settings.asrBaseUrl), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${settings.asrApiKey}` },
+          body: form,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if (cancelled) return "";
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
       if (!res.ok) {
-        const body = (await res.text()).slice(0, 160);
-        throw new Error(`ASR HTTP ${res.status} ${body}`);
+        throw new Error(`ASR ${httpErrorDetail(res.status, await res.text())}`);
       }
       const data = (await res.json()) as TranscriptionResponse;
       return (data.text ?? "").trim();

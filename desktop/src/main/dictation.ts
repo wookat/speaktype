@@ -153,6 +153,9 @@ export class Dictation {
   private message = "";
   private partial = "";
   private session: DoubaoSession | null = null;
+  /** 转写阶段（finish 进行中）的会话：Esc 取消时由此中断上传/丢弃结果 */
+  private finishing: DoubaoSession | null = null;
+  private finishCancelled = false;
   private buffered: Int16Array[] = [];
   private busy = false;
   private pendingEnd: "stop" | "cancel" | null = null;
@@ -523,7 +526,13 @@ export class Dictation {
       return;
     }
     if (!this.session) {
-      this.pendingEnd = "cancel";
+      if (this.finishing) {
+        // 转写/处理阶段取消：中断云端上传，结果到达也丢弃，收尾由 finalize 完成
+        this.finishCancelled = true;
+        this.finishing.cancel();
+      } else {
+        this.pendingEnd = "cancel";
+      }
       return;
     }
     this.session.cancel();
@@ -535,6 +544,17 @@ export class Dictation {
     this.partial = "";
     this.report("idle");
     if (!wasHandsFree) this.deps.showToast(t("toast.canceled"), t("toast.canceledBody"), undefined, 2500);
+  }
+
+  /** 转写阶段被取消的统一收尾：停麦、解静音、回空闲、短提示 */
+  private abortFinish(): void {
+    this.handsFree = false;
+    this.deps.recorder()?.webContents.send("recorder:stop");
+    this.unmute();
+    this.busy = false;
+    this.partial = "";
+    this.report("idle");
+    this.deps.showToast(t("toast.canceled"), t("toast.canceledBody"), undefined, 2500);
   }
 
   /** 连接建立期间用户已经松手/取消：连上后立刻按当时的意图收尾 */
@@ -712,9 +732,17 @@ export class Dictation {
     this.report("transcribing");
 
     let raw = "";
+    this.finishing = session;
+    this.finishCancelled = false;
     try {
       raw = await session.finish();
     } catch (error) {
+      this.finishing = null;
+      if (this.finishCancelled) {
+        this.finishCancelled = false;
+        this.abortFinish();
+        return;
+      }
       const message = humanizeAsrError(error instanceof Error ? error.message : String(error));
       // 热键重试再失败：原地刷新既有失败条目，不追加重复条目与重复音频
       const priorId = this.lastFailed?.historyId;
@@ -742,6 +770,13 @@ export class Dictation {
       this.unmute();
       this.busy = false;
       this.report("error", `${message} · ${t("error.retryHint")}`);
+      return;
+    }
+    this.finishing = null;
+    if (this.finishCancelled) {
+      // 云端无法中断的通道（chatgpt/本地）取消后仍会出结果：用户已取消，结果丢弃不落字
+      this.finishCancelled = false;
+      this.abortFinish();
       return;
     }
     // 本次是热键重试且成功：把之前的失败条目原地升级，后面 addHistory 前先清掉
