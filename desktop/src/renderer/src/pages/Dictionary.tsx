@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { Settings } from "../../../shared/types";
+import { toSimplified } from "../../../shared/zhNorm";
 import { Toggle } from "../components/Toggle";
 import { MAX_HOTWORDS, MAX_HOTWORD_LEN } from "../constants";
 
@@ -49,8 +50,9 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
     a.click();
     URL.revokeObjectURL(url);
   };
-  const q = query.trim().toLowerCase();
-  const filtered = q ? words.filter((w) => w.toLowerCase().includes(q)) : words;
+  // 与 History 搜索同口径：搜索键与热词都做简繁归一，繁体关键词可命中简体热词，反之亦然
+  const q = toSimplified(query.trim().toLowerCase());
+  const filtered = q ? words.filter((w) => toSimplified(w.toLowerCase()).includes(q)) : words;
 
   return (
     <div className="mx-auto max-w-3xl">
