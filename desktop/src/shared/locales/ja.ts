@@ -252,6 +252,7 @@ export const ja: LocaleDict = {
   "settings.importConfigBtn": "インポート…",
   "settings.configExported": "設定をエクスポートしました",
   "settings.configImported": "設定をインポートして適用しました",
+  "settings.configIgnored": "（認識できない {{count}} 個のフィールドを無視しました）",
   "settings.configInvalid": "有効な SpeakType 設定ファイルではありません",
   "settings.configFailed": "失敗：{{error}}",
   "settings.resetSection": "リセット",

@@ -436,7 +436,7 @@ function registerIpc(): void {
     // 文件里没有自建人设时不碰本机列表：导入不应静默清空用户资产
     if (parsed.personas.length > 0) setCustomPersonas(parsed.personas);
     await applySettingsPatch(parsed.settings);
-    return { ok: true };
+    return { ok: true, ignored: parsed.ignored };
   });
   // 轻量新版提示（非自动更新）：启动后空闲预拨一次 GitHub latest release。
   // 匿名 API 限额 60 次/时/IP，共享出口 IP 极易耗尽：成功结果落盘缓存 24h，失败 30 分钟后重试至多 3 次，仍失败静默（离线不打扰）

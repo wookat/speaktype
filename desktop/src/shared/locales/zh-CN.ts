@@ -246,6 +246,7 @@ export const zhCN = {
   "settings.importConfigBtn": "导入…",
   "settings.configExported": "配置已导出",
   "settings.configImported": "配置已导入并生效",
+  "settings.configIgnored": "（已忽略 {{count}} 个无法识别的字段）",
   "settings.configInvalid": "不是有效的 SpeakType 配置文件",
   "settings.configFailed": "失败：{{error}}",
   "settings.resetSection": "重置",

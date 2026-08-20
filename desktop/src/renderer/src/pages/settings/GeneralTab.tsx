@@ -31,11 +31,13 @@ function GeneralTab(props: {
     return () => clearTimeout(timer);
   }, [backupMsg]);
   const transferConfig = (
-    run: () => Promise<{ ok: boolean; canceled?: boolean; invalid?: boolean; error?: string }>,
+    run: () => Promise<{ ok: boolean; canceled?: boolean; invalid?: boolean; error?: string; ignored?: number }>,
     okKey: Parameters<Translator>[0],
   ) => {
     void run().then((res) => {
-      if (res.ok) setBackupMsg({ text: t(okKey), error: false });
+      if (res.ok && res.ignored)
+        setBackupMsg({ text: `${t(okKey)}${t("settings.configIgnored", { count: res.ignored })}`, error: false });
+      else if (res.ok) setBackupMsg({ text: t(okKey), error: false });
       else if (res.canceled) setBackupMsg(null);
       else if (res.invalid) setBackupMsg({ text: t("settings.configInvalid"), error: true });
       else setBackupMsg({ text: t("settings.configFailed", { error: res.error ?? "" }), error: true });

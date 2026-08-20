@@ -252,6 +252,7 @@ export const en: LocaleDict = {
   "settings.importConfigBtn": "Import…",
   "settings.configExported": "Config exported",
   "settings.configImported": "Config imported and applied",
+  "settings.configIgnored": " ({{count}} unrecognized field(s) ignored)",
   "settings.configInvalid": "Not a valid SpeakType config file",
   "settings.configFailed": "Failed: {{error}}",
   "settings.resetSection": "Reset",

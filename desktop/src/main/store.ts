@@ -274,8 +274,10 @@ export function buildConfigExport(): ConfigExport {
   };
 }
 
-/** 解析导入文件：只收留与默认值同形的已知字段，凭证/设备字段保留本机现值 */
-export function parseConfigImport(raw: string): { settings: Partial<Settings>; personas: Persona[] } | null {
+/** 解析导入文件：只收留与默认值同形的已知字段，凭证/设备字段保留本机现值；ignored 计被丢弃的字段数供可见反馈 */
+export function parseConfigImport(
+  raw: string,
+): { settings: Partial<Settings>; personas: Persona[]; ignored: number } | null {
   let data: unknown;
   try {
     data = JSON.parse(raw.replace(/^\uFEFF/, ""));
@@ -287,12 +289,20 @@ export function parseConfigImport(raw: string): { settings: Partial<Settings>; p
   if (d.app !== "speaktype" || typeof d.settings !== "object" || d.settings === null) return null;
   const incoming = d.settings as Record<string, unknown>;
   const patch: Partial<Settings> = {};
+  const knownKeys = new Set<string>(Object.keys(DEFAULT_SETTINGS));
+  let ignored = Object.keys(incoming).filter((k) => !knownKeys.has(k)).length;
   for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof Settings>) {
-    if (NON_PORTABLE_KEYS.includes(key)) continue;
     const value = incoming[key];
     if (value === undefined) continue;
+    if (NON_PORTABLE_KEYS.includes(key)) {
+      ignored++;
+      continue;
+    }
     const def = DEFAULT_SETTINGS[key];
-    if (Array.isArray(def) ? !Array.isArray(value) : typeof value !== typeof def) continue;
+    if (Array.isArray(def) ? !Array.isArray(value) : typeof value !== typeof def) {
+      ignored++;
+      continue;
+    }
     Object.assign(patch, { [key]: value });
   }
   if (patch.hotwords) patch.hotwords = patch.hotwords.filter((w): w is string => typeof w === "string");
@@ -312,7 +322,7 @@ export function parseConfigImport(raw: string): { settings: Partial<Settings>; p
         typeof (p as Persona).prompt === "string",
     )
     .map((p) => ({ id: p.id, name: p.name, prompt: p.prompt, builtin: false, icon: typeof p.icon === "string" ? p.icon : "sparkles" }));
-  return { settings: patch, personas };
+  return { settings: patch, personas, ignored };
 }
 
 /** 内置人设 + 用户自建人设，顺序即 Alt+1..9 的编号顺序 */
