@@ -24,6 +24,12 @@ const HOP = SR / 10;
 /** 单段上限：过长会拖慢单次解码；在 [MIN_CUT, MAX_SEG] 区间找最静的点切开 */
 const MAX_SEG_S = 28;
 const MIN_CUT_S = 16;
+/** 句间停顿切片：静音谷 ≥ PAUSE_S 按谷心切开，子段至少 MIN_SUB_S；
+ * 模型对段尾才稳定出句号，整段解码会把句界降级成逗号或丢失 */
+const PAUSE_S = 0.5;
+const MIN_SUB_S = 1.5;
+/** 静音谷判定：帧 RMS 低于全文峰值 RMS 的 2% */
+const QUIET_RATIO = 0.02;
 /** 段内峰值低于该值视为纯静音段，跳过识别避免幻听 */
 const SILENT_PEAK = 0.008;
 
@@ -114,16 +120,40 @@ function rmsProfile(samples: Float32Array): Float32Array {
   return out;
 }
 
-/** 按静音切段：每段 ≤ MAX_SEG_S，切点选 [MIN_CUT_S, MAX_SEG_S] 内最静的 100ms */
-function splitSegments(samples: Float32Array): Array<[number, number]> {
-  const rms = rmsProfile(samples);
-  const total = samples.length;
+/** 句间停顿切片：找 ≥ PAUSE_S 的静音谷，按谷心切开，两侧子段不短于 MIN_SUB_S */
+function splitByPauses(samples: Float32Array, rms: Float32Array): Array<[number, number]> {
+  let peak = 0;
+  for (const v of rms) if (v > peak) peak = v;
+  const quiet = peak * QUIET_RATIO;
+  const minFrames = Math.round((PAUSE_S * SR) / HOP);
   const out: Array<[number, number]> = [];
   let start = 0;
-  while (start < total) {
-    const remain = total - start;
-    if (remain <= MAX_SEG_S * SR) {
-      out.push([start, total]);
+  let runStart = -1;
+  for (let f = 0; f <= rms.length; f++) {
+    if (f < rms.length && rms[f]! < quiet) {
+      if (runStart < 0) runStart = f;
+      continue;
+    }
+    if (runStart >= 0 && f - runStart >= minFrames) {
+      const cut = Math.round(((runStart + f) / 2) * HOP);
+      if (cut - start >= MIN_SUB_S * SR && samples.length - cut >= MIN_SUB_S * SR) {
+        out.push([start, cut]);
+        start = cut;
+      }
+    }
+    runStart = -1;
+  }
+  out.push([start, samples.length]);
+  return out;
+}
+
+/** 单段封顶：每段 ≤ MAX_SEG_S，切点选 [MIN_CUT_S, MAX_SEG_S] 内最静的 100ms */
+function capLongSegment(from: number, to: number, rms: Float32Array): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  let start = from;
+  while (start < to) {
+    if (to - start <= MAX_SEG_S * SR) {
+      out.push([start, to]);
       break;
     }
     const fromFrame = Math.floor((start + MIN_CUT_S * SR) / HOP);
@@ -136,9 +166,19 @@ function splitSegments(samples: Float32Array): Array<[number, number]> {
         best = f;
       }
     }
-    const cut = Math.min(total, (best + 1) * HOP);
+    const cut = Math.min(to, (best + 1) * HOP);
     out.push([start, cut]);
     start = cut;
+  }
+  return out;
+}
+
+/** 先按句间停顿切片，再对超长子段封顶 */
+function splitSegments(samples: Float32Array): Array<[number, number]> {
+  const rms = rmsProfile(samples);
+  const out: Array<[number, number]> = [];
+  for (const [from, to] of splitByPauses(samples, rms)) {
+    out.push(...capLongSegment(from, to, rms));
   }
   return out;
 }
@@ -150,6 +190,13 @@ function segmentPeak(samples: Float32Array, from: number, to: number): number {
     if (v > peak) peak = v;
   }
   return peak;
+}
+
+const KANA_RE = /[\u3041-\u30ff]/;
+
+/** 子段尾落在句间停顿上：汉字结尾且无终止标点时补句号（含假名的日文不动） */
+function endCjkSentence(text: string): string {
+  return /[\u4e00-\u9fff]$/.test(text) && !KANA_RE.test(text) ? text + "\u3002" : text;
 }
 
 function floatToInt16(samples: Float32Array, from: number, to: number): Int16Array {
@@ -208,7 +255,7 @@ export async function startTranscribe(
         const raw = await transcribeSlice(settings, model, samples, from, to);
         const text = correctHotwords(raw, settings.hotwords).trim();
         if (jobId !== job) return transcribeState();
-        if (text) segments.push({ start: from / SR, end: to / SR, text });
+        if (text) segments.push({ start: from / SR, end: to / SR, text: endCjkSentence(text) });
       }
       push({ percent: Math.min(99, Math.round(((i + 1) / ranges.length) * 100)), segments: [...segments] });
     }
