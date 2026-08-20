@@ -38,6 +38,10 @@ const BREAK_WORDS = [
 ];
 const BREAK_RE = new RegExp(`(?<![，。！？；、,.!?;\\s])(${BREAK_WORDS.join("|")})`, "g");
 const CJK_RE = /[\u4e00-\u9fff]/;
+const KANA_RE = /[\u3040-\u30ff]/;
+// 日文句末形（です/ます系）后接非接续助词时补句号：ので/が等连接形不断
+const JA_SENTENCE_END_RE =
+  /(ました|ません|でした|でしょう|ください|ます|です)(?![。！？])(?![のがかしとねよにでをはもて])/g;
 // 相邻两个标点之间超过这么多字就把逗号升级成句号，避免一逗到底
 const SENTENCE_SPAN = 30;
 
@@ -146,6 +150,8 @@ export function addLocalPunctuation(text: string): string {
   if (text.length < 16) return text;
   const punctCount = (text.match(/[，。！？；,.!?;]/g) ?? []).length;
   if (punctCount > text.length / 25) return text;
+  // 日文（含假名）：中文连接词断句不适用，只保守地在句末形后补句号
+  if (KANA_RE.test(text)) return text.replace(JA_SENTENCE_END_RE, "$1。").replace(/^[，。]/, "");
   let out = text.replace(BREAK_RE, "，$1");
   // 每隔一段距离把逗号升级为句号，形成自然的句子边界
   let sinceStop = 0;
@@ -244,7 +250,8 @@ function restoreNumericTokens(input: string, out: string): string {
 export async function applyModelPunctuation(text: string, keepCjkPeriod = false): Promise<string> {
   if (!needsPunctuation(text)) return text;
   const modeled = await punctuate(text);
-  if (modeled === null) {
+  // 模型不可用或对该语言无产出（punct-ct 只覆盖中英，日文等输入原样返回）：回退规则断句
+  if (modeled === null || needsPunctuation(modeled)) {
     const out = addLocalPunctuation(text);
     return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
   }
