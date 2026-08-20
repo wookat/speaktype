@@ -219,6 +219,23 @@ function toEnglishPunct(text: string): string {
 }
 
 /**
+ * 模型分词会把金额/千分位/时间拆开（$35,000 → $ 35, 000、3:30 → 3: 30）：
+ * 把输入中原样存在的数字串在模型输出里复原，不碰模型新增的句间标点。
+ */
+function restoreNumericTokens(input: string, out: string): string {
+  const tokens = input.match(/[$€£¥]?\d[\d,.:]*\d%?|[$€£¥]\d%?/g) ?? [];
+  let fixed = out;
+  for (const tok of new Set(tokens)) {
+    const pattern = tok
+      .split("")
+      .map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("\\s*");
+    fixed = fixed.replace(new RegExp(pattern, "g"), tok.replace(/\$/g, "$$$$"));
+  }
+  return fixed;
+}
+
+/**
  * 增强标点：用 ct-transformer 模型补标点，未下载/加载失败时回退规则断句。
  * 输入应是 localCleanup(text, true, false) 后的文本（已清理、未补标点）。
  */
@@ -229,8 +246,8 @@ export async function applyModelPunctuation(text: string, keepCjkPeriod = false)
     const out = addLocalPunctuation(text);
     return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
   }
-  if (!CJK_RE.test(modeled)) return toEnglishPunct(modeled);
-  const merged = modeled
+  if (!CJK_RE.test(modeled)) return restoreNumericTokens(text, toEnglishPunct(modeled));
+  const merged = restoreNumericTokens(text, modeled)
     .replace(/[，、；：]+(?=[。！？])/g, "")
     .replace(/([。！？])[。！？，、；：]+/g, "$1")
     .replace(/^[，。]/, "");
