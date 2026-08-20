@@ -4,7 +4,7 @@ import { app } from "electron";
 import Store from "electron-store";
 import log from "electron-log/main.js";
 import { BUILTIN_PERSONAS } from "../shared/personas";
-import type { HistoryItem, Persona, Settings, Stats } from "../shared/types";
+import type { AppPersonaRule, HistoryItem, Persona, Settings, Stats } from "../shared/types";
 
 // 系统语言决定默认本地模型：中日韩粵用 SenseVoice；英语/欧洲语系用 Parakeet（这些语言准确率更高）。只影响全新用户默认值
 const SYS_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
@@ -247,6 +247,70 @@ export function setSettings(patch: Partial<Settings>): Settings {
   const next = { ...getSettings(), ...patch };
   persist("settings", next, true);
   return next;
+}
+
+/** 不随导出文件流转的字段：凭证明文落盘有泄露风险，micDeviceId 绑定本机音频设备 */
+const NON_PORTABLE_KEYS: ReadonlyArray<keyof Settings> = ["polishApiKey", "asrApiKey", "doubaoAppKey", "micDeviceId"];
+
+export interface ConfigExport {
+  app: "speaktype";
+  configVersion: 1;
+  exportedAt: string;
+  settings: Partial<Settings>;
+  personas: Persona[];
+}
+
+export function buildConfigExport(): ConfigExport {
+  const settings: Partial<Settings> = { ...getSettings() };
+  for (const key of NON_PORTABLE_KEYS) delete settings[key];
+  return {
+    app: "speaktype",
+    configVersion: 1,
+    exportedAt: new Date().toISOString(),
+    settings,
+    personas: store.get("personas"),
+  };
+}
+
+/** 解析导入文件：只收留与默认值同形的已知字段，凭证/设备字段保留本机现值 */
+export function parseConfigImport(raw: string): { settings: Partial<Settings>; personas: Persona[] } | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(raw.replace(/^\uFEFF/, ""));
+  } catch {
+    return null;
+  }
+  if (typeof data !== "object" || data === null) return null;
+  const d = data as { app?: unknown; settings?: unknown; personas?: unknown };
+  if (d.app !== "speaktype" || typeof d.settings !== "object" || d.settings === null) return null;
+  const incoming = d.settings as Record<string, unknown>;
+  const patch: Partial<Settings> = {};
+  for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof Settings>) {
+    if (NON_PORTABLE_KEYS.includes(key)) continue;
+    const value = incoming[key];
+    if (value === undefined) continue;
+    const def = DEFAULT_SETTINGS[key];
+    if (Array.isArray(def) ? !Array.isArray(value) : typeof value !== typeof def) continue;
+    Object.assign(patch, { [key]: value });
+  }
+  if (patch.hotwords) patch.hotwords = patch.hotwords.filter((w): w is string => typeof w === "string");
+  if (patch.appPersonas) {
+    patch.appPersonas = patch.appPersonas.filter(
+      (r): r is AppPersonaRule =>
+        typeof r === "object" && r !== null && typeof r.match === "string" && typeof r.personaId === "string",
+    );
+  }
+  const personas = (Array.isArray(d.personas) ? d.personas : [])
+    .filter(
+      (p): p is Persona =>
+        typeof p === "object" &&
+        p !== null &&
+        typeof (p as Persona).id === "string" &&
+        typeof (p as Persona).name === "string" &&
+        typeof (p as Persona).prompt === "string",
+    )
+    .map((p) => ({ id: p.id, name: p.name, prompt: p.prompt, builtin: false, icon: typeof p.icon === "string" ? p.icon : "sparkles" }));
+  return { settings: patch, personas };
 }
 
 /** 内置人设 + 用户自建人设，顺序即 Alt+1..9 的编号顺序 */

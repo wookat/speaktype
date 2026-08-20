@@ -32,6 +32,14 @@ export interface MicDevice {
   label: string;
 }
 
+/** 配置导出/导入结果：canceled=用户在文件对话框取消，invalid=文件不是有效的 SpeakType 配置 */
+export interface ConfigTransferResult {
+  ok: boolean;
+  canceled?: boolean;
+  invalid?: boolean;
+  error?: string;
+}
+
 const api = {
   init: (): Promise<InitPayload> => ipcRenderer.invoke("app:init"),
   updateSettings: (patch: Partial<Settings>): Promise<Settings> =>
@@ -72,6 +80,8 @@ const api = {
   localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),
   localModelDelete: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:delete", model),
   resetSettings: (): Promise<Settings> => ipcRenderer.invoke("settings:reset"),
+  exportConfig: (): Promise<ConfigTransferResult> => ipcRenderer.invoke("config:export"),
+  importConfig: (): Promise<ConfigTransferResult> => ipcRenderer.invoke("config:import"),
   factoryReset: (): Promise<void> => ipcRenderer.invoke("app:factoryReset"),
   onLocalModel: (fn: (s: LocalModelStatus) => void) => {
     const listener = (_e: unknown, s: LocalModelStatus) => fn(s);
