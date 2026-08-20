@@ -230,7 +230,7 @@ export function getSettings(): Settings {
   return merged;
 }
 
-/** 恢复默认设置：只重置偏好项，用户资产（词典热词、按应用人设规则、手机配对码）保留 */
+/** 恢复默认设置：只重置偏好项，用户资产（词典热词、按应用人设规则、手机配对码、已下载模型的选择）保留 */
 export function resetSettingsToDefaults(): Settings {
   const current = getSettings();
   const next: Settings = {
@@ -238,6 +238,8 @@ export function resetSettingsToDefaults(): Settings {
     hotwords: current.hotwords,
     appPersonas: current.appPersonas,
     remoteRelayRoom: current.remoteRelayRoom,
+    // locale 默认模型可能没下载过：重置后落缺模型态，不如保留当前可用的选择
+    localModel: current.localModel,
   };
   persist("settings", next, true);
   return next;

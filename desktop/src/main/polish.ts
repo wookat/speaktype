@@ -323,7 +323,7 @@ export async function rewriteSelection(
   settings: Settings,
   selection: string,
   instruction: string,
-): Promise<string | { error: "network" | "empty" }> {
+): Promise<string | { error: "network" | "empty" | "timeout" }> {
   if (!settings.polishBaseUrl) return { error: "empty" };
   // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
   instruction = correctHotwords(instruction, settings.hotwords);
@@ -351,8 +351,9 @@ export async function rewriteSelection(
     const data = (await res.json()) as ChatResponse;
     const content = data.choices?.[0]?.message?.content?.trim();
     return content ? stripLlmWrapper(content) : { error: "empty" };
-  } catch {
-    return { error: "network" };
+  } catch (error) {
+    // 服务挂起 30s 后才失败与立刻连不上是两种排查方向，提示要分开
+    return { error: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network" };
   }
 }
 
