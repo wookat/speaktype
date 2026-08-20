@@ -32,6 +32,7 @@ import {
   broadcastToPhones,
   configureRemoteMic,
   newPairCode,
+  refreshRemoteMicQr,
   remoteMicInfo,
   startRemoteMic,
   stopRemoteMic,
@@ -190,7 +191,7 @@ configureRemoteMic({
   stop: () => dictation.stop(),
   cancel: () => dictation.cancel(),
   pushPcm: (frame) => dictation.pushPcm(frame),
-  isRecording: () => dictation.isRecording(),
+  isBusy: () => dictation.isBusy(),
   onClients: (count) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("remotemic:info", { ...remoteMicInfo(), clients: count });
   },
@@ -392,6 +393,9 @@ function registerIpc(): void {
     }
     if ("remoteMicEnabled" in patch || "remoteMicMode" in patch || "remoteRelayUrl" in patch) {
       await syncRemoteMic(next.remoteMicEnabled);
+    } else if ("uiLanguage" in patch) {
+      // 中转二维码携带界面语言：切语言时原地重算 URL/QR，无需关开开关
+      await refreshRemoteMicQr();
     }
     pushSettings();
     return next;
