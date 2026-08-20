@@ -63,7 +63,7 @@ function nearKey(joined: string, key: string): boolean {
  * 英文热词：大小写与空格/连字符不敏感的整词替换。
  * "speak type"/"speaktype"/"Speaktype" → "SpeakType"。只处理去分隔后 ≥4 字符的词，避免短词误替换。
  */
-function correctAsciiHotword(text: string, word: string): string {
+function correctAsciiHotword(text: string, word: string, dictKeys: Set<string>): string {
   const key = word.replace(/[ -]/g, "").toLowerCase();
   if (key.length < 4) return text;
   const tokens = [...text.matchAll(/[A-Za-z0-9]+/g)].map((m) => ({
@@ -90,16 +90,17 @@ function correctAsciiHotword(text: string, word: string): string {
           nearEnd = -1;
           break;
         }
-        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(end), word);
+        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(end), word, dictKeys);
       }
-      // 容错命中先记下，继续找精确命中（devop + s 拼成整词时以精确为准）
-      if (nearEnd < 0 && nearKey(joined, key)) nearEnd = end;
+      // 容错命中先记下，继续找精确命中（devop + s 拼成整词时以精确为准）；
+      // 段落本身就是另一条词典词时不参与模糊命中，防编号族热词链式漂移（HotTerm012→013→…）
+      if (nearEnd < 0 && !dictKeys.has(joined) && nearKey(joined, key)) nearEnd = end;
       if (joined.length >= key.length) break;
     }
     if (nearEnd >= 0) {
       const seg = text.slice(first.start, nearEnd);
       if (seg !== word)
-        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(nearEnd), word);
+        return text.slice(0, first.start) + word + correctAsciiHotword(text.slice(nearEnd), word, dictKeys);
     }
   }
   return text;
@@ -108,12 +109,19 @@ function correctAsciiHotword(text: string, word: string): string {
 export function correctHotwords(text: string, hotwords: string[]): string {
   if (!text || !hotwords.length) return text;
   const dict = new Set(hotwords.map((w) => w.trim()));
+  // ASCII 词典键（去空格/连字符小写）：用于模糊纠错的词典词互噬保护
+  const asciiKeys = new Set(
+    hotwords
+      .map((w) => w.trim())
+      .filter((w) => ASCII_WORD.test(w))
+      .map((w) => w.replace(/[ -]/g, "").toLowerCase()),
+  );
   const kanaContext = KANA.test(text);
   let out = text;
   for (const word of hotwords) {
     const trimmed = word.trim();
     if (ASCII_WORD.test(trimmed)) {
-      out = correctAsciiHotword(out, trimmed);
+      out = correctAsciiHotword(out, trimmed, asciiKeys);
       continue;
     }
     if (kanaContext || trimmed.length < 2 || !CJK.test(trimmed) || out.includes(trimmed)) continue;
