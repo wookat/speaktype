@@ -341,8 +341,18 @@ const installBtn = document.getElementById("install");
 const unpair = document.getElementById("unpair");
 let room = ${room ? JSON.stringify(room) : "localStorage.getItem('speaktype-room') || ''"};
 let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 0;
-// busy 提示短暂锁定：避免随后的 status 广播（idle/transcribing）马上冲掉提示，用户根本来不及看清
-let busyHold = 0;
+// busy 提示短暂锁定：避免随后的 status 广播（idle/transcribing）马上冲掉提示，用户根本来不及看清；
+// 锁定期内被丢弃的最后一条文案存入 heldText，到期后补放，避免会话末尾的 idle 被吞后 busy 文案永久残留
+let busyHold = 0, busyTimer = null, heldText = null;
+
+function holdText(text) {
+  heldText = text;
+  if (busyTimer) return;
+  busyTimer = setTimeout(() => {
+    busyTimer = null;
+    if (heldText !== null && Date.now() >= busyHold) { stateEl.textContent = heldText; heldText = null; }
+  }, Math.max(0, busyHold - Date.now()) + 50);
+}
 
 if (ROOM_RE.test(room)) localStorage.setItem("speaktype-room", room);
 
@@ -385,16 +395,24 @@ function connect() {
     if (m.type === "status") {
       partialEl.textContent = m.partial || partialEl.textContent;
       if (m.state === "error") stateEl.textContent = m.message || L.error;
-      else if (Date.now() < busyHold) { /* busy 提示锁定期内不被非错误状态冲掉 */ }
-      else if (m.state === "transcribing") stateEl.textContent = L.transcribing;
-      else if (m.state === "polishing") stateEl.textContent = L.polishing;
-      else if (m.state === "idle" && !holding) stateEl.textContent = L.connectedIdle;
+      else {
+        let text = null;
+        if (m.state === "transcribing") text = L.transcribing;
+        else if (m.state === "polishing") text = L.polishing;
+        else if (m.state === "idle" && !holding) text = L.connectedIdle;
+        if (text !== null) {
+          if (Date.now() < busyHold) holdText(text);
+          else stateEl.textContent = text;
+        }
+      }
     }
     if (m.type === "peer") {
       talk.disabled = !m.connected;
-      if (Date.now() >= busyHold) stateEl.textContent = m.connected ? L.connectedIdle : L.desktopOffline;
+      const peerText = m.connected ? L.connectedIdle : L.desktopOffline;
+      if (Date.now() >= busyHold) stateEl.textContent = peerText;
+      else holdText(peerText);
     }
-    if (m.type === "busy") { busyHold = Date.now() + 3000; stateEl.textContent = L.busy; endHold(true); }
+    if (m.type === "busy") { busyHold = Date.now() + 3000; heldText = null; stateEl.textContent = L.busy; endHold(true); }
   };
 }
 
