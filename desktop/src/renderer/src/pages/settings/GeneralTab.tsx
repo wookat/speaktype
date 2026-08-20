@@ -288,7 +288,7 @@ function GeneralTab(props: {
         <div className="font-medium">{t("settings.backupSection")}</div>
         <Row label={t("settings.exportConfig")} hint={t("settings.exportConfigHint")}>
           <button
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+            className="whitespace-nowrap rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
             onClick={() => transferConfig(api.exportConfig, "settings.configExported")}
           >
             {t("settings.exportConfigBtn")}
@@ -296,7 +296,7 @@ function GeneralTab(props: {
         </Row>
         <Row label={t("settings.importConfig")} hint={t("settings.importConfigHint")}>
           <button
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+            className="whitespace-nowrap rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
             onClick={() => transferConfig(api.importConfig, "settings.configImported")}
           >
             {t("settings.importConfigBtn")}

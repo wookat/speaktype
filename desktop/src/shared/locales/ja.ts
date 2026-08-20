@@ -109,7 +109,7 @@ export const ja: LocaleDict = {
   "dict.placeholder":
     "1 行に 1 語、各 20 文字まで。前後の空白は削除され、空行はスキップされます。",
   "dict.count": "{{count}}/300 ホットワード",
-  "dict.limitReached": "{{count}} 語は追加されませんでした（300 語の上限超過、または 20 文字を超えるため）。",
+  "dict.limitReached": "{{count}} 行は追加されませんでした（300 語の上限超過、20 文字超、または記号のみのため）。",
   "dict.kanaNotCorrected":
     "{{count}} 語にかなが含まれています。保存されましたが、自動補正は現在中国語と英単語のみ対応しています。",
   "dict.manage": "ホットワードを管理",
@@ -252,7 +252,7 @@ export const ja: LocaleDict = {
   "settings.importConfigBtn": "インポート…",
   "settings.configExported": "設定をエクスポートしました",
   "settings.configImported": "設定をインポートして適用しました",
-  "settings.configIgnored": "（認識できない {{count}} 個のフィールドを無視しました）",
+  "settings.configIgnored": "（{{count}} 個のフィールドをスキップ：未知・型不一致・移行対象外）",
   "settings.configInvalid": "有効な SpeakType 設定ファイルではありません",
   "settings.configFailed": "失敗：{{error}}",
   "settings.resetSection": "リセット",
