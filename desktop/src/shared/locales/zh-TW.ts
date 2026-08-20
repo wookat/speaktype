@@ -236,6 +236,7 @@ export const zhTW: LocaleDict = {
   "settings.importConfigBtn": "匯入…",
   "settings.configExported": "設定已匯出",
   "settings.configImported": "設定已匯入並生效",
+  "settings.configIgnored": "（已忽略 {{count}} 個無法識別的欄位）",
   "settings.configInvalid": "不是有效的 SpeakType 設定檔",
   "settings.configFailed": "失敗：{{error}}",
   "settings.resetSection": "重設",

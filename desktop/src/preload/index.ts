@@ -32,12 +32,13 @@ export interface MicDevice {
   label: string;
 }
 
-/** 配置导出/导入结果：canceled=用户在文件对话框取消，invalid=文件不是有效的 SpeakType 配置 */
+/** 配置导出/导入结果：canceled=用户在文件对话框取消，invalid=文件不是有效的 SpeakType 配置，ignored=导入时被丢弃的字段数 */
 export interface ConfigTransferResult {
   ok: boolean;
   canceled?: boolean;
   invalid?: boolean;
   error?: string;
+  ignored?: number;
 }
 
 const api = {

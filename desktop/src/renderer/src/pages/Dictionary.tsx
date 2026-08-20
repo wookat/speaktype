@@ -26,7 +26,8 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
-    const incoming = lines.filter((s) => s.length <= MAX_HOTWORD_LEN);
+    // 纯符号行（如粘贴文档里的 === 分隔线）不是词，入库只会污染纠错匹配
+    const incoming = lines.filter((s) => s.length <= MAX_HOTWORD_LEN && /[\p{L}\p{N}]/u.test(s));
     const unique = [...new Set([...words, ...incoming])];
     const merged = unique.slice(0, MAX_HOTWORDS);
     setDropped(unique.length - merged.length + (lines.length - incoming.length));

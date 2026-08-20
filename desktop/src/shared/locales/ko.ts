@@ -252,6 +252,7 @@ export const ko: LocaleDict = {
   "settings.importConfigBtn": "가져오기…",
   "settings.configExported": "설정을 내보냈습니다",
   "settings.configImported": "설정을 가져와 적용했습니다",
+  "settings.configIgnored": " (인식할 수 없는 필드 {{count}}개 무시됨)",
   "settings.configInvalid": "유효한 SpeakType 설정 파일이 아닙니다",
   "settings.configFailed": "실패: {{error}}",
   "settings.resetSection": "재설정",
