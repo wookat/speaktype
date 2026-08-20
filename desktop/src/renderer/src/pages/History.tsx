@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { HistoryItem, Settings } from "../../../shared/types";
+import { toSimplified } from "../../../shared/zhNorm";
 import { ReviewDiff } from "../components/ReviewDiff";
 import { dayLabel, fmtClock, fmtDuration, suggestHotword } from "../lib/format";
 
@@ -113,7 +114,8 @@ function History(props: {
     a.click();
     URL.revokeObjectURL(url);
   };
-  const q = query.trim().toLowerCase();
+  // 搜索键与被搜文本都做简繁归一：繁体关键词可命中简体条目，反之亦然
+  const q = toSimplified(query.trim().toLowerCase());
   const bySource =
     sourceFilter === "all"
       ? props.history
@@ -121,10 +123,10 @@ function History(props: {
   const filtered = q
     ? bySource.filter(
         (h) =>
-          h.text.toLowerCase().includes(q) ||
-          h.raw.toLowerCase().includes(q) ||
+          toSimplified(h.text.toLowerCase()).includes(q) ||
+          toSimplified(h.raw.toLowerCase()).includes(q) ||
           // 转录条目的 personaName 是来源文件名，是最自然的检索键；听写条目按人设名筛也合理
-          h.personaName.toLowerCase().includes(q),
+          toSimplified(h.personaName.toLowerCase()).includes(q),
       )
     : bySource;
 

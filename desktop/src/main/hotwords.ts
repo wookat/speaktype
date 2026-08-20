@@ -1,4 +1,5 @@
 import { pinyin } from "pinyin-pro";
+import { toSimplified } from "../shared/zhNorm";
 
 /**
  * 词典热词本地纠错：把转写里与热词同音/近音的片段替换成热词本身。
@@ -134,11 +135,11 @@ export function correctHotwords(text: string, hotwords: string[]): string {
       if (seg === trimmed || !CJK.test(seg)) continue;
       // 同音词典词互噬保护：输出本身就是另一条词典词时不替换（张京/张静共存）
       if (dict.has(seg)) continue;
-      // 三字及以上热词要求至少一个位置原字相同：ASR 误识通常保留部分正确字，
-      // 全同音且零字重合的片段更可能是跨词边界误命中（晨會臨≠陳慧琳）
+      // 三字及以上热词要求至少一个位置原字相同（简繁归一后比较，陈惠临 vs 陳慧琳 首位算重合）：
+      // ASR 误识通常保留部分正确字，全同音且零字重合的片段更可能是跨词边界误命中（晨會臨≠陳慧琳）
       if (n >= 3) {
         const segChars = Array.from(seg);
-        if (!segChars.some((c, k) => c === trimmed[k])) continue;
+        if (!segChars.some((c, k) => toSimplified(c) === toSimplified(trimmed[k] ?? ""))) continue;
       }
       if (matches(readings(seg), wordReadings)) {
         chars.splice(i, n, ...Array.from(trimmed));
