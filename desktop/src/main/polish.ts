@@ -14,32 +14,46 @@ const SELF_CORRECTION =
 // 断句：这些连接词在口语里通常开启新分句，前面补标点（长词优先匹配）
 const BREAK_WORDS = [
   "也就是说",
+  "也就是說",
   "换句话说",
+  "換句話說",
   "举个例子",
+  "舉個例子",
   "就是说",
+  "就是說",
   "比如说",
+  "比如說",
   "要不然",
   "然后",
+  "然後",
   "但是",
   "不过",
+  "不過",
   "所以",
   "因为",
+  "因為",
   "如果",
   "还有",
+  "還有",
   "另外",
   "其次",
   "最后",
   "首先",
   "或者",
   "其实",
+  "其實",
   "而且",
   "接着",
+  "接著",
   "总之",
 ];
 const BREAK_RE = new RegExp(`(?<![，。！？；、,.!?;\\s])(${BREAK_WORDS.join("|")})`, "g");
 const CJK_RE = /[\u4e00-\u9fff]/;
 const KANA_RE = /[\u3040-\u30ff]/;
 const HANGUL_RE = /[\uac00-\ud7af]/;
+// 高频繁体专用字（与简体写法不同）：用于判定文本是否主体为繁体
+const TRAD_CJK_RE =
+  /[們個這裡裏來會對時點說話語讓請問開關門間見聽讀寫學國後沒麼樣過還進遠運動場報記訊計認識論證談謝錢銀錯鐘長陽陰隊際離難電頭題額願風飛餐飯館馬驗體鳥齊龍龜歲歷壓廠廣應廳張彈從復戰執擔據擇擊舉舊藝藥處號虛為與於業書買賣費資質購貴賽億萬兩傳價優備條務勞勢區醫華單預頁順須頂項發變邊達選連週遲經給結續總組線編練繫較輸轉車軍輕輯]/g;
 // 日文句末形（です/ます系）后接非接续助词时补句号：ので/が等连接形不断
 const JA_SENTENCE_END_RE =
   /(ました|ません|でした|でしょう|ください|ます|です)(?![。！？])(?![のがかしとねよにでをはもて])/g;
@@ -210,6 +224,15 @@ function needsPunctuation(text: string): boolean {
   return punctCount <= text.length / 25;
 }
 
+/** 模型覆盖范围门：含 Hangul，或繁体特征字 ≥2 个且占 CJK 字符 ≥10% */
+function skipsPunctModel(text: string): boolean {
+  if (HANGUL_RE.test(text)) return true;
+  const trad = text.match(TRAD_CJK_RE)?.length ?? 0;
+  if (trad < 2) return false;
+  const cjk = text.match(/[\u4e00-\u9fff]/g)?.length ?? 0;
+  return trad >= cjk / 10;
+}
+
 /** 标点模型对英文也出全角标点且不大写：转半角、补标点后空格、句首大写 */
 function toEnglishPunct(text: string): string {
   let out = text
@@ -250,8 +273,8 @@ function restoreNumericTokens(input: string, out: string): string {
  */
 export async function applyModelPunctuation(text: string, keepCjkPeriod = false): Promise<string> {
   if (!needsPunctuation(text)) return text;
-  // punct-ct 只覆盖中英：韩文会被模型按字符重拼吞掉词间空格，含 Hangul 直接走规则断句
-  const modeled = HANGUL_RE.test(text) ? null : await punctuate(text);
+  // punct-ct 只覆盖简体中文与英文：韩文会被按字符重拼吞掉词间空格，繁体高占比文本会被词内插逗号破坏语义，都直接走规则断句
+  const modeled = skipsPunctModel(text) ? null : await punctuate(text);
   // 模型不可用或对该语言无产出（punct-ct 只覆盖中英，日文等输入原样返回）：回退规则断句
   if (modeled === null || needsPunctuation(modeled)) {
     const out = addLocalPunctuation(text);
