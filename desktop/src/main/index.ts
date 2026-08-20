@@ -38,6 +38,7 @@ import {
   stopRemoteMic,
 } from "./remotemic";
 import {
+  buildConfigExport,
   clearHistory,
   deleteHistory,
   getHistory,
@@ -46,6 +47,7 @@ import {
   getStats,
   isOnboarded,
   onPersistError,
+  parseConfigImport,
   pruneStalePersonaRefs,
   resetSettingsToDefaults,
   restoreHistory,
@@ -369,7 +371,8 @@ function registerIpc(): void {
     commit: typeof __COMMIT__ === "string" ? __COMMIT__ : "unknown",
     systemLocale: app.getLocale() || "zh-CN",
   }));
-  ipcMain.handle("settings:update", async (_e, patch: Partial<Settings>) => {
+  // 设置变更的副作用（热键/自启/托盘/手机麦）集中在这里：设置页更新与配置导入共用同一条路径
+  const applySettingsPatch = async (patch: Partial<Settings>): Promise<Settings> => {
     const prevModel = getSettings().localModel;
     const next = setSettings(patch);
     applyHotkeys(next);
@@ -399,6 +402,41 @@ function registerIpc(): void {
     }
     pushSettings();
     return next;
+  };
+  ipcMain.handle("settings:update", (_e, patch: Partial<Settings>) => applySettingsPatch(patch));
+  ipcMain.handle("config:export", async () => {
+    const res = await dialog.showSaveDialog({
+      defaultPath: `speaktype-config-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true };
+    try {
+      writeFileSync(res.filePath, JSON.stringify(buildConfigExport(), null, 2), "utf8");
+      return { ok: true };
+    } catch (error) {
+      log.error("config export failed", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+  ipcMain.handle("config:import", async () => {
+    const res = await dialog.showOpenDialog({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+      properties: ["openFile"],
+    });
+    const filePath = res.filePaths[0];
+    if (res.canceled || !filePath) return { ok: false, canceled: true };
+    let parsed: ReturnType<typeof parseConfigImport>;
+    try {
+      parsed = parseConfigImport(readFileSync(filePath, "utf8"));
+    } catch (error) {
+      log.error("config import failed", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+    if (!parsed || Object.keys(parsed.settings).length === 0) return { ok: false, invalid: true };
+    // 文件里没有自建人设时不碰本机列表：导入不应静默清空用户资产
+    if (parsed.personas.length > 0) setCustomPersonas(parsed.personas);
+    await applySettingsPatch(parsed.settings);
+    return { ok: true };
   });
   // 轻量新版提示（非自动更新）：启动后空闲预拨一次 GitHub latest release。
   // 匿名 API 限额 60 次/时/IP，共享出口 IP 极易耗尽：成功结果落盘缓存 24h，失败 30 分钟后重试至多 3 次，仍失败静默（离线不打扰）

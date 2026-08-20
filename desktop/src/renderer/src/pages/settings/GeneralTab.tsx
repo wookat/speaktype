@@ -23,6 +23,24 @@ function GeneralTab(props: {
     const timer = setTimeout(() => setConfirmReset(""), 4000);
     return () => clearTimeout(timer);
   }, [confirmReset]);
+  // 导出/导入结果提示，几秒后自动消失
+  const [backupMsg, setBackupMsg] = useState<{ text: string; error: boolean } | null>(null);
+  useEffect(() => {
+    if (!backupMsg) return;
+    const timer = setTimeout(() => setBackupMsg(null), 5000);
+    return () => clearTimeout(timer);
+  }, [backupMsg]);
+  const transferConfig = (
+    run: () => Promise<{ ok: boolean; canceled?: boolean; invalid?: boolean; error?: string }>,
+    okKey: Parameters<Translator>[0],
+  ) => {
+    void run().then((res) => {
+      if (res.ok) setBackupMsg({ text: t(okKey), error: false });
+      else if (res.canceled) setBackupMsg(null);
+      else if (res.invalid) setBackupMsg({ text: t("settings.configInvalid"), error: true });
+      else setBackupMsg({ text: t("settings.configFailed", { error: res.error ?? "" }), error: true });
+    });
+  };
   const [capturing, setCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
   const recordKey = (): void => {
@@ -262,6 +280,31 @@ function GeneralTab(props: {
             <option value="dark">{t("settings.themeDark")}</option>
           </select>
         </Row>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="font-medium">{t("settings.backupSection")}</div>
+        <Row label={t("settings.exportConfig")} hint={t("settings.exportConfigHint")}>
+          <button
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+            onClick={() => transferConfig(api.exportConfig, "settings.configExported")}
+          >
+            {t("settings.exportConfigBtn")}
+          </button>
+        </Row>
+        <Row label={t("settings.importConfig")} hint={t("settings.importConfigHint")}>
+          <button
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+            onClick={() => transferConfig(api.importConfig, "settings.configImported")}
+          >
+            {t("settings.importConfigBtn")}
+          </button>
+        </Row>
+        {backupMsg && (
+          <div className={`mt-2 rounded-xl px-4 py-2 text-xs ${backupMsg.error ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {backupMsg.text}
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
