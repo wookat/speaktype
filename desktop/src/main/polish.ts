@@ -39,6 +39,7 @@ const BREAK_WORDS = [
 const BREAK_RE = new RegExp(`(?<![，。！？；、,.!?;\\s])(${BREAK_WORDS.join("|")})`, "g");
 const CJK_RE = /[\u4e00-\u9fff]/;
 const KANA_RE = /[\u3040-\u30ff]/;
+const HANGUL_RE = /[\uac00-\ud7af]/;
 // 日文句末形（です/ます系）后接非接续助词时补句号：ので/が等连接形不断
 const JA_SENTENCE_END_RE =
   /(ました|ません|でした|でしょう|ください|ます|です)(?![。！？])(?![のがかしとねよにでをはもて])/g;
@@ -249,7 +250,8 @@ function restoreNumericTokens(input: string, out: string): string {
  */
 export async function applyModelPunctuation(text: string, keepCjkPeriod = false): Promise<string> {
   if (!needsPunctuation(text)) return text;
-  const modeled = await punctuate(text);
+  // punct-ct 只覆盖中英：韩文会被模型按字符重拼吞掉词间空格，含 Hangul 直接走规则断句
+  const modeled = HANGUL_RE.test(text) ? null : await punctuate(text);
   // 模型不可用或对该语言无产出（punct-ct 只覆盖中英，日文等输入原样返回）：回退规则断句
   if (modeled === null || needsPunctuation(modeled)) {
     const out = addLocalPunctuation(text);
