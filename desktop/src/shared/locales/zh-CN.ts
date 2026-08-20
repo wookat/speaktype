@@ -272,7 +272,7 @@ export const zhCN = {
   "settings.enhancedVadFallback": "下载完成前暂按音量门槛检测",
   "settings.enhancedPunct": "增强标点（AI 模型）",
   "settings.enhancedPunctHint":
-    "用标点模型（ct-transformer，中英双语）补逗号、句号和问号，比内置规则准得多。需下载约 281MB 增强包，完全在本机运行。开启 AI 润色时不生效。",
+    "用标点模型（ct-transformer，中英双语）补逗号、句号和问号，比内置规则准得多。需下载约 281MB 增强包，完全在本机运行。繁体中文与韩文输入会改用内置规则断句（模型不适用）。开启 AI 润色时不生效。",
   "settings.enhancedPunctDownload": "下载增强包（约 281MB）",
   "settings.enhancedPunctDownloading": "下载中 {{progress}}%",
   "settings.enhancedPunctReady": "增强包已就绪，标点已升级",

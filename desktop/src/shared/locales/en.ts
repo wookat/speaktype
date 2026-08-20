@@ -280,7 +280,7 @@ export const en: LocaleDict = {
   "settings.enhancedVadFallback": "Volume-threshold detection is used until the download finishes",
   "settings.enhancedPunct": "Enhanced punctuation (AI model)",
   "settings.enhancedPunctHint":
-    "Uses a punctuation model (ct-transformer, Chinese + English) to restore commas, periods and question marks — much better than the built-in rules. Requires a ~281MB add-on download; runs fully on this machine. Skipped when AI polish is enabled.",
+    "Uses a punctuation model (ct-transformer, Chinese + English) to restore commas, periods and question marks — much better than the built-in rules. Requires a ~281MB add-on download; runs fully on this machine. Traditional Chinese and Korean input fall back to built-in rules (the model does not apply). Skipped when AI polish is enabled.",
   "settings.enhancedPunctDownload": "Download add-on (~281MB)",
   "settings.enhancedPunctDownloading": "Downloading {{progress}}%",
   "settings.enhancedPunctReady": "Add-on ready — punctuation upgraded",

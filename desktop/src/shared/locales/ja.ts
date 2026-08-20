@@ -280,7 +280,7 @@ export const ja: LocaleDict = {
   "settings.enhancedVadFallback": "ダウンロード完了までは音量しきい値で検出します",
   "settings.enhancedPunct": "高精度な句読点（AI モデル）",
   "settings.enhancedPunctHint":
-    "句読点モデル（ct-transformer、中国語＋英語）で読点・句点・疑問符を補います。内蔵ルールよりはるかに正確。約 281MB のアドオンをダウンロードし、完全にローカルで実行。AI 推敲が有効な場合は適用されません。",
+    "句読点モデル（ct-transformer、中国語＋英語）で読点・句点・疑問符を補います。内蔵ルールよりはるかに正確。約 281MB のアドオンをダウンロードし、完全にローカルで実行。繁体字中国語と韓国語の入力は内蔵ルールで区切ります（モデル対象外）。AI 推敲が有効な場合は適用されません。",
   "settings.enhancedPunctDownload": "アドオンをダウンロード（約 281MB）",
   "settings.enhancedPunctDownloading": "ダウンロード中 {{progress}}%",
   "settings.enhancedPunctReady": "アドオン準備完了 — 句読点がアップグレードされました",
