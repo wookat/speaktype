@@ -380,6 +380,7 @@ export const zhTW: LocaleDict = {
   "history.hotwordAdd": "加入詞典",
   "error.retryHint": "剛才的錄音已保留，再按一次熱鍵立即重試",
   "error.asrNetwork": "無法連接識別服務：請檢查網路，或在設定中切換識別方式",
+  "error.asrTimeout": "識別服務長時間無回應：請重試，或在設定中切換識別方式",
   "history.expand": "展開全文",
   "history.collapse": "收起",
   "error.localServerFailed": "本地識別引擎啟動失敗：請從「關於 → 開啟日誌目錄」檢視 main.log 並反饋",
