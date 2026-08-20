@@ -48,6 +48,8 @@ const VOICED_WINDOW_SAMPLES = 320; // 20ms @ 16kHz
 const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化最多计到 ~60ms，不会擦线
 // 按住说话模式：上一句落字后短间隔内的下一句视为同一段落，拉丁字母/数字开头时补句间空格
 const HOLD_GLUE_WINDOW_MS = 15000;
+// 免按句间空档（转写/落字/重启窗口）的帧暂存上限：空档通常 <2s，5s 足够且不膨胀
+const HANDS_FREE_CARRY_MAX_FRAMES = 25;
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
@@ -172,6 +174,8 @@ export class Dictation {
   private handsFreeTyped = false;
   /** 免按被其他热键结束：本次收尾的静音分支不再叠加「没听清」toast 覆盖退出提示 */
   private handsFreeEndedByKey = false;
+  /** 免按句间空档到达的帧：下一句起手时补喂，语音中途切换会话不丢字 */
+  private handsFreeCarry: Int16Array[] = [];
   /** hold 模式上一次落字时间，用于短间隔连续口述的句间空格 */
   private lastHoldPasteAt = 0;
   /** hold 模式上一次落字的前台窗口标识：切窗后新位置应顶格，不补句间空格 */
@@ -282,8 +286,15 @@ export class Dictation {
   }
 
   pushPcm(frame: Int16Array): void {
-    // 免按跨句保持采集：句间空档（转写/落字期间）到达的帧不属于任何会话，直接丢弃
-    if (!this.busy) return;
+    // 免按跨句保持采集：句间空档（转写/落字期间）到达的帧暂存到 carry，
+    // 下一句起手时补喂；否则解码变慢时下一句的句头会被削掉造成丢字/混杂
+    if (!this.busy) {
+      if (this.handsFree && this.mode === "toggle") {
+        this.handsFreeCarry.push(frame);
+        if (this.handsFreeCarry.length > HANDS_FREE_CARRY_MAX_FRAMES) this.handsFreeCarry.shift();
+      }
+      return;
+    }
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
     if (this.allFrames.length < RETRY_MAX_FRAMES) this.allFrames.push(frame);
@@ -372,6 +383,13 @@ export class Dictation {
     this.voicedMs = 0;
     const settings = getSettings();
     this.silero = settings.enhancedVad ? SileroVad.create() : null;
+    if (this.handsFree && mode === "toggle" && this.handsFreeCarry.length > 0) {
+      const carry = this.handsFreeCarry;
+      this.handsFreeCarry = [];
+      for (const frame of carry) this.pushPcm(frame);
+    } else {
+      this.handsFreeCarry = [];
+    }
 
     try {
       this.report("connecting");
@@ -468,6 +486,7 @@ export class Dictation {
     this.handsFree = true;
     this.handsFreeSilentRounds = 0;
     this.handsFreeTyped = false;
+    this.handsFreeCarry = [];
     void this.start("toggle");
   }
 
