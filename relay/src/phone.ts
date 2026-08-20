@@ -341,6 +341,8 @@ const installBtn = document.getElementById("install");
 const unpair = document.getElementById("unpair");
 let room = ${room ? JSON.stringify(room) : "localStorage.getItem('speaktype-room') || ''"};
 let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 0;
+// busy 提示短暂锁定：避免随后的 status 广播（idle/transcribing）马上冲掉提示，用户根本来不及看清
+let busyHold = 0;
 
 if (ROOM_RE.test(room)) localStorage.setItem("speaktype-room", room);
 
@@ -354,11 +356,23 @@ function showPairing() {
 function connect() {
   ws = new WebSocket("wss://" + location.host + BASE + "/ws/" + room + "?role=phone");
   ws.binaryType = "arraybuffer";
-  // 电脑端未在房间时按住说话没有任何去处：按钮保持禁用，等 peer 消息再放开
-  ws.onopen = () => { fails = 0; stateEl.textContent = L.waitDesktop; };
+  // 应用层心跳：半开连接不触发 onclose，靠 JSON ping/pong 探活；旧 relay 不回 pong 时不启用超时（兼容自部署）
+  const sock = ws;
+  let pingTimer = null, pongSeen = false, pongMissed = 0;
+  ws.onopen = () => {
+    fails = 0;
+    stateEl.textContent = L.waitDesktop;
+    pingTimer = setInterval(() => {
+      if (sock.readyState !== 1) { clearInterval(pingTimer); return; }
+      if (pongSeen && pongMissed >= 2) { sock.close(); return; }
+      pongMissed++;
+      sock.send('{"type":"ping"}');
+    }, 25000);
+  };
   ws.onclose = (ev) => {
+    if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
     talk.disabled = true;
-    if (ev.reason === "room occupied") { stateEl.textContent = L.roomOccupied; return; }
+    if (ev.reason === "room occupied" || ev.reason === "replaced") { stateEl.textContent = L.roomOccupied; return; }
     // 房间码已在电脑端更换时重连永远建不起来：连拒 8 次即停，回配对页提示重新配对
     if (++fails >= 8) { showPairing(); stateEl.textContent = L.pairExpired; return; }
     stateEl.textContent = L.reconnecting;
@@ -367,18 +381,20 @@ function connect() {
   ws.onmessage = (ev) => {
     if (typeof ev.data !== "string") return;
     const m = JSON.parse(ev.data);
+    if (m.type === "pong") { pongSeen = true; pongMissed = 0; return; }
     if (m.type === "status") {
       partialEl.textContent = m.partial || partialEl.textContent;
-      if (m.state === "transcribing") stateEl.textContent = L.transcribing;
+      if (m.state === "error") stateEl.textContent = m.message || L.error;
+      else if (Date.now() < busyHold) { /* busy 提示锁定期内不被非错误状态冲掉 */ }
+      else if (m.state === "transcribing") stateEl.textContent = L.transcribing;
       else if (m.state === "polishing") stateEl.textContent = L.polishing;
-      else if (m.state === "error") stateEl.textContent = m.message || L.error;
       else if (m.state === "idle" && !holding) stateEl.textContent = L.connectedIdle;
     }
     if (m.type === "peer") {
       talk.disabled = !m.connected;
-      stateEl.textContent = m.connected ? L.connectedIdle : L.desktopOffline;
+      if (Date.now() >= busyHold) stateEl.textContent = m.connected ? L.connectedIdle : L.desktopOffline;
     }
-    if (m.type === "busy") { stateEl.textContent = L.busy; endHold(true); }
+    if (m.type === "busy") { busyHold = Date.now() + 3000; stateEl.textContent = L.busy; endHold(true); }
   };
 }
 

@@ -208,6 +208,11 @@ export class Dictation {
     return this.state === "recording" || this.state === "connecting";
   }
 
+  /** 听写会话是否占用中：从 start 到落字/失败为止（含转写、润色），此间不能再接新会话 */
+  isBusy(): boolean {
+    return this.busy;
+  }
+
   /** 抢跑建联：热键按下的瞬间调用，把慢路径提前拉起来 */
   warmUp(): void {
     const now = Date.now();

@@ -19,7 +19,8 @@ export interface RemoteMicDeps {
   stop: () => Promise<void>;
   cancel: () => void;
   pushPcm: (frame: Int16Array) => void;
-  isRecording: () => boolean;
+  /** 听写会话占用中（含录音后的转写/润色窗口）：此间手机 start 会被 dictation 静默吞掉，必须回 busy */
+  isBusy: () => boolean;
   onClients: (count: number) => void;
 }
 
@@ -294,7 +295,7 @@ function handlePhoneMessage(d: RemoteMicDeps, ws: WebSocket, data: unknown, isBi
       info.clients = relayPhoneConnected ? 1 : 0;
       d.onClients(info.clients);
     } else if (msg.type === "start") {
-      if (d.isRecording()) {
+      if (d.isBusy()) {
         ws.send(JSON.stringify({ type: "busy" }));
         return;
       }
@@ -403,6 +404,16 @@ async function startRelayMic(relayUrl: string, room: string): Promise<RemoteMicI
   info = { running: true, url, qrDataUrl, clients: 0, pairCode: relayRoom };
   log.info(`remote mic relaying via ${url}`);
   return remoteMicInfo();
+}
+
+/** 界面语言切换时原地重算中转二维码的 ?lang，不重建连接 */
+export async function refreshRemoteMicQr(): Promise<void> {
+  if (!info.running || !relayWs || relayStopped) return;
+  const url = `https://${relayBase}/m/${relayRoom}?lang=${currentLanguage()}`;
+  if (url === info.url) return;
+  info.url = url;
+  info.qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 220 });
+  deps?.onClients(info.clients);
 }
 
 /** 房间号即配对码：固定下来，装到主屏幕的手机 App 才能一直连同一台电脑 */

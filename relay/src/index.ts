@@ -47,7 +47,9 @@ export class Room {
         void forward(this.phone, ev.data);
       });
       server.addEventListener("close", () => {
-        if (this.desktop === server) this.desktop = null;
+        // 已被新桌面连接顶替的旧连接关闭时不能连带踢掉手机
+        if (this.desktop !== server) return;
+        this.desktop = null;
         this.phone?.close(1000, "desktop left");
       });
       if (this.phone) {
@@ -57,16 +59,21 @@ export class Room {
         }
       }
     } else {
-      if (this.phone?.readyState === WebSocket.READY_STATE_OPEN) {
-        server.close(1008, "room occupied");
-        return new Response(null, { status: 101, webSocket: client });
-      }
+      // 后来者顶替：房间号即配对凭证，旧连接（含半开僵尸）不得永久锁死房间，与 desktop 侧策略一致
+      this.phone?.close(1000, "replaced");
       this.phone = server;
       server.addEventListener("message", (ev) => {
+        // 手机页应用层心跳：浏览器 WebSocket 发不了协议层 ping，用 JSON 探活，不转发给桌面
+        if (ev.data === '{"type":"ping"}') {
+          server.send('{"type":"pong"}');
+          return;
+        }
         void forward(this.desktop, ev.data);
       });
       server.addEventListener("close", () => {
-        if (this.phone === server) this.phone = null;
+        // 已被新手机顶替的旧连接关闭时不能误报离线
+        if (this.phone !== server) return;
+        this.phone = null;
         if (this.desktop?.readyState === WebSocket.READY_STATE_OPEN) {
           this.desktop.send(JSON.stringify({ type: "peer", connected: false }));
         }
