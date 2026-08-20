@@ -3,7 +3,7 @@
   "productName": "SpeakType",
   "version": "0.15.1",
   "private": true,
-  "description": "æŒ‰ä½å¿«æ·é”®è¯´è¯ï¼Œæ¾æ‰‹æŠŠæ–‡å­—è½åˆ°ä»»æ„ Windows ç¨‹åºçš„å…‰æ ‡å¤„",
+  "description": "Hold a hotkey to speak, release to drop text at the cursor of any Windows app",
   "author": "SpeakType",
   "main": "out/main/index.js",
   "type": "module",

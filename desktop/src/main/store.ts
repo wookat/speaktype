@@ -311,6 +311,11 @@ export function parseConfigImport(
     delete patch.localModel;
     ignored++;
   }
+  // captionLines 值域外的数会持久化但 UI 下拉无对应项，显示与存储不一致：非法值不导入
+  if (patch.captionLines !== undefined && ![1, 3, 6].includes(patch.captionLines)) {
+    delete patch.captionLines;
+    ignored++;
+  }
   if (patch.hotwords) patch.hotwords = patch.hotwords.filter((w): w is string => typeof w === "string");
   if (patch.appPersonas) {
     patch.appPersonas = patch.appPersonas.filter(

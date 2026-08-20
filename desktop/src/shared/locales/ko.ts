@@ -280,7 +280,7 @@ export const ko: LocaleDict = {
   "settings.enhancedVadFallback": "다운로드 완료 전까지는 음량 임계값으로 감지합니다",
   "settings.enhancedPunct": "향상된 문장 부호 (AI 모델)",
   "settings.enhancedPunctHint":
-    "문장 부호 모델(ct-transformer, 중국어+영어)로 쉼표·마침표·물음표를 복원합니다. 내장 규칙보다 훨씬 정확합니다. 약 281MB 추가 패키지 다운로드 필요, 완전히 로컬에서 실행. AI 다듬기가 켜져 있으면 적용되지 않습니다.",
+    "문장 부호 모델(ct-transformer, 중국어+영어)로 쉼표·마침표·물음표를 복원합니다. 내장 규칙보다 훨씬 정확합니다. 약 281MB 추가 패키지 다운로드 필요, 완전히 로컬에서 실행. 번체 중국어·한국어 입력은 내장 규칙으로 처리됩니다(모델 미적용). AI 다듬기가 켜져 있으면 적용되지 않습니다.",
   "settings.enhancedPunctDownload": "추가 패키지 다운로드 (약 281MB)",
   "settings.enhancedPunctDownloading": "다운로드 중 {{progress}}%",
   "settings.enhancedPunctReady": "추가 패키지 준비 완료 — 문장 부호가 업그레이드되었습니다",

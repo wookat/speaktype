@@ -262,7 +262,7 @@ export const zhTW: LocaleDict = {
   "settings.enhancedVadFallback": "下載完成前暫按音量門檻檢測",
   "settings.enhancedPunct": "增強標點（AI 模型）",
   "settings.enhancedPunctHint":
-    "用標點模型（ct-transformer，中英雙語）補逗號、句號和問號，比內建規則準得多。需下載約 281MB 增強包，完全在本機執行。開啟 AI 潤色時不生效。",
+    "用標點模型（ct-transformer，中英雙語）補逗號、句號和問號，比內建規則準得多。需下載約 281MB 增強包，完全在本機執行。繁體中文與韓文輸入會改用內建規則斷句（模型不適用）。開啟 AI 潤色時不生效。",
   "settings.enhancedPunctDownload": "下載增強包（約 281MB）",
   "settings.enhancedPunctDownloading": "下載中 {{progress}}%",
   "settings.enhancedPunctReady": "增強包已就緒，標點已升級",
