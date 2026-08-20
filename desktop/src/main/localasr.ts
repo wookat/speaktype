@@ -198,6 +198,10 @@ export function deleteLocalModel(model: string): LocalModelStatus {
  */
 const workerSource = `
 const { parentPort, workerData } = require("worker_threads");
+// OfflineStream 的 native 内存靠 GC finalizer 释放，worker JS 堆极小几乎不触发 GC，
+// 会导致 native 内存随解码次数线性挂账；execArgv 不接受 V8 flag，改用 v8+vm 取 gc。
+require("v8").setFlagsFromString("--expose-gc");
+const gc = require("vm").runInNewContext("gc");
 const mod = require(workerData.modulePath);
 let rec = null;
 let lang = null;
@@ -230,9 +234,8 @@ parentPort.on("message", (msg) => {
   } catch (error) {
     parentPort.postMessage({ id: msg.id, error: error instanceof Error ? error.message : String(error) });
   }
-  // OfflineStream 的 native 内存靠 GC finalizer 释放，worker JS 堆极小几乎不触发 GC，
-  // 会导致 native 内存随解码次数线性挂账，这里每次解码后显式回收。
-  if (global.gc) global.gc();
+  // 每次解码后显式回收 OfflineStream 的 native 内存
+  if (typeof gc === "function") gc();
 });
 `;
 
@@ -297,7 +300,7 @@ function ensureWorker(modelId: string): Worker {
           tokens,
         }
       : { modulePath: require.resolve("sherpa-onnx-node"), engine: "sensevoice", model: paths[0], tokens };
-  worker = new Worker(workerSource, { eval: true, workerData, execArgv: ["--expose-gc"] });
+  worker = new Worker(workerSource, { eval: true, workerData });
   worker.on("message", (msg: { id: number; text?: string; error?: string }) => {
     const job = pending.get(msg.id);
     if (!job) return;
