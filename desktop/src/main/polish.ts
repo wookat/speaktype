@@ -206,7 +206,14 @@ export function localCleanup(
   if (selfCorrect && rulePunct) out = addLocalPunctuation(out);
   // 去尾句号是中文单次语音输入习惯；免按连续听写需保留，否则多句无分隔连成一片不可读；
   // 英文句尾句号一律保留，否则和 addEnglishPunctuation 互搏
-  return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+  if (!keepCjkPeriod) return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+  // 免按多句连投：规则断句路径段尾也补句号，与模型路径风格一致
+  return selfCorrect && rulePunct ? endCjkPeriod(out) : out;
+}
+
+/** 免按连续听写的段尾补句号：中文（非假名语境）段尾是汉字时补「。」，多段落字才有分隔 */
+function endCjkPeriod(text: string): string {
+  return /[\u4e00-\u9fff]$/.test(text) && !KANA_RE.test(text) ? text + "。" : text;
 }
 
 /** 与 addLocalPunctuation/addEnglishPunctuation 同口径的介入门槛：文本几乎没标点才补 */
@@ -278,7 +285,8 @@ export async function applyModelPunctuation(text: string, keepCjkPeriod = false)
   // 模型不可用或对该语言无产出（punct-ct 只覆盖中英，日文等输入原样返回）：回退规则断句
   if (modeled === null || needsPunctuation(modeled)) {
     const out = addLocalPunctuation(text);
-    return !keepCjkPeriod && CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+    if (!keepCjkPeriod) return CJK_RE.test(out) ? out.replace(/[。．.]+$/, "") : out;
+    return endCjkPeriod(out);
   }
   if (!CJK_RE.test(modeled)) return restoreNumericTokens(text, toEnglishPunct(modeled));
   const merged = restoreNumericTokens(text, modeled)
