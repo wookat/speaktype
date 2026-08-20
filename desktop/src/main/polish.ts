@@ -180,8 +180,8 @@ export function localCleanup(
   out = out.replace(/\s{2,}/g, " ").trim();
   // 上游 ASR 的 ITN 把 "costs eleven dollars" 重写成 "costs$11"：单词紧跟 $数字 之间补空格
   out = out.replace(/([A-Za-z])\$(\d)/g, "$1 $$$2");
-  // 上游 ITN 把 "three thirty pm" 拆成 "3 30 pm"：小时+两位分钟紧跟 am/pm 时合成时刻
-  out = out.replace(/\b(\d{1,2}) ([0-5]\d) ?([ap]\.?m\.?)(?![\w.])/gi, "$1:$2 $3");
+  // 上游 ITN 把 "three thirty pm" 拆成 "3 30 pm" 或 "3.30 pm"：小时+两位分钟紧跟 am/pm 时归一成冒号时刻
+  out = out.replace(/\b(\d{1,2})[ .]([0-5]\d) ?([ap]\.?m\.?)(?![\w.])/gi, "$1:$2 $3");
   if (selfCorrect && rulePunct) out = addLocalPunctuation(out);
   // 去尾句号是中文单次语音输入习惯；免按连续听写需保留，否则多句无分隔连成一片不可读；
   // 英文句尾句号一律保留，否则和 addEnglishPunctuation 互搏
