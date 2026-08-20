@@ -327,15 +327,28 @@ export async function rewriteSelection(
   if (!settings.polishBaseUrl) return { error: "empty" };
   // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
   instruction = correctHotwords(instruction, settings.hotwords);
-  const prompt = [
-    "你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。",
-    "要求：",
-    "1. 只输出改写后的正文，不要解释、不要引号、不要 Markdown 代码块。",
-    "2. 严格遵守指令；指令没要求的部分不要擅自改动。",
-    "3. 保持原文的换行与列表结构。",
-    `\n口述指令：\n"""${instruction}"""`,
-    `\n原文：\n"""${selection}"""`,
-  ].join("\n");
+  // prompt 框架跟指令语言走：英文指令用英文模板，小模型对英文指令的遵循度更稳
+  const prompt = (
+    CJK_RE.test(instruction)
+      ? [
+          "你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。",
+          "要求：",
+          "1. 只输出改写后的正文，不要解释、不要引号、不要 Markdown 代码块。",
+          "2. 严格遵守指令；指令没要求的部分不要擅自改动。",
+          "3. 保持原文的换行与列表结构。",
+          `\n口述指令：\n"""${instruction}"""`,
+          `\n原文：\n"""${selection}"""`,
+        ]
+      : [
+          "Rewrite the text below according to the user's spoken instruction (rewrite, polish, translate, expand, shorten, etc.).",
+          "Rules:",
+          "1. Output only the rewritten text — no explanations, no quotes, no Markdown code blocks.",
+          "2. Follow the instruction strictly; do not change anything it does not ask for.",
+          "3. Preserve the original line breaks and list structure.",
+          `\nSpoken instruction:\n"""${instruction}"""`,
+          `\nOriginal text:\n"""${selection}"""`,
+        ]
+  ).join("\n");
   try {
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
