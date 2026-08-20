@@ -109,7 +109,7 @@ export const ko: LocaleDict = {
   "dict.placeholder":
     "한 줄에 한 단어, 각 20자까지. 앞뒤 공백은 제거되고 빈 줄은 건너뜁니다.",
   "dict.count": "{{count}}/300 핫워드",
-  "dict.limitReached": "{{count}}개 단어가 추가되지 않았습니다(300개 핫워드 상한 초과 또는 20자 초과).",
+  "dict.limitReached": "{{count}}개 행이 추가되지 않았습니다(300개 핫워드 상한 초과, 20자 초과 또는 기호만 포함).",
   "dict.kanaNotCorrected":
     "{{count}}개 단어에 일본어 가나가 포함되어 있습니다. 저장되었지만 자동 교정은 현재 중국어와 영어 단어만 지원합니다.",
   "dict.manage": "핫워드 관리",
@@ -252,7 +252,7 @@ export const ko: LocaleDict = {
   "settings.importConfigBtn": "가져오기…",
   "settings.configExported": "설정을 내보냈습니다",
   "settings.configImported": "설정을 가져와 적용했습니다",
-  "settings.configIgnored": " (인식할 수 없는 필드 {{count}}개 무시됨)",
+  "settings.configIgnored": " (필드 {{count}}개 건너뜀: 알 수 없음·타입 불일치·이전 대상 아님)",
   "settings.configInvalid": "유효한 SpeakType 설정 파일이 아닙니다",
   "settings.configFailed": "실패: {{error}}",
   "settings.resetSection": "재설정",

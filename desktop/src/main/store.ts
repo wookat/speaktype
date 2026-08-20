@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { app } from "electron";
 import Store from "electron-store";
 import log from "electron-log/main.js";
+import { LOCAL_MODEL_IDS } from "../shared/localModels";
 import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { AppPersonaRule, HistoryItem, Persona, Settings, Stats } from "../shared/types";
 
@@ -304,6 +305,11 @@ export function parseConfigImport(
       continue;
     }
     Object.assign(patch, { [key]: value });
+  }
+  // localModel 写入白名外的 id 会让听写陷入缺模型死态：非法值不导入，保留本机现值
+  if (patch.localModel !== undefined && !LOCAL_MODEL_IDS.includes(patch.localModel)) {
+    delete patch.localModel;
+    ignored++;
   }
   if (patch.hotwords) patch.hotwords = patch.hotwords.filter((w): w is string => typeof w === "string");
   if (patch.appPersonas) {

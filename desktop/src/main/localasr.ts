@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
+import { PARAKEET, SENSEVOICE } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
 import { downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
@@ -18,14 +19,10 @@ import { t } from "./i18n";
 
 const PORT = 18717;
 
-/** SenseVoice 模型 id；localModel 等于它时走 sherpa-onnx 而不是 whisper-server */
-export const SENSEVOICE = "sensevoice-small";
+export { LOCAL_MODELS, PARAKEET, SENSEVOICE } from "../shared/localModels";
 
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
-
-/** Parakeet TDT 0.6B v3（sherpa-onnx int8）：英语及 25 种欧洲语言，自动语种检测，不支持中文 */
-export const PARAKEET = "parakeet-tdt-0.6b-v3";
 
 const PARAKEET_BASE =
   "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main";
@@ -34,14 +31,6 @@ const PARAKEET_BASE =
 export function isSherpaModel(model: string): boolean {
   return model === SENSEVOICE || model === PARAKEET;
 }
-
-export const LOCAL_MODELS = [
-  { id: SENSEVOICE, size: "234MB" },
-  { id: PARAKEET, size: "660MB" },
-  { id: "tiny-q5_1", size: "32MB" },
-  { id: "base-q5_1", size: "60MB" },
-  { id: "small-q5_1", size: "190MB" },
-] as const;
 
 function modelsDir(): string {
   return join(app.getPath("userData"), "models");
