@@ -279,7 +279,8 @@ function restoreNumericTokens(input: string, out: string): string {
  * 输入应是 localCleanup(text, true, false) 后的文本（已清理、未补标点）。
  */
 export async function applyModelPunctuation(text: string, keepCjkPeriod = false): Promise<string> {
-  if (!needsPunctuation(text)) return text;
+  // 门槛下的短文本不送模型，但免按连投时段尾仍需句号，与规则断句路径口径一致
+  if (!needsPunctuation(text)) return keepCjkPeriod ? endCjkPeriod(text) : text;
   // punct-ct 只覆盖简体中文与英文：韩文会被按字符重拼吞掉词间空格，繁体高占比文本会被词内插逗号破坏语义，都直接走规则断句
   const modeled = skipsPunctModel(text) ? null : await punctuate(text);
   // 模型不可用或对该语言无产出（punct-ct 只覆盖中英，日文等输入原样返回）：回退规则断句
