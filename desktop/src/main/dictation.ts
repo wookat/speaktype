@@ -767,7 +767,13 @@ export class Dictation {
         this.report("idle");
         this.deps.showToast(
           t("toast.rewriteFailed"),
-          t(rewritten.error === "network" ? "toast.rewriteFailedNetworkBody" : "toast.rewriteFailedBody"),
+          t(
+            rewritten.error === "network"
+              ? "toast.rewriteFailedNetworkBody"
+              : rewritten.error === "timeout"
+                ? "toast.rewriteFailedTimeoutBody"
+                : "toast.rewriteFailedBody",
+          ),
         );
         return;
       }
