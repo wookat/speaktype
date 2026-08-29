@@ -162,6 +162,10 @@ export const ko: LocaleDict = {
   "settings.vadAutoStopHint": "핸즈프리 모드에서 약 1분간 무음이 지속되면 자동으로 듣기를 종료합니다. 켜짐 여부와 관계없이 문장마다 끊어서 자동 입력됩니다. 누르고 말하기 모드에는 영향이 없습니다.",
   "settings.vadSilence": "무음 시간",
   "settings.vadSilenceHint": "이 시간 동안 조용하면 종료로 판정합니다.",
+  "settings.handsFreeParagraphs": "자동 단락 나누기 (핸즈프리)",
+  "settings.handsFreeParagraphsHint": "핸즈프리 모드에서 길게 멈추면 다음 문장 앞에 빈 줄을 넣어 새 단락을 시작합니다. 누르고 말하기 모드에는 영향이 없습니다.",
+  "settings.paragraphBreak": "단락 멈춤 시간",
+  "settings.paragraphBreakHint": "이 시간 이상 멈추면 새 단락이 시작됩니다.",
 
   "settings.appBehavior": "앱 동작",
   "settings.launchAtLogin": "로그인 시 시작",

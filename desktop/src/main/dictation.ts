@@ -182,6 +182,10 @@ export class Dictation {
   /** hold 模式上一次落字的前台窗口标识：切窗后新位置应顶格，不补句间空格 */
   private lastHoldPasteWin: string | null = null;
   private lastVoiceAt = 0;
+  /** 本句首个有声帧时刻：与上一句句尾人声时刻的差即句间停顿时长 */
+  private firstVoiceAt = 0;
+  /** 免按会话内上一句句尾人声时刻，用于段落停顿判定 */
+  private prevVoiceEndAt = 0;
   private maxPeak = 0;
   private voicedMs = 0;
   private silero: SileroVad | null = null;
@@ -293,6 +297,14 @@ export class Dictation {
       if (this.handsFree && this.mode === "toggle") {
         this.handsFreeCarry.push(frame);
         this.handsFreeCarrySamples += frame.length;
+        // 空档里到达的人声也算数：否则下一句起手补喂时时间戳失真，慢解码会被误判成段落停顿
+        for (let i = 0; i < frame.length; i++) {
+          const a = frame[i]! < 0 ? -frame[i]! : frame[i]!;
+          if (a >= VAD_SILENCE_PEAK) {
+            this.lastVoiceAt = Date.now();
+            break;
+          }
+        }
         while (this.handsFreeCarrySamples > HANDS_FREE_CARRY_MAX_SAMPLES && this.handsFreeCarry.length > 1) {
           this.handsFreeCarrySamples -= this.handsFreeCarry.shift()!.length;
         }
@@ -326,7 +338,10 @@ export class Dictation {
     const sileroMs = this.silero ? this.silero.push(frame) : 0;
     const voiced = this.silero ? sileroMs > 0 : peak >= VAD_SILENCE_PEAK;
     this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
-    if (voiced) this.lastVoiceAt = now;
+    if (voiced) {
+      if (!this.firstVoiceAt) this.firstVoiceAt = now;
+      this.lastVoiceAt = now;
+    }
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     if (this.handsFree) {
       const elapsed = now - this.startedAt;
@@ -380,7 +395,10 @@ export class Dictation {
     this.buffered = [];
     this.allFrames = [];
     this.startedAt = Date.now();
+    // 免按跨句：记下上一句句尾人声时刻，本句首个有声帧与它的差即句间停顿
+    this.prevVoiceEndAt = this.handsFree && mode === "toggle" && this.handsFreeTyped ? this.lastVoiceAt : 0;
     this.lastVoiceAt = Date.now();
+    this.firstVoiceAt = 0;
     // 改写模式不走人设润色，命中的人设徽标只会误导用户
     this.appPersonaId = this.rewriteTarget ? null : personaForActiveApp(getSettings().appPersonas);
     this.maxPeak = 0;
@@ -870,8 +888,21 @@ export class Dictation {
         Date.now() - this.lastHoldPasteAt < HOLD_GLUE_WINDOW_MS &&
         pasteWin !== null &&
         pasteWin === this.lastHoldPasteWin;
-      const glue =
-        ((this.mode === "toggle" && this.handsFreeTyped) || holdGlue) && /^[A-Za-z0-9]/.test(text)
+      // 免按自动分段：句间停顿达段落阈值时落字前插入空行；终端粘贴换行会直接回车执行，不分段
+      const paraBreak =
+        this.mode === "toggle" &&
+        this.handsFreeTyped &&
+        !rewriteTarget &&
+        settings.handsFreeParagraphs &&
+        this.prevVoiceEndAt > 0 &&
+        this.firstVoiceAt > 0 &&
+        this.firstVoiceAt - this.prevVoiceEndAt >= settings.paragraphBreakMs &&
+        !isTerminalForeground();
+      const glue = paraBreak
+        ? process.platform === "win32"
+          ? "\r\n\r\n"
+          : "\n\n"
+        : ((this.mode === "toggle" && this.handsFreeTyped) || holdGlue) && /^[A-Za-z0-9]/.test(text)
           ? " "
           : "";
       try {

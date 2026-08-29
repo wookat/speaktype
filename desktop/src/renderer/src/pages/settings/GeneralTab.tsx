@@ -197,6 +197,29 @@ function GeneralTab(props: {
             </Row>
           </div>
         )}
+        <Toggle
+          label={t("settings.handsFreeParagraphs")}
+          hint={t("settings.handsFreeParagraphsHint")}
+          value={s.handsFreeParagraphs}
+          onChange={(v) => update({ handsFreeParagraphs: v })}
+        />
+        {s.handsFreeParagraphs && (
+          <div className="ml-4 border-l-2 border-slate-100 pl-4">
+            <Row label={t("settings.paragraphBreak")} hint={t("settings.paragraphBreakHint")}>
+              <select
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+                value={s.paragraphBreakMs}
+                onChange={(e) => update({ paragraphBreakMs: Number(e.target.value) })}
+              >
+                {[2000, 3000, 4000, 6000, 8000].map((ms) => (
+                  <option key={ms} value={ms}>
+                    {ms / 1000} s
+                  </option>
+                ))}
+              </select>
+            </Row>
+          </div>
+        )}
         <EnhancedVad t={t} s={s} update={update} />
       </section>
 

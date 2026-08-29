@@ -162,6 +162,10 @@ export const ja: LocaleDict = {
   "settings.vadAutoStopHint": "ハンズフリーモードで約1分間無音が続くと自動的に聴取を終了します。オンオフに関わらず、一文ごとの区切りで自動入力されます。押しながら話すモードには影響しません。",
   "settings.vadSilence": "無音時間",
   "settings.vadSilenceHint": "この時間だけ静かになると終了と判定します。",
+  "settings.handsFreeParagraphs": "自動段落分け（ハンズフリー）",
+  "settings.handsFreeParagraphsHint": "ハンズフリーモードで長めの間を置くと、次の文の前に空行を入れて新しい段落を始めます。押しながら話すモードには影響しません。",
+  "settings.paragraphBreak": "段落の間",
+  "settings.paragraphBreakHint": "この時間以上の間を置くと新しい段落になります。",
 
   "settings.appBehavior": "アプリの動作",
   "settings.launchAtLogin": "ログイン時に起動",

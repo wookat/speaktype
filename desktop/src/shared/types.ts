@@ -46,6 +46,10 @@ export interface Settings {
   vadAutoStop: boolean;
   /** 静音多久后自动结束，毫秒 */
   vadSilenceMs: number;
+  /** 免按连续听写：段落级停顿后落字前插入空行分段 */
+  handsFreeParagraphs: boolean;
+  /** 判定为段落停顿的句尾静音时长，毫秒 */
+  paragraphBreakMs: number;
   /** 麦克风设备 deviceId，空串表示系统默认 */
   micDeviceId: string;
   polishEnabled: boolean;

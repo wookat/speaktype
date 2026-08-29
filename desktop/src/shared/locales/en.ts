@@ -162,6 +162,10 @@ export const en: LocaleDict = {
   "settings.vadAutoStopHint": "In hands-free mode, listening stops by itself after about a minute of silence. Sentences are still typed as you pause either way; push-to-talk is unaffected.",
   "settings.vadSilence": "Silence duration",
   "settings.vadSilenceHint": "Considered done after staying quiet this long.",
+  "settings.handsFreeParagraphs": "Auto paragraphs (hands-free)",
+  "settings.handsFreeParagraphsHint": "In hands-free mode, a longer pause starts a new paragraph (blank line) before the next sentence. Push-to-talk is unaffected.",
+  "settings.paragraphBreak": "Paragraph pause",
+  "settings.paragraphBreakHint": "Pausing at least this long starts a new paragraph.",
 
   "settings.appBehavior": "App behavior",
   "settings.launchAtLogin": "Launch at login",
