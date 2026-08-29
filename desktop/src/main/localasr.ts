@@ -200,8 +200,14 @@ const workerSource = `
 const { parentPort, workerData } = require("worker_threads");
 // OfflineStream 的 native 内存靠 GC finalizer 释放，worker JS 堆极小几乎不触发 GC，
 // 会导致 native 内存随解码次数线性挂账；execArgv 不接受 V8 flag，改用 v8+vm 取 gc。
-require("v8").setFlagsFromString("--expose-gc");
-const gc = require("vm").runInNewContext("gc");
+// --expose-gc 是进程级 flag：后续 worker 的 isolate 自带全局 gc，顶层不能再声明同名标识符。
+let gcFn = globalThis.gc;
+if (typeof gcFn !== "function") {
+  try {
+    require("v8").setFlagsFromString("--expose-gc");
+    gcFn = require("vm").runInNewContext("gc");
+  } catch {}
+}
 const mod = require(workerData.modulePath);
 let rec = null;
 let lang = null;
@@ -235,7 +241,7 @@ parentPort.on("message", (msg) => {
     parentPort.postMessage({ id: msg.id, error: error instanceof Error ? error.message : String(error) });
   }
   // 每次解码后显式回收 OfflineStream 的 native 内存
-  if (typeof gc === "function") gc();
+  if (typeof gcFn === "function") gcFn();
 });
 `;
 
