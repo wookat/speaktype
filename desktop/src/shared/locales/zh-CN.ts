@@ -37,6 +37,7 @@ export const zhCN = {
   "home.model.button": "一键下载",
   "home.model.optSense": "中文 / 日语 / 韩语 / 粤语 + 英语 · 234MB",
   "home.model.optPara": "英语 + 25 种欧洲语言 · 660MB",
+  "home.model.pickHint": "按你平时说的语言选择模型：",
   "home.ready": "语音识别已就绪",
   "home.stat.sessions": "协作次数",
   "home.stat.words": "生成文本",
@@ -53,6 +54,8 @@ export const zhCN = {
   "home.remoteMic": "电脑没有好麦克风？用手机当麦克风 \u2192",
   "home.persona.current": "当前人设",
   "home.persona.switch": "Alt+1..9 快速切换",
+  "home.persona.needLlm": "人设只在配置了 AI 润色模型后才会影响落字。",
+  "home.persona.setupLlm": "去配置 AI 润色",
 
   "history.title": "历史记录",
   "history.clear": "清空历史",
@@ -98,8 +101,6 @@ export const zhCN = {
   "personas.appRulesHint": "开始说话时看当前窗口，命中关键词就用对应人设润色（如在 VS Code 用“简洁”、在微信用“口语”）。仅读进程名与窗口标题，不读窗口内容，全程本地。多条规则同时命中时，列表中靠前的一条生效。",
   "personas.appRuleAdd": "添加规则",
   "personas.appRulePlaceholder": "包含关键词，如 code.exe / 微信 / gmail",
-  "personas.appRulesNoPolish": "规则只在配置了 AI 润色模型后生效，当前未配置，落字不会变化。",
-  "personas.appRulesNoPolishAction": "去配置 AI 润色",
   "personas.inUse": "使用中",
   "personas.use": "设为当前",
 

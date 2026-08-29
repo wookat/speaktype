@@ -86,6 +86,16 @@ function Personas(props: {
         </button>
       </div>
 
+      {/* 人设只在配置了润色模型后才影响落字，未配置时全页明示，避免「切了没反应」 */}
+      {!polishReady && (
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <span>{t("home.persona.needLlm")}</span>
+          <button className="shrink-0 font-medium underline hover:text-amber-800" onClick={props.goModelSettings}>
+            {t("home.persona.setupLlm")}
+          </button>
+        </div>
+      )}
+
       {/* 按应用自动切人设：录音起手时读前台进程名/窗口标题，命中即用该人设润色 */}
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between">
@@ -107,14 +117,6 @@ function Personas(props: {
             {t("personas.appRuleAdd")}
           </button>
         </div>
-        {props.settings.appPersonas.length > 0 && !polishReady && (
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <span>{t("personas.appRulesNoPolish")}</span>
-            <button className="shrink-0 font-medium underline hover:text-amber-800" onClick={props.goModelSettings}>
-              {t("personas.appRulesNoPolishAction")}
-            </button>
-          </div>
-        )}
         {props.settings.appPersonas.length > 0 && (
           <ul className="mt-3 space-y-2">
             {props.settings.appPersonas.map((rule, i) => (

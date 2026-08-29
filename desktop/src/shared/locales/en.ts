@@ -39,6 +39,7 @@ export const en: LocaleDict = {
   "home.model.button": "Download",
   "home.model.optSense": "Chinese / Japanese / Korean / Cantonese + English · 234MB",
   "home.model.optPara": "English + 25 European languages · 660MB",
+  "home.model.pickHint": "Pick the model that matches the language you speak:",
   "home.ready": "Speech recognition is ready",
   "home.stat.sessions": "Sessions",
   "home.stat.words": "Words generated",
@@ -55,6 +56,8 @@ export const en: LocaleDict = {
   "home.remoteMic": "No good mic on this PC? Use your phone as the microphone \u2192",
   "home.persona.current": "Current persona",
   "home.persona.switch": "Switch with Alt+1..9",
+  "home.persona.needLlm": "Personas only shape output with an AI polish model configured.",
+  "home.persona.setupLlm": "Set up AI polish",
 
   "history.title": "History",
   "history.clear": "Clear all",
@@ -101,8 +104,6 @@ export const en: LocaleDict = {
   "personas.appRulesHint": "When you start speaking, SpeakType checks the foreground window and uses the matching persona (e.g. concise in VS Code, casual in chat apps). Only the process name and window title are read — never window contents, and never leaves your machine. If several rules match, the first one in the list wins.",
   "personas.appRuleAdd": "Add rule",
   "personas.appRulePlaceholder": "Contains, e.g. code.exe / slack / gmail",
-  "personas.appRulesNoPolish": "Rules only take effect with an AI polish model configured — set one up first.",
-  "personas.appRulesNoPolishAction": "Set up AI polish",
   "personas.inUse": "In use",
   "personas.use": "Use",
 

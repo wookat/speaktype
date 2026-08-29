@@ -18,6 +18,7 @@ function Home(props: {
   statsSessions: number;
   goSettings: () => void;
   goRemoteMic: () => void;
+  goModelSettings: () => void;
   update: (patch: Partial<Settings>) => void;
 }) {
   const { t } = props;
@@ -63,6 +64,9 @@ function Home(props: {
             <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
             <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc", { size: modelSize })}</div>
             {/* 首次下载前先按语言选对模型：parakeet 不支持中日韩粤，选错要 660MB 白下 */}
+            {!local?.downloading && (
+              <div className="mt-2 text-xs text-indigo-500">{t("home.model.pickHint")}</div>
+            )}
             {!local?.downloading && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {[
@@ -171,6 +175,15 @@ function Home(props: {
             {persona?.name}
           </div>
           <div className="mt-1 max-w-md text-xs text-slate-500">{persona?.prompt}</div>
+          {/* 人设只在配置了润色 AI 服务时才影响落字，未配置时明示避免「选了没反应」 */}
+          {!(props.settings.polishEnabled && props.settings.polishBaseUrl) && (
+            <div className="mt-2 text-xs text-amber-600">
+              {t("home.persona.needLlm")}{" "}
+              <button className="underline hover:text-amber-700" onClick={props.goModelSettings}>
+                {t("home.persona.setupLlm")}
+              </button>
+            </div>
+          )}
         </div>
         <div className="text-xs text-slate-400">{t("home.persona.switch")}</div>
       </div>
