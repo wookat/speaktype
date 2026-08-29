@@ -156,6 +156,10 @@ export const zhCN = {
   "settings.vadAutoStopHint": "免按模式下持续静默约一分钟自动停止聆听；无论开关，说完一句停顿即落字；长按说话不受影响。",
   "settings.vadSilence": "静音判定时长",
   "settings.vadSilenceHint": "持续安静超过该时长即视为说完。",
+  "settings.handsFreeParagraphs": "免按模式自动分段",
+  "settings.handsFreeParagraphsHint": "免按连续听写时，较长停顿后的下一句另起一段（插入空行）；长按说话不受影响。",
+  "settings.paragraphBreak": "段落停顿时长",
+  "settings.paragraphBreakHint": "停顿达到该时长即另起一段。",
 
   "settings.appBehavior": "App 行为",
   "settings.launchAtLogin": "开机时启动应用",

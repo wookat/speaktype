@@ -29,6 +29,9 @@ export const DEFAULT_SETTINGS: Settings = {
   personaHotkeysEnabled: true,
   vadAutoStop: true,
   vadSilenceMs: 2000,
+  handsFreeParagraphs: true,
+  // 实测：自然句间停顿约 1~2.2s，刻意换段停顿 3.5s+；4s = 2×vadSilenceMs，不误切普通句间停顿
+  paragraphBreakMs: 4000,
   micDeviceId: "",
   polishEnabled: false,
   polishBaseUrl: "",
@@ -314,6 +317,10 @@ export function parseConfigImport(
   // captionLines 值域外的数会持久化但 UI 下拉无对应项，显示与存储不一致：非法值不导入
   if (patch.captionLines !== undefined && ![1, 3, 6].includes(patch.captionLines)) {
     delete patch.captionLines;
+    ignored++;
+  }
+  if (patch.paragraphBreakMs !== undefined && ![2000, 3000, 4000, 6000, 8000].includes(patch.paragraphBreakMs)) {
+    delete patch.paragraphBreakMs;
     ignored++;
   }
   if (patch.hotwords) patch.hotwords = patch.hotwords.filter((w): w is string => typeof w === "string");
