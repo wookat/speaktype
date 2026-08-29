@@ -28,6 +28,10 @@ const MIN_CUT_S = 16;
  * 模型对段尾才稳定出句号，整段解码会把句界降级成逗号或丢失 */
 const PAUSE_S = 0.5;
 const MIN_SUB_S = 1.5;
+/** 超长子段降级补切：主阈值切完仍 >SECONDARY_SEG_S 的段，用次级阈值再切一遍，
+ * 避免频繁落入 capLongSegment 的盲切导致段尾句读质量下降 */
+const SECONDARY_SEG_S = 20;
+const PAUSE_2_S = 0.3;
 /** 静音谷判定：帧 RMS 低于全文峰值 RMS 的 2% */
 const QUIET_RATIO = 0.02;
 /** 段内峰值低于该值视为纯静音段，跳过识别避免幻听 */
@@ -120,30 +124,35 @@ function rmsProfile(samples: Float32Array): Float32Array {
   return out;
 }
 
-/** 句间停顿切片：找 ≥ PAUSE_S 的静音谷，按谷心切开，两侧子段不短于 MIN_SUB_S */
-function splitByPauses(samples: Float32Array, rms: Float32Array): Array<[number, number]> {
-  let peak = 0;
-  for (const v of rms) if (v > peak) peak = v;
-  const quiet = peak * QUIET_RATIO;
-  const minFrames = Math.round((PAUSE_S * SR) / HOP);
+/** 句间停顿切片：在 [from, to) 内找 ≥ pauseS 的静音谷，按谷心切开，两侧子段不短于 MIN_SUB_S */
+function splitByPauses(
+  rms: Float32Array,
+  quiet: number,
+  pauseS: number,
+  from: number,
+  to: number,
+): Array<[number, number]> {
+  const minFrames = Math.round((pauseS * SR) / HOP);
+  const fromFrame = Math.ceil(from / HOP);
+  const toFrame = Math.ceil(to / HOP);
   const out: Array<[number, number]> = [];
-  let start = 0;
+  let start = from;
   let runStart = -1;
-  for (let f = 0; f <= rms.length; f++) {
-    if (f < rms.length && rms[f]! < quiet) {
+  for (let f = fromFrame; f <= toFrame; f++) {
+    if (f < toFrame && f < rms.length && rms[f]! < quiet) {
       if (runStart < 0) runStart = f;
       continue;
     }
     if (runStart >= 0 && f - runStart >= minFrames) {
       const cut = Math.round(((runStart + f) / 2) * HOP);
-      if (cut - start >= MIN_SUB_S * SR && samples.length - cut >= MIN_SUB_S * SR) {
+      if (cut - start >= MIN_SUB_S * SR && to - cut >= MIN_SUB_S * SR) {
         out.push([start, cut]);
         start = cut;
       }
     }
     runStart = -1;
   }
-  out.push([start, samples.length]);
+  out.push([start, to]);
   return out;
 }
 
@@ -173,12 +182,17 @@ function capLongSegment(from: number, to: number, rms: Float32Array): Array<[num
   return out;
 }
 
-/** 先按句间停顿切片，再对超长子段封顶 */
+/** 先按句间停顿切片（超长子段用次级阈值补切），再对仍超长的子段封顶 */
 function splitSegments(samples: Float32Array): Array<[number, number]> {
   const rms = rmsProfile(samples);
+  let peak = 0;
+  for (const v of rms) if (v > peak) peak = v;
+  const quiet = peak * QUIET_RATIO;
   const out: Array<[number, number]> = [];
-  for (const [from, to] of splitByPauses(samples, rms)) {
-    out.push(...capLongSegment(from, to, rms));
+  for (const [from, to] of splitByPauses(rms, quiet, PAUSE_S, 0, samples.length)) {
+    const subs =
+      to - from > SECONDARY_SEG_S * SR ? splitByPauses(rms, quiet, PAUSE_2_S, from, to) : [[from, to] as [number, number]];
+    for (const [f, t2] of subs) out.push(...capLongSegment(f, t2, rms));
   }
   return out;
 }
