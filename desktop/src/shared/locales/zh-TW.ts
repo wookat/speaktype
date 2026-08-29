@@ -35,6 +35,8 @@ export const zhTW: LocaleDict = {
   "home.model.title": "下載離線辨識模型",
   "home.model.desc": "首次使用需下載一次（約 {{size}}），之後完全在本機辨識，不聯網、不需金鑰。",
   "home.model.button": "一鍵下載",
+  "home.model.optSense": "中文 / 日語 / 韓語 / 粵語 + 英語 · 234MB",
+  "home.model.optPara": "英語 + 25 種歐洲語言 · 660MB",
   "home.ready": "語音識別已就緒",
   "home.stat.sessions": "協作次數",
   "home.stat.words": "生成文字",

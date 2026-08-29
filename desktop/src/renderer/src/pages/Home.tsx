@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { LocalModelStatus, Persona, Settings } from "../../../shared/types";
+import { PARAKEET, SENSEVOICE } from "../../../shared/localModels";
 import { PersonaIcon } from "../components/PersonaIcon";
 import { StatCard } from "../components/StatCard";
 import { humanDownloadError } from "../lib/downloadError";
@@ -17,6 +18,7 @@ function Home(props: {
   statsSessions: number;
   goSettings: () => void;
   goRemoteMic: () => void;
+  update: (patch: Partial<Settings>) => void;
 }) {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
@@ -60,6 +62,27 @@ function Home(props: {
           <div>
             <div className="font-medium text-indigo-700">{t("home.model.title")}</div>
             <div className="mt-1 text-sm text-indigo-600">{t("home.model.desc", { size: modelSize })}</div>
+            {/* 首次下载前先按语言选对模型：parakeet 不支持中日韩粤，选错要 660MB 白下 */}
+            {!local?.downloading && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  { id: SENSEVOICE, label: t("home.model.optSense") },
+                  { id: PARAKEET, label: t("home.model.optPara") },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    className={`rounded-lg border px-2.5 py-1 text-xs ${
+                      localModel === m.id
+                        ? "border-indigo-400 bg-indigo-100 font-medium text-indigo-700"
+                        : "border-indigo-200 bg-white text-indigo-500 hover:bg-indigo-100"
+                    }`}
+                    onClick={() => props.update({ localModel: m.id })}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {local?.error && <div className="mt-1 text-sm text-red-500">{humanDownloadError(local.error, t)}</div>}
           </div>
           <button

@@ -37,6 +37,8 @@ export const en: LocaleDict = {
   "home.model.title": "Download the offline speech model",
   "home.model.desc": "One-time download (~{{size}}). After that everything runs on your machine — no network, no API key.",
   "home.model.button": "Download",
+  "home.model.optSense": "Chinese / Japanese / Korean / Cantonese + English · 234MB",
+  "home.model.optPara": "English + 25 European languages · 660MB",
   "home.ready": "Speech recognition is ready",
   "home.stat.sessions": "Sessions",
   "home.stat.words": "Words generated",

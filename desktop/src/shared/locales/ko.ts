@@ -37,6 +37,8 @@ export const ko: LocaleDict = {
   "home.model.title": "오프라인 음성 모델 다운로드",
   "home.model.desc": "처음 한 번만 다운로드하면(약 {{size}}) 이후에는 인터넷과 API 키 없이 로컬에서 동작합니다.",
   "home.model.button": "다운로드",
+  "home.model.optSense": "중국어 / 일본어 / 한국어 / 광둥어 + 영어 · 234MB",
+  "home.model.optPara": "영어 + 유럽 25개 언어 · 660MB",
   "home.ready": "음성 인식 준비 완료",
   "home.stat.sessions": "세션",
   "home.stat.words": "생성된 글자 수",

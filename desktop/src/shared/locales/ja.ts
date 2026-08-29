@@ -37,6 +37,8 @@ export const ja: LocaleDict = {
   "home.model.title": "オフライン音声モデルをダウンロード",
   "home.model.desc": "初回のみダウンロード（約{{size}}）。以降は完全にローカルで動作し、API キー不要です。",
   "home.model.button": "ダウンロード",
+  "home.model.optSense": "中国語 / 日本語 / 韓国語 / 広東語 + 英語 · 234MB",
+  "home.model.optPara": "英語 + 欧州 25 言語 · 660MB",
   "home.ready": "音声認識の準備完了",
   "home.stat.sessions": "セッション",
   "home.stat.words": "生成文字数",
