@@ -35,6 +35,8 @@ export const zhCN = {
   "home.model.title": "下载离线识别模型",
   "home.model.desc": "首次使用需下载一次（约 {{size}}），之后完全在本机识别，不联网、不需密钥。",
   "home.model.button": "一键下载",
+  "home.model.optSense": "中文 / 日语 / 韩语 / 粤语 + 英语 · 234MB",
+  "home.model.optPara": "英语 + 25 种欧洲语言 · 660MB",
   "home.ready": "语音识别已就绪",
   "home.stat.sessions": "协作次数",
   "home.stat.words": "生成文本",

@@ -191,6 +191,7 @@ export default function App() {
               setSettingsJump("voice#remote-mic");
               setPage("settings");
             }}
+            update={update}
           />
         )}
         {page === "history" && (
