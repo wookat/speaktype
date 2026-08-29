@@ -39,6 +39,7 @@ export const ja: LocaleDict = {
   "home.model.button": "ダウンロード",
   "home.model.optSense": "中国語 / 日本語 / 韓国語 / 広東語 + 英語 · 234MB",
   "home.model.optPara": "英語 + 欧州 25 言語 · 660MB",
+  "home.model.pickHint": "普段話す言語に合わせてモデルを選択：",
   "home.ready": "音声認識の準備完了",
   "home.stat.sessions": "セッション",
   "home.stat.words": "生成文字数",
@@ -55,6 +56,8 @@ export const ja: LocaleDict = {
   "home.remoteMic": "PC にマイクがない？スマホをマイクとして使う \u2192",
   "home.persona.current": "現在のペルソナ",
   "home.persona.switch": "Alt+1..9 で切り替え",
+  "home.persona.needLlm": "ペルソナは AI ポリッシュモデル設定時のみ出力に影響します。",
+  "home.persona.setupLlm": "AI ポリッシュを設定",
 
   "history.title": "履歴",
   "history.clear": "すべて消去",
@@ -101,8 +104,6 @@ export const ja: LocaleDict = {
   "personas.appRulesHint": "話し始めた時点の前面のウィンドウを見て、一致したペルソナで整形します。プロセス名とウィンドウタイトルのみを参照し、すべてローカルで処理します。複数のルールに一致した場合は、リストの上にあるものが優先されます。",
   "personas.appRuleAdd": "ルールを追加",
   "personas.appRulePlaceholder": "部分一致（例: code.exe / slack / gmail）",
-  "personas.appRulesNoPolish": "ルールは AI ポリッシュモデル設定時のみ有効です。未設定のため出力は変わりません。",
-  "personas.appRulesNoPolishAction": "AI ポリッシュを設定",
   "personas.inUse": "使用中",
   "personas.use": "使用",
 

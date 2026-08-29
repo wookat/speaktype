@@ -191,6 +191,10 @@ export default function App() {
               setSettingsJump("voice#remote-mic");
               setPage("settings");
             }}
+            goModelSettings={() => {
+              setSettingsJump("model");
+              setPage("settings");
+            }}
             update={update}
           />
         )}

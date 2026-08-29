@@ -39,6 +39,7 @@ export const ko: LocaleDict = {
   "home.model.button": "다운로드",
   "home.model.optSense": "중국어 / 일본어 / 한국어 / 광둥어 + 영어 · 234MB",
   "home.model.optPara": "영어 + 유럽 25개 언어 · 660MB",
+  "home.model.pickHint": "평소 말하는 언어에 맞는 모델을 선택하세요:",
   "home.ready": "음성 인식 준비 완료",
   "home.stat.sessions": "세션",
   "home.stat.words": "생성된 글자 수",
@@ -55,6 +56,8 @@ export const ko: LocaleDict = {
   "home.remoteMic": "PC에 마이크가 없나요? 휴대폰을 마이크로 사용 \u2192",
   "home.persona.current": "현재 페르소나",
   "home.persona.switch": "Alt+1..9 로 전환",
+  "home.persona.needLlm": "페르소나는 AI 다듬기 모델이 설정된 경우에만 출력에 반영됩니다.",
+  "home.persona.setupLlm": "AI 다듬기 설정",
 
   "history.title": "기록",
   "history.clear": "모두 지우기",
@@ -101,8 +104,6 @@ export const ko: LocaleDict = {
   "personas.appRulesHint": "말하기 시작 시 포그라운드 창을 확인해 일치하는 페르소나로 다듬습니다. 프로세스 이름과 창 제목만 읽으며 모두 로컬에서 처리됩니다.여러 규칙이 동시에 일치하면 목록에서 위에 있는 규칙이 적용됩니다.",
   "personas.appRuleAdd": "규칙 추가",
   "personas.appRulePlaceholder": "포함 문자, 예: code.exe / slack / gmail",
-  "personas.appRulesNoPolish": "규칙은 AI 다듬기 모델이 설정된 경우에만 적용됩니다. 현재 미설정이라 출력이 바뀌지 않습니다.",
-  "personas.appRulesNoPolishAction": "AI 다듬기 설정",
   "personas.inUse": "사용 중",
   "personas.use": "사용",
 
