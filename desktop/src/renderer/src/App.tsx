@@ -176,7 +176,8 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto px-8 pb-10 pt-12">
+      {/* 滚动容器从拖拽条下方开始，内容滚不进 drag 区，按钮不会被吞点击 */}
+      <main className="mt-10 flex-1 overflow-y-auto px-8 pb-10 pt-2">
         {page === "home" && (
           <Home
             t={t}
