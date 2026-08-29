@@ -5,6 +5,15 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 # Testing SpeakType Windows desktop (Electron)
 
+## Round 247 learnings (packaged v0.16.0)
+
+- **Sherpa worker model-switch bug (may persist)**: switching local models mid-session (parakeet→sensevoice, whisper→sensevoice) makes the sherpa worker eval fail with `SyntaxError: Identifier 'gc' has already been declared`; every retry fails until the app process is fully restarted. A COLD start with the model already selected initializes fine. Preflight before any sensevoice-dependent test: check `%APPDATA%\SpeakType\logs\main.log` for `sherpa worker started (...)` with NO following `sherpa worker error`; if the error appears, restart the app rather than clicking Retry.
+- **MoveWindow trap**: the SpeakType main window is often maximized; `MoveWindow` silently no-ops on a maximized window (returns True). Click the restore button first, then resize (see `C:\Users\Administrator\tts\resize.ps1`, targets `Get-Process SpeakType` MainWindowHandle).
+- Theme flip helper that works non-interactively: `C:\Users\Administrator\tts\theme.ps1 -v 0|1` (sets both Personalize values + broadcasts `ImmersiveColorSet`).
+- When AI polish is enabled with the mock server, ALL dictation output becomes the `MOCK-REWRITE:` prompt echo — disable AI polish before testing plain dictation/whisper switching, or results look garbled.
+- Persona app-rule verification: History items show `time · <persona name> · duration · Local offline`; the rule persona also appears inside the mock-rewrite prompt echo (style instructions section), which is independent corroboration.
+- This VM may lack the historical `C:\Users\Administrator\tts` assets; verify `rkey.ps1`/`hf246.wav`/`sample.wav` exist before recording, and note in the report if they had to be re-synthesized.
+
 ## Network-blocking tests (download failure simulation) — CRITICAL traps
 
 - **NEVER enable Windows Firewall on this box** (`netsh advfirewall set allprofiles state on`): it severs the Devin control channel instantly; recovery needed a VM reboot. The firewall is intentionally OFF, so program-scoped firewall block rules are silently ineffective too.
