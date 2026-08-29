@@ -406,7 +406,7 @@ function registerIpc(): void {
   ipcMain.handle("settings:update", (_e, patch: Partial<Settings>) => applySettingsPatch(patch));
   ipcMain.handle("config:export", async () => {
     const res = await dialog.showSaveDialog({
-      defaultPath: `speaktype-config-${new Date().toISOString().slice(0, 10)}.json`,
+      defaultPath: join(app.getPath("documents"), `speaktype-config-${new Date().toISOString().slice(0, 10)}.json`),
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
     if (res.canceled || !res.filePath) return { ok: false, canceled: true };
