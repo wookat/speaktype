@@ -34,6 +34,13 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
+## Round 258 learnings (Silero hangover A/B methodology)
+
+- Segment-count is the strongest single signal for Silero segmentation fixes on the 2.2s-gap fixture (`silero256d.wav`, 32 short sentences): broken hangover → ~12 heavily-merged segments; fixed → ~41; peak baseline → ~37 with all heads intact. Count segments from history.json before eyeballing text.
+- Two runs in one app session can share one history.json: record the pre-run count N and slice `history.slice(0, len-N)` for the delta — avoids restarting the app between A and B when only the Enhanced VAD toggle changes (toggle applies live, no restart needed).
+- Freshly launched SpeakType steals foreground focus; ALWAYS screenshot-verify Notepad focus after every app (re)launch before Ctrl+A/Delete/Alt+Q. A run started with SpeakType focused pastes nothing ("No text field in focus" toast) but still writes history — history-based counting stays valid, on-screen text does not.
+- Residual Silero anomaly signature to look for even after fixes: pairs of `需要换行处理。` (head lost) followed by segments ending `…我/我们` (that head glued to previous tail) — count them as pairs, not independent errors.
+
 ## Round 257 learnings (ASR language + Silero model preflight)
 
 - **`settings.language` MUST be `zh` for Chinese fixture tests.** The user's real config has `language: "en"`; with en, SenseVoice transcribes Chinese TTS as pinyin garbage ("H Huang Hang.", "Lin Qi.") and command words never match — this silently invalidates whole VAD/command runs. Preflight: `node -e "...settings.language"` and set `zh` in test userData before any Chinese run.

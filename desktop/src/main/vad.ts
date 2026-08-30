@@ -21,6 +21,12 @@ const SOURCES = [
 ];
 const WINDOW = 512; // silero v5 @16kHz 固定 512 样本（32ms）
 const SPEECH_PROB = 0.5;
+/**
+ * isDetected() 关断滞后：真实句尾之后还要再经过 minSilenceDuration 的静音才翻 false，
+ * 期间的静音帧仍被计为有声。上层静音判停倒计时需把这段滞后扣回去，
+ * 否则紧贴阈值的自然句间停顿（如 2.2s vs 2.0s）会漏切，下一句句头并入上一段。
+ */
+export const SILERO_HANGOVER_MS = 250;
 // sherpa-onnx 预编译产物目前只随包带了 win-x64；其他平台回退峰值门槛
 const SUPPORTED = process.platform === "win32" && process.arch === "x64";
 
@@ -120,7 +126,7 @@ export class SileroVad {
             model: join(vadDir(), "silero_vad.onnx"),
             threshold: SPEECH_PROB,
             minSpeechDuration: 0.1,
-            minSilenceDuration: 0.25,
+            minSilenceDuration: SILERO_HANGOVER_MS / 1000,
             maxSpeechDuration: 30,
             windowSize: WINDOW,
           },
