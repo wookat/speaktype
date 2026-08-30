@@ -166,6 +166,15 @@ export const ko: LocaleDict = {
   "settings.handsFreeParagraphsHint": "핸즈프리 모드에서 길게 멈추면 다음 문장 앞에 빈 줄을 넣어 새 단락을 시작합니다. 누르고 말하기 모드에는 영향이 없습니다.",
   "settings.paragraphBreak": "단락 멈춤 시간",
   "settings.paragraphBreakHint": "이 시간 이상 멈추면 새 단락이 시작됩니다.",
+  "settings.voiceCommands": "핸즈프리 음성 명령",
+  "settings.voiceCommandsHint":
+    "핸즈프리 모드에서 명령어만 말하면 입력 대신 편집 동작을 실행합니다(현재 중국어·영어만: 换行 / 另起一段 / 删除上一句 / 撤销, new line / new paragraph / delete last sentence / undo). 긴 문장 안의 명령어는 그대로 입력됩니다.",
+  "toast.voiceCommandDone": "음성 명령 실행됨",
+  "toast.voiceCommandFailed": "음성 명령을 실행하지 못했습니다",
+  "voiceCommand.newline": "줄 바꿈",
+  "voiceCommand.paragraph": "새 단락",
+  "voiceCommand.deleteLast": "마지막 문장 삭제",
+  "voiceCommand.undo": "실행 취소",
 
   "settings.appBehavior": "앱 동작",
   "settings.launchAtLogin": "로그인 시 시작",

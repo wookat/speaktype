@@ -19,7 +19,7 @@ import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from 
 import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { muteForRecording, unmuteAfterRecording } from "./mute";
-import { copySelection, pasteText } from "./paste";
+import { copySelection, pasteText, sendBackspaces, sendUndo } from "./paste";
 import { deformatForTerminal, polishText, rewriteSelection } from "./polish";
 import { SileroVad } from "./vad";
 import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
@@ -50,6 +50,41 @@ const MIN_VOICED_MS = 100; // 人话最短音节 >100ms；短哔声跨窗量化�
 const HOLD_GLUE_WINDOW_MS = 15000;
 // 免按句间空档（转写/落字/重启窗口）的帧暂存上限（按采样数计）：空档通常 <2s，5s 足够且不膨胀
 const HANDS_FREE_CARRY_MAX_SAMPLES = 5 * 16000;
+// Silero 起声判定比峰值门槛滞后：短停顿（≤约2.2s）下自动收尾可能切在下一句起声中，
+// 句头音频被归进上一段造成丢字；下一句起手时回补上一段末尾约 300ms 音频兜底
+const HANDS_FREE_PREROLL_SAMPLES = Math.floor(0.3 * 16000);
+
+/**
+ * 免按语音命令词表（默认关）：整条 finalize 去尾标点后精确匹配才触发，
+ * 嵌入句中照常落字。仅启用已实测 ASR 输出稳定的 zh/en 词表。
+ */
+type VoiceCommand = "newline" | "paragraph" | "deleteLast" | "undo";
+const VOICE_COMMANDS: ReadonlyArray<{ cmd: VoiceCommand; words: readonly string[] }> = [
+  { cmd: "newline", words: ["换行", "換行", "new line", "newline", "line break"] },
+  { cmd: "paragraph", words: ["另起一段", "new paragraph"] },
+  { cmd: "deleteLast", words: ["删除上一句", "刪除上一句", "delete last sentence"] },
+  { cmd: "undo", words: ["撤销", "撤銷", "undo"] },
+];
+
+function matchVoiceCommand(part: string): VoiceCommand | null {
+  const normalized = part.trim().replace(/[。．.!?！？，,\s]+$/u, "").toLowerCase();
+  if (!normalized) return null;
+  for (const { cmd, words } of VOICE_COMMANDS) if (words.includes(normalized)) return cmd;
+  return null;
+}
+
+/** 整条文本全部由命令词组成才算命令（按句号切分逐段匹配），否则视为普通听写 */
+function parseVoiceCommands(text: string): VoiceCommand[] | null {
+  const parts = text.split(/[。．.!?！？]/u).filter((p) => p.trim().length > 0);
+  if (parts.length === 0) return null;
+  const cmds: VoiceCommand[] = [];
+  for (const part of parts) {
+    const cmd = matchVoiceCommand(part);
+    if (!cmd) return null;
+    cmds.push(cmd);
+  }
+  return cmds;
+}
 // 识别失败后音频保留在内存里，限时内再按一次热键可直接重试，不用重新录
 const RETRY_WINDOW_MS = 60000;
 const RETRY_MAX_FRAMES = 3000; // 约 60s @ 20ms/帧
@@ -181,6 +216,10 @@ export class Dictation {
   private lastHoldPasteAt = 0;
   /** hold 模式上一次落字的前台窗口标识：切窗后新位置应顶格，不补句间空格 */
   private lastHoldPasteWin: string | null = null;
+  /** 上一段末尾音频：下一句起手时先补喂，兜住 Silero 起声滞后切掉的句头（仅增强 VAD 开启时） */
+  private preRoll: Int16Array[] = [];
+  /** 免按最近一次成功落字的完整文本（含 glue）：语音命令「删除上一句」按它回退 */
+  private lastHandsFreePasted = "";
   private lastVoiceAt = 0;
   /** 本句首个有声帧时刻：与上一句句尾人声时刻的差即句间停顿时长 */
   private firstVoiceAt = 0;
@@ -405,12 +444,16 @@ export class Dictation {
     this.voicedMs = 0;
     const settings = getSettings();
     this.silero = settings.enhancedVad ? SileroVad.create() : null;
-    if (this.handsFree && mode === "toggle" && this.handsFreeCarry.length > 0) {
+    if (this.handsFree && mode === "toggle") {
+      const preRoll = this.preRoll;
+      this.preRoll = [];
       const carry = this.handsFreeCarry;
       this.handsFreeCarry = [];
       this.handsFreeCarrySamples = 0;
+      for (const frame of preRoll) this.pushPcm(frame);
       for (const frame of carry) this.pushPcm(frame);
     } else {
+      this.preRoll = [];
       this.handsFreeCarry = [];
       this.handsFreeCarrySamples = 0;
     }
@@ -512,6 +555,8 @@ export class Dictation {
     this.handsFreeTyped = false;
     this.handsFreeCarry = [];
     this.handsFreeCarrySamples = 0;
+    this.preRoll = [];
+    this.lastHandsFreePasted = "";
     void this.start("toggle");
   }
 
@@ -752,6 +797,17 @@ export class Dictation {
     const endedByKey = this.handsFreeEndedByKey;
     this.handsFreeEndedByKey = false;
 
+    // Silero 起声滞后兜底：本段末尾约 300ms 音频留给下一句回补（P3-2541）
+    if (this.handsFree && this.mode === "toggle" && this.silero) {
+      const tail: Int16Array[] = [];
+      let samples = 0;
+      for (let i = this.allFrames.length - 1; i >= 0 && samples < HANDS_FREE_PREROLL_SAMPLES; i--) {
+        tail.unshift(this.allFrames[i]!);
+        samples += this.allFrames[i]!.length;
+      }
+      this.preRoll = tail;
+    }
+
     // 免按会话内跨句保持麦克风与系统静音：每句都整轮拆建 getUserMedia/AudioContext/AudioWorklet
     // 会让录音渲染进程原生内存每句累积不归还；退出免按处统一停麦解除
     if (!(this.handsFree && this.mode === "toggle")) {
@@ -868,6 +924,19 @@ export class Dictation {
       );
     }
 
+    // 免按语音命令：整条精确命中命令词表时不落字，改执行编辑动作；终端前台不执行（换行即回车）
+    if (this.mode === "toggle" && !rewriteTarget && settings.voiceCommands && !isTerminalForeground()) {
+      const cmds = parseVoiceCommands(text);
+      if (cmds) {
+        for (const cmd of cmds) await this.runVoiceCommand(cmd);
+        this.busy = false;
+        this.partial = "";
+        this.report("idle");
+        this.maybeContinueHandsFree(false);
+        return;
+      }
+    }
+
     let failed: string | undefined;
     let pastedOk = true;
     const noTarget =
@@ -914,6 +983,7 @@ export class Dictation {
           this.deps.showToast(t("toast.pasteBlocked"), t("toast.pasteBlockedBody"));
         } else {
           if (this.handsFree && this.mode === "toggle") this.handsFreeTyped = true;
+          if (this.mode === "toggle") this.lastHandsFreePasted = glue + text;
           if (this.mode === "hold" && !rewriteTarget) {
             this.lastHoldPasteAt = Date.now();
             this.lastHoldPasteWin = pasteWin;
@@ -952,6 +1022,35 @@ export class Dictation {
     setTimeout(() => {
       if (this.state === "idle") this.setPartial("");
     }, 1200);
+  }
+
+  /** 命中的免按语音命令：不落字，转为编辑动作，并给短提示 */
+  private async runVoiceCommand(cmd: VoiceCommand): Promise<void> {
+    const cmdName = {
+      newline: t("voiceCommand.newline"),
+      paragraph: t("voiceCommand.paragraph"),
+      deleteLast: t("voiceCommand.deleteLast"),
+      undo: t("voiceCommand.undo"),
+    }[cmd];
+    let ok: boolean;
+    if (cmd === "newline" || cmd === "paragraph") {
+      const eol = process.platform === "win32" ? "\r\n" : "\n";
+      ok = await pasteText(cmd === "newline" ? eol : eol + eol);
+      // 换行后下一句顶格起：不再补句间空格/段落空行
+      if (ok) this.handsFreeTyped = false;
+    } else if (cmd === "deleteLast") {
+      const presses = Array.from(this.lastHandsFreePasted.replace(/\r\n/g, "\n")).length;
+      ok = presses > 0 && (await sendBackspaces(presses));
+      if (ok) this.lastHandsFreePasted = "";
+    } else {
+      ok = await sendUndo();
+    }
+    this.deps.showToast(
+      ok ? t("toast.voiceCommandDone") : t("toast.voiceCommandFailed"),
+      cmdName,
+      undefined,
+      2000,
+    );
   }
 
   /** 免按模式未退出时自动开启下一句；连续多轮无人声（约 1 分钟）才自动退出 */
