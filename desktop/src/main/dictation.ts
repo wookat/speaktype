@@ -1047,7 +1047,7 @@ export class Dictation {
       ok ? t("toast.voiceCommandDone") : t("toast.voiceCommandFailed"),
       cmdName,
       undefined,
-      2000,
+      3000,
     );
   }
 
