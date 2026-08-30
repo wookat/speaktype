@@ -34,6 +34,15 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
+## Round 257 learnings (ASR language + Silero model preflight)
+
+- **`settings.language` MUST be `zh` for Chinese fixture tests.** The user's real config has `language: "en"`; with en, SenseVoice transcribes Chinese TTS as pinyin garbage ("H Huang Hang.", "Lin Qi.") and command words never match — this silently invalidates whole VAD/command runs. Preflight: `node -e "...settings.language"` and set `zh` in test userData before any Chinese run.
+- **Silero model preflight**: fresh test userData needs `%APPDATA%\SpeakType\vad\silero_vad.onnx` (a copy lives at `C:\Users\Administrator\silero_vad.onnx`). The Enhanced VAD toggle turns green even when the model is missing and main.log logs NOTHING about silero — the only visible confirmation is the Settings hint text "Add-on ready — voice detection upgraded". Behavioral tell: with the model, 2.2s-gap fixtures produce merged 10-18s captures; without it, capture cuts at every gap like peak mode.
+- `rkey.ps1` maps only rctrl/etc — it does NOT know `lalt`/`q`; Alt+Q must be sent with the computer-use `key` action (works as a global hotkey regardless of focus).
+- Alt+Q during an in-flight utterance still finalizes and pastes that utterance once (by design, like hold release); "no residual" means nothing further lands afterwards.
+- Looping a short (<2s) command WAV with no silence gap never finalizes (continuous speech); command fixtures need ≥2.5s trailing silence inside the file.
+- Clicking the Notepad taskbar icon sometimes raises SpeakType instead — always screenshot-verify focus before Ctrl+A/Delete (a stray Ctrl+A+Del into SpeakType is harmless but wastes a cycle).
+
 ## Frameless-window drag region swallows clicks (general trap)
 
 - The main window's top strip (~y<45 when maximized) is a `-webkit-app-region: drag` zone: clicks on any in-app button/link that scrolls up into that strip do nothing (or activate a background window if the click lands outside the app). Symptom: repeated clicks on a visibly rendered button with no effect. Fix: scroll the page so the target sits below y≈100, then click. (Same root cause as the History Show all/Show less note below.) Note: builds after PR #352 give `<main>` a `mt-10` margin so content can no longer scroll under the strip — this trap only applies to pre-#352 builds.

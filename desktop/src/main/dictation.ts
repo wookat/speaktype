@@ -207,6 +207,8 @@ export class Dictation {
   /** 免按句间空档到达的帧：下一句起手时补喂，语音中途切换会话不丢字 */
   private handsFreeCarry: Int16Array[] = [];
   private handsFreeCarrySamples = 0;
+  /** finalize 进行中（转写/落字阶段）：此时到达的帧必须进 carry 而非 buffered，否则下一句 start 会整批丢弃 */
+  private finalizing = false;
   /** hold 模式上一次落字时间，用于短间隔连续口述的句间空格 */
   private lastHoldPasteAt = 0;
   /** hold 模式上一次落字的前台窗口标识：切窗后新位置应顶格，不补句间空格 */
@@ -323,9 +325,10 @@ export class Dictation {
   }
 
   pushPcm(frame: Int16Array): void {
-    // 免按跨句保持采集：句间空档（转写/落字期间）到达的帧暂存到 carry，
-    // 下一句起手时补喂；否则解码变慢时下一句的句头会被削掉造成丢字/混杂
-    if (!this.busy) {
+    // 免按跨句保持采集：句间空档与 finalize（转写/落字）期间到达的帧暂存到 carry，
+    // 下一句起手时补喂。finalize 期间 session 已置空，这些帧若走 buffered 会在下一句
+    // start 时被整批丢弃——这正是免按短停顿句头丢字（P3-2541）的根因
+    if (!this.busy || this.finalizing) {
       if (this.handsFree && this.mode === "toggle") {
         this.handsFreeCarry.push(frame);
         this.handsFreeCarrySamples += frame.length;
@@ -421,6 +424,7 @@ export class Dictation {
     // 全新录音：丢弃上一次失败的重试上下文，成功后不得吞掉历史里的失败条目
     this.lastFailed = null;
     this.busy = true;
+    this.finalizing = false;
     this.mode = mode;
     this.pendingEnd = null;
     this.partial = "";
@@ -773,6 +777,7 @@ export class Dictation {
     const session = this.session;
     if (!session) return;
     this.session = null;
+    this.finalizing = true;
     // 本次会话一开始就消费掉改写意图：空结果/异常提前退出时不能残留到下一次普通听写
     const rewriteTarget = this.rewriteTarget;
     this.rewriteTarget = null;
