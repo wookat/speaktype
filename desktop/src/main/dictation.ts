@@ -21,7 +21,7 @@ import { t, translator } from "./i18n";
 import { muteForRecording, unmuteAfterRecording } from "./mute";
 import { copySelection, pasteText, sendBackspaces } from "./paste";
 import { deformatForTerminal, polishText, rewriteSelection } from "./polish";
-import { SileroVad } from "./vad";
+import { SILERO_HANGOVER_MS, SileroVad } from "./vad";
 import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
 
@@ -375,7 +375,10 @@ export class Dictation {
     this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
     if (voiced) {
       if (!this.firstVoiceAt) this.firstVoiceAt = now;
-      this.lastVoiceAt = now;
+      // Silero 的 isDetected() 在真实句尾后还会多亮 minSilenceDuration：把滞后扣回，
+      // 否则静音判停相当于 vadSilenceMs+滞后，紧贴阈值的句间停顿（如 2.2s vs 2.0s）
+      // 会漏切，下一句句头并入上一段（P3-2541 残余）
+      this.lastVoiceAt = this.silero ? now - SILERO_HANGOVER_MS : now;
     }
     if (this.mode !== "toggle" || this.state !== "recording" || !this.session) return;
     if (this.handsFree) {
