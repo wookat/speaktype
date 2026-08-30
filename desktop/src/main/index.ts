@@ -2,7 +2,7 @@
 import "./reset";
 // 在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
 import "./migrate";
-import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, shell } from "electron";
+import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, nativeTheme, shell } from "electron";
 import { basename, join } from "node:path";
 import { createServer } from "node:net";
 import { execFile } from "node:child_process";
@@ -239,6 +239,12 @@ const hotkeys = new HotkeyManager({
   },
 });
 
+// Chromium 原生弹层（select 下拉等）配色跟 nativeTheme 走而非页面 CSS：
+// 主题设置同步到 themeSource，深色主题下弹层不再偶发浅色
+function applyNativeTheme(theme: Settings["theme"]): void {
+  nativeTheme.themeSource = theme;
+}
+
 function applyHotkeys(settings: Settings): void {
   hotkeys.configure(
     settings.hotkeyHold,
@@ -376,6 +382,7 @@ function registerIpc(): void {
     const prevModel = getSettings().localModel;
     const next = setSettings(patch);
     applyHotkeys(next);
+    if ("theme" in patch) applyNativeTheme(next.theme);
     // 旧模型 worker 常驻数百 MB～GB：切换本身就是「不再用它」信号，立即释放而非等空闲计时
     if ("localModel" in patch && next.localModel !== prevModel) {
       releaseSherpaWorker();
@@ -531,6 +538,7 @@ function registerIpc(): void {
   ipcMain.handle("settings:reset", async () => {
     const next = resetSettingsToDefaults();
     applyHotkeys(next);
+    applyNativeTheme(next.theme);
     releaseSherpaWorker();
     stopLocalServer();
     closeBridge();
@@ -669,6 +677,7 @@ void app.whenReady().then(() => {
 
   const settings = getSettings();
   applyHotkeys(settings);
+  applyNativeTheme(settings.theme);
   hotkeys.start();
   void applyLaunchAtLogin(settings.launchAtLogin);
   // 仅当前 provider 是豆包才预载桥接窗口：其他 provider 下残留的 app key 缓存不应触发任何出网
