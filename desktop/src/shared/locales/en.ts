@@ -168,13 +168,12 @@ export const en: LocaleDict = {
   "settings.paragraphBreakHint": "Pausing at least this long starts a new paragraph.",
   "settings.voiceCommands": "Voice commands (hands-free)",
   "settings.voiceCommandsHint":
-    "In hands-free mode, saying exactly one of these commands runs an edit action instead of typing: “new line”, “new paragraph”, “delete last sentence”, “undo” (Chinese: 换行 / 另起一段 / 删除上一句 / 撤销). Commands inside a longer sentence are typed as normal text.",
+    "In hands-free mode, saying exactly one of these commands runs an edit action instead of typing: “new line”, “new paragraph”, “delete last sentence” (Chinese: 换行 / 另起一段 / 删除上一句). Commands inside a longer sentence are typed as normal text.",
   "toast.voiceCommandDone": "Voice command",
   "toast.voiceCommandFailed": "Voice command failed",
   "voiceCommand.newline": "New line",
   "voiceCommand.paragraph": "New paragraph",
   "voiceCommand.deleteLast": "Delete last sentence",
-  "voiceCommand.undo": "Undo",
 
   "settings.appBehavior": "App behavior",
   "settings.launchAtLogin": "Launch at login",

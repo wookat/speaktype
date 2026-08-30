@@ -168,13 +168,12 @@ export const ja: LocaleDict = {
   "settings.paragraphBreakHint": "この時間以上の間を置くと新しい段落になります。",
   "settings.voiceCommands": "ハンズフリー音声コマンド",
   "settings.voiceCommandsHint":
-    "ハンズフリー中、コマンド語だけを発話すると入力ではなく編集操作を実行します（現在は中国語・英語のみ：換行 / 另起一段 / 删除上一句 / 撤销、new line / new paragraph / delete last sentence / undo）。長い文の中のコマンド語は通常通り入力されます。",
+    "ハンズフリー中、コマンド語だけを発話すると入力ではなく編集操作を実行します（現在は中国語・英語のみ：換行 / 另起一段 / 删除上一句、new line / new paragraph / delete last sentence）。長い文の中のコマンド語は通常通り入力されます。",
   "toast.voiceCommandDone": "音声コマンドを実行しました",
   "toast.voiceCommandFailed": "音声コマンドを実行できませんでした",
   "voiceCommand.newline": "改行",
   "voiceCommand.paragraph": "新しい段落",
   "voiceCommand.deleteLast": "直前の文を削除",
-  "voiceCommand.undo": "元に戻す",
 
   "settings.appBehavior": "アプリの動作",
   "settings.launchAtLogin": "ログイン時に起動",

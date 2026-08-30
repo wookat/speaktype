@@ -21,7 +21,6 @@ const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
 const VK_C = 0x43;
-const VK_Z = 0x5a;
 const VK_BACK = 0x08;
 const VK_SHIFT = 0x10;
 const VK_MENU = 0x12;
@@ -93,13 +92,6 @@ async function waitModifiersReleased(): Promise<boolean> {
   if (!win32) return true;
   for (let i = 0; i < 50 && win32.modifiersDown(); i++) await sleep(20);
   return !win32.modifiersDown();
-}
-
-/** 语音命令「撤销」：向前台发一次 Ctrl/Cmd+Z */
-export async function sendUndo(): Promise<boolean> {
-  if (!(await waitModifiersReleased())) return false;
-  await sendShortcut(VK_Z, "z");
-  return true;
 }
 
 /** 语音命令「删除上一句」：向前台连发 Backspace */
