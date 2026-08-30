@@ -466,3 +466,13 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 ## Round 247b: onboarding model chips (#347) locale simulation
 
 - Fresh-install default localModel comes from main-process ICU (Windows user locale): `Set-Culture zh-CN` (revert with `Set-Culture en-US`) decides sensevoice vs parakeet; `--lang=zh-CN` only affects `app.getLocale()`/UI language. Simulating a zh-CN system needs BOTH knobs; `--lang` alone on an en-US box still yields parakeet default (by design).
+
+## Round 256: voice commands (#357) and hands-free gap fixtures
+
+- Voice-command TTS fixtures: SenseVoice mishears short command words from many Windows TTS voices (`换行`→`万行/换航/导航`, `另起一段`→`并起一段`). Calibrate first (batch-generate candidates per voice, run one hands-free session, read history.json) — Yunjian was the most reliable zh voice for `换行`. Adding the command words as app hotwords normalizes recognition through the existing hotword-correction path (remove afterwards / restore userData).
+- `另起一段。换行。` multi-command parsing needs ASR to emit the inner period; SenseVoice typically merges to `另起一段换行。` which (correctly) types as plain text — treat multi-command-in-one-utterance as hard to trigger via fake-mic TTS.
+- Voice-command 撤销 sends Ctrl+Z; in Notepad the undo of backspace-deletion leaves the restored text SELECTED, so the next hands-free paste replaces it silently — check final text, not just the toast.
+- Executed commands do NOT create history.json entries; only typed text does. Use history diffs (record array length before a session) to count sentence outcomes per run.
+- Sentence-gap head-loss fixtures: hard-trimming the source WAV (|peak|>=1000) then inserting exact 2.2s silence makes even peak mode clip heads badly (10/11) because the 2s silence-finalize collides with the next sentence start; results are extremely sensitive to lead pad (0/150/600 ms all clip). The round-255 "peak 0%" baseline did not reproduce under this construction, so always run peak and Silero on the SAME fixture and compare relatively.
+- Silero + 300ms preRoll on colliding boundaries produces duplicated sentence heads (`我们我们…`) as well as residual clipping/merging — check for duplicates explicitly, they are easy to miss when only counting lost characters.
+- Taskbar/Alt+Tab focus is unreliable (Docker Desktop steals it); always click the target app's own taskbar icon and verify the foreground window in a screenshot before typing. After relaunching SpeakType it takes foreground; the first Notepad taskbar click may land on SpeakType — click and re-screenshot.
