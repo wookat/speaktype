@@ -14,6 +14,11 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 - Persona app-rule verification: History items show `time · <persona name> · duration · Local offline`; the rule persona also appears inside the mock-rewrite prompt echo (style instructions section), which is independent corroboration.
 - This VM may lack the historical `C:\Users\Administrator\tts` assets; verify `rkey.ps1`/`hf246.wav`/`sample.wav` exist before recording, and note in the report if they had to be re-synthesized.
 
+## Timing-sensitive fake-mic WAVs (pause/paragraph tests)
+
+- `sample.wav` contains ~0.64s leading and ~2.21s trailing INTERNAL silence around the speech. When concatenating it with fixed silence gaps to test pause-duration logic (e.g. hands-free paragraph breaks measured last-voice→first-voice), those internal silences inflate the intended gap by ~2.85s and can flip the verdict. Trim the PCM to first/last sample with |peak|≥1000 before concatenating (see `C:\Users\Administrator\tts\r354\gen354.mjs`).
+- Also note the fake mic LOOPS the WAV: add a long tail silence and exit hands-free during the tail, or the loop restart appears as another long-gap sentence.
+
 ## Network-blocking tests (download failure simulation) — CRITICAL traps
 
 - **NEVER enable Windows Firewall on this box** (`netsh advfirewall set allprofiles state on`): it severs the Devin control channel instantly; recovery needed a VM reboot. The firewall is intentionally OFF, so program-scoped firewall block rules are silently ineffective too.
@@ -28,6 +33,10 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 - Partial-progress display: since #130 (d383cbe) any COMPLETE file on disk counts as progress, but since #261 (652f34e) percent <1% returns null — tokens.txt-only (no .part) shows plain `Download model` again; a real .part with meta still shows `Resume download (x% done)`. A resumed download's final file can be verified by sha256 == c71f0ce0… (the HF LFS oid in download.ts GH_ASSET_SHA256).
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
+
+## Frameless-window drag region swallows clicks (general trap)
+
+- The main window's top strip (~y<45 when maximized) is a `-webkit-app-region: drag` zone: clicks on any in-app button/link that scrolls up into that strip do nothing (or activate a background window if the click lands outside the app). Symptom: repeated clicks on a visibly rendered button with no effect. Fix: scroll the page so the target sits below y≈100, then click. (Same root cause as the History Show all/Show less note below.) Note: builds after PR #352 give `<main>` a `mt-10` margin so content can no longer scroll under the strip — this trap only applies to pre-#352 builds.
 
 ## Launch (dev and installed)
 
