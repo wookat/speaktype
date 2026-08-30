@@ -160,6 +160,14 @@ export const zhCN = {
   "settings.handsFreeParagraphsHint": "免按连续听写时，较长停顿后的下一句另起一段（插入空行）；长按说话不受影响。",
   "settings.paragraphBreak": "段落停顿时长",
   "settings.paragraphBreakHint": "停顿达到该时长即另起一段。",
+  "settings.voiceCommands": "免按语音命令",
+  "settings.voiceCommandsHint":
+    "免按听写时，整句只说出命令词即执行编辑动作而非落字：「换行」「另起一段」「删除上一句」（英文：new line / new paragraph / delete last sentence）。命令词出现在长句中时照常落字。",
+  "toast.voiceCommandDone": "已执行语音命令",
+  "toast.voiceCommandFailed": "语音命令未执行",
+  "voiceCommand.newline": "换行",
+  "voiceCommand.paragraph": "另起一段",
+  "voiceCommand.deleteLast": "删除上一句",
 
   "settings.appBehavior": "App 行为",
   "settings.launchAtLogin": "开机时启动应用",

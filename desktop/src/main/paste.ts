@@ -21,6 +21,7 @@ const KEYEVENTF_KEYUP = 2;
 const VK_CONTROL = 0x11;
 const VK_V = 0x56;
 const VK_C = 0x43;
+const VK_BACK = 0x08;
 const VK_SHIFT = 0x10;
 const VK_MENU = 0x12;
 const VK_LWIN = 0x5b;
@@ -91,6 +92,24 @@ async function waitModifiersReleased(): Promise<boolean> {
   if (!win32) return true;
   for (let i = 0; i < 50 && win32.modifiersDown(); i++) await sleep(20);
   return !win32.modifiersDown();
+}
+
+/** 语音命令「删除上一句」：向前台连发 Backspace */
+export async function sendBackspaces(count: number): Promise<boolean> {
+  if (count <= 0) return true;
+  if (!(await waitModifiersReleased())) return false;
+  if (isMac) {
+    await osascript(`tell application "System Events" to repeat ${count} times\nkey code 51\nend repeat`);
+    return true;
+  }
+  for (let i = 0; i < count; i++) {
+    win32?.sendInputs([
+      { vk: VK_BACK, up: false },
+      { vk: VK_BACK, up: true },
+    ]);
+    await sleep(5);
+  }
+  return true;
 }
 
 /**

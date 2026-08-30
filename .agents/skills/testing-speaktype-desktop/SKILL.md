@@ -14,6 +14,11 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 - Persona app-rule verification: History items show `time · <persona name> · duration · Local offline`; the rule persona also appears inside the mock-rewrite prompt echo (style instructions section), which is independent corroboration.
 - This VM may lack the historical `C:\Users\Administrator\tts` assets; verify `rkey.ps1`/`hf246.wav`/`sample.wav` exist before recording, and note in the report if they had to be re-synthesized.
 
+## Timing-sensitive fake-mic WAVs (pause/paragraph tests)
+
+- `sample.wav` contains ~0.64s leading and ~2.21s trailing INTERNAL silence around the speech. When concatenating it with fixed silence gaps to test pause-duration logic (e.g. hands-free paragraph breaks measured last-voice→first-voice), those internal silences inflate the intended gap by ~2.85s and can flip the verdict. Trim the PCM to first/last sample with |peak|≥1000 before concatenating (see `C:\Users\Administrator\tts\r354\gen354.mjs`).
+- Also note the fake mic LOOPS the WAV: add a long tail silence and exit hands-free during the tail, or the loop restart appears as another long-gap sentence.
+
 ## Network-blocking tests (download failure simulation) — CRITICAL traps
 
 - **NEVER enable Windows Firewall on this box** (`netsh advfirewall set allprofiles state on`): it severs the Devin control channel instantly; recovery needed a VM reboot. The firewall is intentionally OFF, so program-scoped firewall block rules are silently ineffective too.
@@ -28,6 +33,10 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 - Partial-progress display: since #130 (d383cbe) any COMPLETE file on disk counts as progress, but since #261 (652f34e) percent <1% returns null — tokens.txt-only (no .part) shows plain `Download model` again; a real .part with meta still shows `Resume download (x% done)`. A resumed download's final file can be verified by sha256 == c71f0ce0… (the HF LFS oid in download.ts GH_ASSET_SHA256).
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
+
+## Frameless-window drag region swallows clicks (general trap)
+
+- The main window's top strip (~y<45 when maximized) is a `-webkit-app-region: drag` zone: clicks on any in-app button/link that scrolls up into that strip do nothing (or activate a background window if the click lands outside the app). Symptom: repeated clicks on a visibly rendered button with no effect. Fix: scroll the page so the target sits below y≈100, then click. (Same root cause as the History Show all/Show less note below.) Note: builds after PR #352 give `<main>` a `mt-10` margin so content can no longer scroll under the strip — this trap only applies to pre-#352 builds.
 
 ## Launch (dev and installed)
 
@@ -457,3 +466,13 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 ## Round 247b: onboarding model chips (#347) locale simulation
 
 - Fresh-install default localModel comes from main-process ICU (Windows user locale): `Set-Culture zh-CN` (revert with `Set-Culture en-US`) decides sensevoice vs parakeet; `--lang=zh-CN` only affects `app.getLocale()`/UI language. Simulating a zh-CN system needs BOTH knobs; `--lang` alone on an en-US box still yields parakeet default (by design).
+
+## Round 256: voice commands (#357) and hands-free gap fixtures
+
+- Voice-command TTS fixtures: SenseVoice mishears short command words from many Windows TTS voices (`换行`→`万行/换航/导航`, `另起一段`→`并起一段`). Calibrate first (batch-generate candidates per voice, run one hands-free session, read history.json) — Yunjian was the most reliable zh voice for `换行`. Adding the command words as app hotwords normalizes recognition through the existing hotword-correction path (remove afterwards / restore userData).
+- `另起一段。换行。` multi-command parsing needs ASR to emit the inner period; SenseVoice typically merges to `另起一段换行。` which (correctly) types as plain text — treat multi-command-in-one-utterance as hard to trigger via fake-mic TTS.
+- Voice-command 撤销 sends Ctrl+Z; in Notepad the undo of backspace-deletion leaves the restored text SELECTED, so the next hands-free paste replaces it silently — check final text, not just the toast.
+- Executed commands do NOT create history.json entries; only typed text does. Use history diffs (record array length before a session) to count sentence outcomes per run.
+- Sentence-gap head-loss fixtures: hard-trimming the source WAV (|peak|>=1000) then inserting exact 2.2s silence makes even peak mode clip heads badly (10/11) because the 2s silence-finalize collides with the next sentence start; results are extremely sensitive to lead pad (0/150/600 ms all clip). The round-255 "peak 0%" baseline did not reproduce under this construction, so always run peak and Silero on the SAME fixture and compare relatively.
+- Silero + 300ms preRoll on colliding boundaries produces duplicated sentence heads (`我们我们…`) as well as residual clipping/merging — check for duplicates explicitly, they are easy to miss when only counting lost characters.
+- Taskbar/Alt+Tab focus is unreliable (Docker Desktop steals it); always click the target app's own taskbar icon and verify the foreground window in a screenshot before typing. After relaunching SpeakType it takes foreground; the first Notepad taskbar click may land on SpeakType — click and re-screenshot.

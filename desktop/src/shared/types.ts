@@ -50,6 +50,8 @@ export interface Settings {
   handsFreeParagraphs: boolean;
   /** 判定为段落停顿的句尾静音时长，毫秒 */
   paragraphBreakMs: number;
+  /** 免按语音命令：整句精确说出命令词（换行/另起一段/删除上一句/撤销）时执行编辑动作而非落字 */
+  voiceCommands: boolean;
   /** 麦克风设备 deviceId，空串表示系统默认 */
   micDeviceId: string;
   polishEnabled: boolean;

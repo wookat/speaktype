@@ -220,6 +220,12 @@ function GeneralTab(props: {
             </Row>
           </div>
         )}
+        <Toggle
+          label={t("settings.voiceCommands")}
+          hint={t("settings.voiceCommandsHint")}
+          value={s.voiceCommands}
+          onChange={(v) => update({ voiceCommands: v })}
+        />
         <EnhancedVad t={t} s={s} update={update} />
       </section>
 
