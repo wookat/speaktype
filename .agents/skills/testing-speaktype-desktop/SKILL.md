@@ -34,6 +34,14 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
+## Memory-soak diagnostics on the packaged build (round 276)
+
+- The packaged SpeakType.exe accepts `--inspect=9229`: `http://127.0.0.1:9229/json` exposes the main-process Node inspector ws. Over that ws, `Runtime.evaluate` needs `includeCommandLineAPI: true` or `require` is undefined and every eval silently returns undefined.
+- Reusable scripts in `C:\Users\Administrator\tts\r366\`: `memsample.ps1` (per-role WS/PM csv every 60s, classifies main/renderer/gpu/network by CommandLine), `heappoll.cjs` (process.memoryUsage + v8.getHeapStatistics csv via inspector; needs node >=22 for global WebSocket — use `C:\hostedtoolcache\node\24.0.1\x64\node.exe`), `snap.cjs` (v8.writeHeapSnapshot to a file; the write itself bloats RSS/PM by ~60-70 MB, so take the final snapshot AFTER the last csv sample you intend to use, and exclude snapshot minutes from slope fits).
+- TRAP: with an inspector client attached, tray Quit does NOT complete — main + gpu + utility processes linger until the debug client disconnects; kill the poller and the app exits cleanly within seconds. Don't misreport this as a quit hang.
+- Slope methodology: least-squares over the csv, computed separately for first-30 and last-30 minutes; the first ~30 min contain allocator warm-up (~0.2 MB/min) that converges to ~0. Endpoint-to-endpoint deltas over short windows (like round 275's 37 min) overstate the slope.
+- Baseline from this round (0.17.0 @ 6a0f1f0, sensevoice hands-free ~6 utterances/min): main heapUsed flat 16-18 MB, arrayBuffers 0, external oscillating 5-10 MB, PM plateau ≈495 MB, last-30-min PM slope ≈0.
+
 ## Round 258 learnings (Silero hangover A/B methodology)
 
 - Segment-count is the strongest single signal for Silero segmentation fixes on the 2.2s-gap fixture (`silero256d.wav`, 32 short sentences): broken hangover → ~12 heavily-merged segments; fixed → ~41; peak baseline → ~37 with all heads intact. Count segments from history.json before eyeballing text.
@@ -492,3 +500,15 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - Sentence-gap head-loss fixtures: hard-trimming the source WAV (|peak|>=1000) then inserting exact 2.2s silence makes even peak mode clip heads badly (10/11) because the 2s silence-finalize collides with the next sentence start; results are extremely sensitive to lead pad (0/150/600 ms all clip). The round-255 "peak 0%" baseline did not reproduce under this construction, so always run peak and Silero on the SAME fixture and compare relatively.
 - Silero + 300ms preRoll on colliding boundaries produces duplicated sentence heads (`我们我们…`) as well as residual clipping/merging — check for duplicates explicitly, they are easy to miss when only counting lost characters.
 - Taskbar/Alt+Tab focus is unreliable (Docker Desktop steals it); always click the target app's own taskbar icon and verify the foreground window in a screenshot before typing. After relaunching SpeakType it takes foreground; the first Notepad taskbar click may land on SpeakType — click and re-screenshot.
+
+## Round 270 learnings (v0.17.0 release acceptance)
+
+- The 0.16.0+ portable exe stores its profile in a `SpeakType-data` folder NEXT TO the exe (not %APPDATA%). Clean it up after portable-build tests or the next portable run inherits stale test config.
+- Chrome on this box is at `C:\devin\chrome\chrome-win64\chrome.exe` (Chrome for Testing).
+- PowerShell 5 trap: a .ps1 saved as UTF-8 WITHOUT BOM is parsed as ANSI, so non-ASCII literals (em-dashes, CJK) inside here-strings get mangled before any encoding fix in the script can help. When POSTing non-ASCII text to an API (e.g. GitHub release notes), keep the text in a separate UTF-8 file and read it with [IO.File]::ReadAllText(path, UTF8), then send UTF-8 bytes.
+
+## Round 271/272 learnings (NSIS upgrade/uninstall testing)
+
+- NSIS over-install runs the *previously installed* uninstaller, so uninstaller.nsh fixes only take effect from the NEXT upgrade onward. To test such a fix: install the fixed build first, then silently over-install it again and assert on that second upgrade.
+- Silent uninstall must split args correctly: run `"Uninstall SpeakType.exe" /currentuser /S` (quoted exe + separate switches); passing the whole quoted uninstall string as one argument silently fails.
+- Uninstall semantics to assert: install dir + uninstall key + HKCU Run value removed; %APPDATA%\SpeakType (history.json, speaktype.json, models) retained.
