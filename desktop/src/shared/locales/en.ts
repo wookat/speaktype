@@ -424,6 +424,7 @@ export const en: LocaleDict = {
   "history.hotwordAdd": "Add to dictionary",
   "error.retryHint": "Recording kept — press the hotkey again to retry",
   "error.asrNetwork": "Cannot reach the speech recognition service — check your network or switch provider in Settings",
+  "error.asrRuntimeDamaged": "Speech engine files are missing or damaged — restart SpeakType to repair; reinstall if it persists",
   "error.asrTimeout": "The speech recognition service took too long to respond — try again or switch provider in Settings",
   "history.expand": "Show all",
   "history.collapse": "Show less",

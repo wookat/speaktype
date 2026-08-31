@@ -415,6 +415,7 @@ export const zhCN = {
   "history.hotwordAdd": "加入词典",
   "error.retryHint": "刚才的录音已保留，再按一次热键立即重试",
   "error.asrNetwork": "无法连接识别服务：请检查网络，或在设置中切换识别方式",
+  "error.asrRuntimeDamaged": "识别引擎文件缺失或损坏：重启 SpeakType 可自动修复；若仍失败请重新安装",
   "error.asrTimeout": "识别服务长时间无响应：请重试，或在设置中切换识别方式",
   "history.expand": "展开全文",
   "history.collapse": "收起",

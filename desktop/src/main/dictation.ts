@@ -106,6 +106,10 @@ const FAILED_AUDIO_MAX_BYTES = 50 * 1024 * 1024;
 
 /** 网络层原始错误串（fetch failed/ECONNREFUSED 等）对用户无意义，映射成可行动的人话 */
 function humanizeAsrError(message: string): string {
+  // 原生模块加载失败：安装/绿色版解包文件损坏（如解包目录被占用后残缺），提示重启自修复
+  if (/Cannot find module|The specified module could not be found|ERR_DLOPEN_FAILED/i.test(message)) {
+    return t("error.asrRuntimeDamaged");
+  }
   return /fetch failed|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|EPIPE|socket hang up|network error/i.test(message)
     ? t("error.asrNetwork")
     : message;
