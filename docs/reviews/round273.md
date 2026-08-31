@@ -1,96 +1,114 @@
-# 第 273 轮体验官报告（user-experience-officer + qa-engineer）
+﻿# ç¬¬ 273 è½®ä½“éªŒå®˜æŠ¥å‘Šï¼ˆuser-experience-officer + qa-engineerï¼‰
 
-- 日期：2026-08-31
-- 被测版本：main @ d551158（含 #365），SpeakType 0.17.0，Windows 打包版实测
-- 环境：Windows Server 2022 VM（无真实麦克风，使用 Chromium fake mic 参数 + 标准 RIFF WAV），Node 24.0.1 构建，Electron 43.3.0，electron-builder 26.15.3
-- 方法：npm install / typecheck / build / pack:dir 全部本地通过后，用 release\win-unpacked 打包版走查；portable 版用 `npx electron-builder --win portable --x64` 构建实测
-- 本轮专项：① portable 版实测 ② 文件转录长音频 + 历史页 ④ 官网横幅上线实查
+- æ—¥æœŸï¼š2026-08-31
+- è¢«æµ‹ç‰ˆæœ¬ï¼šmain @ d551158ï¼ˆå« #365ï¼‰ï¼ŒSpeakType 0.17.0ï¼ŒWindows æ‰“åŒ…ç‰ˆå®žæµ‹
+- çŽ¯å¢ƒï¼šWindows Server 2022 VMï¼ˆæ— çœŸå®žéº¦å…‹é£Žï¼Œä½¿ç”¨ Chromium fake mic å‚æ•° + æ ‡å‡† RIFF WAVï¼‰ï¼ŒNode 24.0.1 æž„å»ºï¼ŒElectron 43.3.0ï¼Œelectron-builder 26.15.3
+- æ–¹æ³•ï¼šnpm install / typecheck / build / pack:dir å…¨éƒ¨æœ¬åœ°é€šè¿‡åŽï¼Œç”¨ release\win-unpacked æ‰“åŒ…ç‰ˆèµ°æŸ¥ï¼›portable ç‰ˆç”¨ `npx electron-builder --win portable --x64` æž„å»ºå®žæµ‹
+- æœ¬è½®ä¸“é¡¹ï¼šâ‘  portable ç‰ˆå®žæµ‹ â‘¡ æ–‡ä»¶è½¬å½•é•¿éŸ³é¢‘ + åŽ†å²é¡µ â‘£ å®˜ç½‘æ¨ªå¹…ä¸Šçº¿å®žæŸ¥
 
-## 一、构建链路（通过）
+## ä¸€ã€æž„å»ºé“¾è·¯ï¼ˆé€šè¿‡ï¼‰
 
-| 步骤 | 结果 |
+| æ­¥éª¤ | ç»“æžœ |
 |---|---|
-| npm install（desktop/） | 通过，429 packages，0 vulnerabilities（Node 20 会有 engine warning，需 Node ≥22，用 Node 24.0.1） |
-| npm run typecheck | 通过 |
-| npm run build | 通过 |
-| npm run pack:dir | 通过，产出 release\win-unpacked |
-| portable 构建 | 通过，产出 SpeakType-0.17.0-portable.exe（91.7MB）。注意：`--prepackaged release/win-unpacked` 方式会报 nsis.7z 缺失失败，直接 `--win portable --x64` 正常 |
+| npm installï¼ˆdesktop/ï¼‰ | é€šè¿‡ï¼Œ429 packagesï¼Œ0 vulnerabilitiesï¼ˆNode 20 ä¼šæœ‰ engine warningï¼Œéœ€ Node â‰¥22ï¼Œç”¨ Node 24.0.1ï¼‰ |
+| npm run typecheck | é€šè¿‡ |
+| npm run build | é€šè¿‡ |
+| npm run pack:dir | é€šè¿‡ï¼Œäº§å‡º release\win-unpacked |
+| portable æž„å»º | é€šè¿‡ï¼Œäº§å‡º SpeakType-0.17.0-portable.exeï¼ˆ91.7MBï¼‰ã€‚æ³¨æ„ï¼š`--prepackaged release/win-unpacked` æ–¹å¼ä¼šæŠ¥ nsis.7z ç¼ºå¤±å¤±è´¥ï¼Œç›´æŽ¥ `--win portable --x64` æ­£å¸¸ |
 
-## 二、核心链路回归（全部通过，实测证据）
+## äºŒã€æ ¸å¿ƒé“¾è·¯å›žå½’ï¼ˆå…¨éƒ¨é€šè¿‡ï¼Œå®žæµ‹è¯æ®ï¼‰
 
-1. **RightCtrl 中文落字：通过**。fake mic 播放中文 TTS（"帮我跟老板说那个方案需要再改一下明天上午之前给他答复"），按住 RightCtrl 8 秒松开，Notepad 实际落字：`帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复`，标点正确。日志 `dictation finalize: durationMs=7845 maxPeak=32766 voicedMs=4040`。
-2. **Alt+Q 免按多句（自动分段）：通过**。Alt+Q（按住 150ms 规避防误触）进入免按，fake mic 循环播放期间 Notepad 连续落下 4 段独立文本（每段间空行分段），日志对应 4 条 finalize（15:22:16 / 15:22:26 / 15:22:36 / 15:22:44），再次 Alt+Q 正常退出。截图：ss_52e3ba66.png。
-3. **Esc 取消：通过**。按住 RightCtrl 录音 3 秒后按 Esc：无新落字（Notepad 保持空、Ln 1 Col 1），日志无新的 finalize 条目。截图：ss_0d824e94.png。
+1. **RightCtrl ä¸­æ–‡è½å­—ï¼šé€šè¿‡**ã€‚fake mic æ’­æ”¾ä¸­æ–‡ TTSï¼ˆ"å¸®æˆ‘è·Ÿè€æ¿è¯´é‚£ä¸ªæ–¹æ¡ˆéœ€è¦å†æ”¹ä¸€ä¸‹æ˜Žå¤©ä¸Šåˆä¹‹å‰ç»™ä»–ç­”å¤"ï¼‰ï¼ŒæŒ‰ä½ RightCtrl 8 ç§’æ¾å¼€ï¼ŒNotepad å®žé™…è½å­—ï¼š`å¸®æˆ‘è·Ÿè€æ¿è¯´ï¼Œé‚£ä¸ªæ–¹æ¡ˆéœ€è¦å†æ”¹ä¸€ä¸‹ï¼Œæ˜Žå¤©ä¸Šåˆä¹‹å‰ç»™ä»–ç­”å¤`ï¼Œæ ‡ç‚¹æ­£ç¡®ã€‚æ—¥å¿— `dictation finalize: durationMs=7845 maxPeak=32766 voicedMs=4040`ã€‚
+2. **Alt+Q å…æŒ‰å¤šå¥ï¼ˆè‡ªåŠ¨åˆ†æ®µï¼‰ï¼šé€šè¿‡**ã€‚Alt+Qï¼ˆæŒ‰ä½ 150ms è§„é¿é˜²è¯¯è§¦ï¼‰è¿›å…¥å…æŒ‰ï¼Œfake mic å¾ªçŽ¯æ’­æ”¾æœŸé—´ Notepad è¿žç»­è½ä¸‹ 4 æ®µç‹¬ç«‹æ–‡æœ¬ï¼ˆæ¯æ®µé—´ç©ºè¡Œåˆ†æ®µï¼‰ï¼Œæ—¥å¿—å¯¹åº” 4 æ¡ finalizeï¼ˆ15:22:16 / 15:22:26 / 15:22:36 / 15:22:44ï¼‰ï¼Œå†æ¬¡ Alt+Q æ­£å¸¸é€€å‡ºã€‚æˆªå›¾ï¼šss_52e3ba66.pngã€‚
+3. **Esc å–æ¶ˆï¼šé€šè¿‡**ã€‚æŒ‰ä½ RightCtrl å½•éŸ³ 3 ç§’åŽæŒ‰ Escï¼šæ— æ–°è½å­—ï¼ˆNotepad ä¿æŒç©ºã€Ln 1 Col 1ï¼‰ï¼Œæ—¥å¿—æ— æ–°çš„ finalize æ¡ç›®ã€‚æˆªå›¾ï¼šss_0d824e94.pngã€‚
 
-## 三、立案项
+## ä¸‰ã€ç«‹æ¡ˆé¡¹
 
-### P1-273-1 portable 版本地 ASR 完全不可用：缺失 sherpa-onnx-node 原生模块
+### P1-273-1 portable ç‰ˆæœ¬åœ° ASR ä¸å¯ç”¨ï¼ˆå¤æ ¸åŽæ’¤æ¡ˆ â†’ é™çº§ä¸º P3-273-2 åŠ å›ºå»ºè®®ï¼‰
 
-- **复现步骤**：
+> **2026-08-31 å¤æ ¸æ›´æ­£ï¼ˆè€æ¿åé¦ˆåŽå–è¯ï¼‰**ï¼športable åŒ…å†…å¹¶ä¸ç¼ºæ¨¡å—ï¼ŒåŽŸå§‹å¤±è´¥æ˜¯è„ %TEMP% æ®‹ç•™å¯¼è‡´ã€‚
+> - 7za åˆ—åŒ…å®žè¯ï¼šSpeakType-0.17.0-portable.exe å†…å« `resources\app.asar.unpacked\node_modules\sherpa-onnx-node`ã€`sherpa-onnx-win-x64`ï¼ˆonnxruntime.dll ç­‰å…¨éƒ¨ DLLï¼‰åŠ `resources\whisper\`ï¼Œå…± 103 æ–‡ä»¶ / 388,694,468 bytesï¼Œ`7za t` æ ¡éªŒ Everything is Okã€‚
+> - æ¸…å‡€ %TEMP%\SpeakType åŽé‡è·‘ï¼ˆå« fake mic å‚æ•°ï¼‰ï¼šè§£åŒ…å®Œæ•´ 103 æ–‡ä»¶ï¼Œæ—¥å¿— `sherpa worker started (sensevoice-small)`ï¼ŒRightCtrl ä¸­æ–‡è½å­—æˆåŠŸï¼ˆ`å¸®æˆ‘è·Ÿè€æ¿è¯´ï¼Œé‚£ä¸ªæ–¹æ¡ˆéœ€è¦å†æ”¹ä¸€ä¸‹ï¼Œæ˜Žå¤©ä¸Šåˆä¹‹å‰ç»™ä»–ç­”å¤`ï¼Œæˆªå›¾ ss_894a5b61.pngï¼‰ã€‚P3-273-1 çš„æ¨¡åž‹ä¸‹è½½æ¨ªå¹…ä¹Ÿéšä¹‹æ¶ˆå¤±ï¼ˆæˆªå›¾ ss_8d8c6585.pngï¼‰ï¼Œç¡®ç³»åŒæ ¹å› ï¼Œä¸€å¹¶æ’¤æ¡ˆã€‚
+> - åŽŸå¤±è´¥å¤ç›˜ï¼ˆå®žæµ‹å¤çŽ°ï¼‰ï¼šä¸Šä¸€è½®æµ‹è¯•ä¸­å¼ºæ€äº† portable å¤–å£³è¿›ç¨‹ï¼Œä½† %TEMP%\SpeakType ä¸‹çš„å­è¿›ç¨‹ä»å­˜æ´»ï¼Œå¯¼è‡´å¤–å£³é€€å‡ºæ¸…ç†ï¼ˆRMDir /rï¼‰åªåˆ æŽ‰æœªè¢«å ç”¨çš„æ–‡ä»¶ï¼Œç•™ä¸‹ 16/103 ä¸ªè¢«å ç”¨æ–‡ä»¶ï¼ˆæ°ä¸ºå·²åŠ è½½çš„ exe/dll/koffi/uiohookï¼Œsherpa/whisper æœªåŠ è½½æ•…è¢«åˆ ï¼‰ï¼›ä¸‹æ¬¡å¯åŠ¨åœ¨è„ç›®å½•ä¸Šè§£åŒ…ä¸å®Œæ•´ï¼Œåº”ç”¨å³ä»¥ç¼º sherpa çŠ¶æ€è¿è¡Œã€‚
+> - ä¿ç•™ä¸€æ¡ P3 åŠ å›ºå»ºè®®è§ P3-273-2ã€‚
+
+ä»¥ä¸‹ä¸ºåŽŸå§‹ç«‹æ¡ˆè®°å½•ï¼ˆä¿ç•™ä¾›è¿½æº¯ï¼Œç»“è®ºå·²è¢«ä¸Šæ–¹å¤æ ¸æŽ¨ç¿»ï¼‰ï¼š
+
+- **å¤çŽ°æ­¥éª¤**ï¼š
   1. `cd desktop && npx electron-builder --win portable --x64`
-  2. 把 SpeakType-0.17.0-portable.exe 放到独立目录运行（fake mic 参数）
-  3. 配好 sensevoice-small 模型（模型文件放入 SpeakType-data\models\sensevoice-small）与 language=zh
-  4. 按住 RightCtrl 说话 → 无任何落字
-- **实测证据**（portable 数据目录 logs\main.log）：
+  2. æŠŠ SpeakType-0.17.0-portable.exe æ”¾åˆ°ç‹¬ç«‹ç›®å½•è¿è¡Œï¼ˆfake mic å‚æ•°ï¼‰
+  3. é…å¥½ sensevoice-small æ¨¡åž‹ï¼ˆæ¨¡åž‹æ–‡ä»¶æ”¾å…¥ SpeakType-data\models\sensevoice-smallï¼‰ä¸Ž language=zh
+  4. æŒ‰ä½ RightCtrl è¯´è¯ â†’ æ— ä»»ä½•è½å­—
+- **å®žæµ‹è¯æ®**ï¼ˆportable æ•°æ®ç›®å½• logs\main.logï¼‰ï¼š
   ```
   [2026-08-31 15:33:14.543] [warn]  sherpa prewarm failed Error: Cannot find module 'sherpa-onnx-node'
   Require stack: - C:\Users\ADMINI~1\AppData\Local\Temp\SpeakType\resources\app.asar\out\main\index.js
   ```
-  对照解包内容：
-  - 安装版 `win-unpacked\resources\app.asar.unpacked\node_modules`：koffi、**sherpa-onnx-node、sherpa-onnx-win-x64**、uiohook-napi（且 resources 下还有 whisper\ 目录）
-  - portable 运行时解到 `%TEMP%\SpeakType\resources\app.asar.unpacked\node_modules`：**只有 koffi、uiohook-napi**，sherpa 两个包和 whisper 目录全部缺失
-- **影响面**：portable 版（官网"绿色免安装版"主推下载项之一）本地离线识别（SenseVoice/Parakeet/whisper）全部不可用，核心卖点"完全离线"在 portable 版失效。若 v0.17.0 发布的 portable 资产同样由该 target 产出，则线上用户已受影响（本条为本地构建实测，线上资产未逐一验证）。
-- **修复建议**：检查 electron-builder portable target 的打包内容——asarUnpack 的 sherpa-onnx-node / sherpa-onnx-win-x64 与 extraResources（whisper）未进入 portable NSIS 自解压包。修复后需实测 portable exe 落字并核对 %TEMP%\SpeakType 解包内容。
+  å¯¹ç…§è§£åŒ…å†…å®¹ï¼š
+  - å®‰è£…ç‰ˆ `win-unpacked\resources\app.asar.unpacked\node_modules`ï¼škoffiã€**sherpa-onnx-nodeã€sherpa-onnx-win-x64**ã€uiohook-napiï¼ˆä¸” resources ä¸‹è¿˜æœ‰ whisper\ ç›®å½•ï¼‰
+  - portable è¿è¡Œæ—¶è§£åˆ° `%TEMP%\SpeakType\resources\app.asar.unpacked\node_modules`ï¼š**åªæœ‰ koffiã€uiohook-napi**ï¼Œsherpa ä¸¤ä¸ªåŒ…å’Œ whisper ç›®å½•å…¨éƒ¨ç¼ºå¤±
+- **å½±å“é¢**ï¼športable ç‰ˆï¼ˆå®˜ç½‘"ç»¿è‰²å…å®‰è£…ç‰ˆ"ä¸»æŽ¨ä¸‹è½½é¡¹ä¹‹ä¸€ï¼‰æœ¬åœ°ç¦»çº¿è¯†åˆ«ï¼ˆSenseVoice/Parakeet/whisperï¼‰å…¨éƒ¨ä¸å¯ç”¨ï¼Œæ ¸å¿ƒå–ç‚¹"å®Œå…¨ç¦»çº¿"åœ¨ portable ç‰ˆå¤±æ•ˆã€‚è‹¥ v0.17.0 å‘å¸ƒçš„ portable èµ„äº§åŒæ ·ç”±è¯¥ target äº§å‡ºï¼Œåˆ™çº¿ä¸Šç”¨æˆ·å·²å—å½±å“ï¼ˆæœ¬æ¡ä¸ºæœ¬åœ°æž„å»ºå®žæµ‹ï¼Œçº¿ä¸Šèµ„äº§æœªé€ä¸€éªŒè¯ï¼‰ã€‚
+- **ä¿®å¤å»ºè®®**ï¼šæ£€æŸ¥ electron-builder portable target çš„æ‰“åŒ…å†…å®¹â€”â€”asarUnpack çš„ sherpa-onnx-node / sherpa-onnx-win-x64 ä¸Ž extraResourcesï¼ˆwhisperï¼‰æœªè¿›å…¥ portable NSIS è‡ªè§£åŽ‹åŒ…ã€‚ä¿®å¤åŽéœ€å®žæµ‹ portable exe è½å­—å¹¶æ ¸å¯¹ %TEMP%\SpeakType è§£åŒ…å†…å®¹ã€‚
 
-### P2-273-1 官网 #365 新横幅文案未上线（Pages 部署停滞）
+### P2-273-1 å®˜ç½‘ #365 æ–°æ¨ªå¹…æ–‡æ¡ˆæœªä¸Šçº¿ï¼ˆå·²ä¿®å¤å¹¶å¤æ ¸é€šè¿‡ï¼‰
 
-- **复现步骤**：浏览器/带 nocache 参数的 curl 实查 `https://speaktype.zalize.com` 与 `/zh/`。
-- **实测证据**（2026-08-31 15:38 UTC，cf-cache-status: DYNAMIC，非缓存）：
-  - 线上英文横幅：`v0.17.0 is out - privacy hardening, cleaner uninstall and portable mode`
-  - 线上中文横幅：`v0.17.0 已发布 —— 隐私加固与更干净的卸载/绿色版`
-  - 仓库 main（docs/index.html:40、docs/zh/index.html:40，#365 已合并）：`hands-free voice commands, auto paragraph breaks and smarter pause detection` / `免按语音命令、自动分段与更聪明的停顿判停`
-- **影响面**：第 272 轮 P3-272-1 的修复（#365）对用户不可见；官网卖点仍是上一版文案。
-- **修复建议**：检查 zalize.com 站点的部署链路（Cloudflare Pages/Workers 构建触发）。GitHub Actions 按公司规则保持禁用，需确认站点部署不依赖 Actions，或手动触发一次部署并核对线上横幅。
-- **边界说明**：#365 合并、仓库文案正确为实测；"部署停滞的具体原因"为推断，未查 Cloudflare 后台。
+> **2026-08-31 å¤æ ¸**ï¼šè€æ¿æ‰‹åŠ¨ `wrangler pages deploy` åŽå¸¦ nocache å‚æ•°å®žæŸ¥ï¼Œ`/` ä¸Ž `/zh/` å‡å·²å±•ç¤º #365 æ–°æ¨ªå¹…ï¼ˆè‹±æ–‡ `hands-free voice commands, auto paragraph breaks and smarter pause detection`ï¼Œä¸­æ–‡å« `å…æŒ‰è¯­éŸ³å‘½ä»¤`ï¼ŒUTF-8 å­—èŠ‚çº§åŒ¹é…ç¡®è®¤ï¼‰ã€‚**å·²å…³é—­**ã€‚åŽŸå§‹è®°å½•å¦‚ä¸‹ï¼š
 
-### P3-273-1 portable 首页仍显示"下载离线模型"引导横幅（模型已就位）
 
-- **实测证据**：portable 版 SpeakType-data\models\sensevoice-small 模型文件完整（model.int8.onnx 239,233,841 bytes）、speaktype.json localModel=sensevoice-small，但 Home 页仍显示 "Download the offline speech model" 横幅（截图 ss_b76a2021.png）。
-- **说明**：可能与 P1-273-1 同根因（sherpa 模块加载失败导致模型状态检测失败），修复 P1 后回归验证即可；单独列出避免遗漏。
+- **å¤çŽ°æ­¥éª¤**ï¼šæµè§ˆå™¨/å¸¦ nocache å‚æ•°çš„ curl å®žæŸ¥ `https://speaktype.zalize.com` ä¸Ž `/zh/`ã€‚
+- **å®žæµ‹è¯æ®**ï¼ˆ2026-08-31 15:38 UTCï¼Œcf-cache-status: DYNAMICï¼Œéžç¼“å­˜ï¼‰ï¼š
+  - çº¿ä¸Šè‹±æ–‡æ¨ªå¹…ï¼š`v0.17.0 is out - privacy hardening, cleaner uninstall and portable mode`
+  - çº¿ä¸Šä¸­æ–‡æ¨ªå¹…ï¼š`v0.17.0 å·²å‘å¸ƒ â€”â€” éšç§åŠ å›ºä¸Žæ›´å¹²å‡€çš„å¸è½½/ç»¿è‰²ç‰ˆ`
+  - ä»“åº“ mainï¼ˆdocs/index.html:40ã€docs/zh/index.html:40ï¼Œ#365 å·²åˆå¹¶ï¼‰ï¼š`hands-free voice commands, auto paragraph breaks and smarter pause detection` / `å…æŒ‰è¯­éŸ³å‘½ä»¤ã€è‡ªåŠ¨åˆ†æ®µä¸Žæ›´èªæ˜Žçš„åœé¡¿åˆ¤åœ`
+- **å½±å“é¢**ï¼šç¬¬ 272 è½® P3-272-1 çš„ä¿®å¤ï¼ˆ#365ï¼‰å¯¹ç”¨æˆ·ä¸å¯è§ï¼›å®˜ç½‘å–ç‚¹ä»æ˜¯ä¸Šä¸€ç‰ˆæ–‡æ¡ˆã€‚
+- **ä¿®å¤å»ºè®®**ï¼šæ£€æŸ¥ zalize.com ç«™ç‚¹çš„éƒ¨ç½²é“¾è·¯ï¼ˆCloudflare Pages/Workers æž„å»ºè§¦å‘ï¼‰ã€‚GitHub Actions æŒ‰å…¬å¸è§„åˆ™ä¿æŒç¦ç”¨ï¼Œéœ€ç¡®è®¤ç«™ç‚¹éƒ¨ç½²ä¸ä¾èµ– Actionsï¼Œæˆ–æ‰‹åŠ¨è§¦å‘ä¸€æ¬¡éƒ¨ç½²å¹¶æ ¸å¯¹çº¿ä¸Šæ¨ªå¹…ã€‚
+- **è¾¹ç•Œè¯´æ˜Ž**ï¼š#365 åˆå¹¶ã€ä»“åº“æ–‡æ¡ˆæ­£ç¡®ä¸ºå®žæµ‹ï¼›"éƒ¨ç½²åœæ»žçš„å…·ä½“åŽŸå› "ä¸ºæŽ¨æ–­ï¼ŒæœªæŸ¥ Cloudflare åŽå°ã€‚
 
-## 四、专项通过项（含证据）
+### P3-273-1 portable é¦–é¡µä»æ˜¾ç¤º"ä¸‹è½½ç¦»çº¿æ¨¡åž‹"å¼•å¯¼æ¨ªå¹…ï¼ˆå¤æ ¸æ’¤æ¡ˆï¼šä¸Ž P1-273-1 åŒæ ¹å› ï¼Œ%TEMP% å®Œæ•´æ—¶æ¨ªå¹…æ­£å¸¸æ¶ˆå¤±ï¼Œè§æˆªå›¾ ss_8d8c6585.pngï¼‰
 
-### 专项① portable 版（数据分区/跳过迁移：通过；核心落字：失败，见 P1-273-1）
+- **å®žæµ‹è¯æ®**ï¼športable ç‰ˆ SpeakType-data\models\sensevoice-small æ¨¡åž‹æ–‡ä»¶å®Œæ•´ï¼ˆmodel.int8.onnx 239,233,841 bytesï¼‰ã€speaktype.json localModel=sensevoice-smallï¼Œä½† Home é¡µä»æ˜¾ç¤º "Download the offline speech model" æ¨ªå¹…ï¼ˆæˆªå›¾ ss_b76a2021.pngï¼‰ã€‚
+- **è¯´æ˜Ž**ï¼šå¯èƒ½ä¸Ž P1-273-1 åŒæ ¹å› ï¼ˆsherpa æ¨¡å—åŠ è½½å¤±è´¥å¯¼è‡´æ¨¡åž‹çŠ¶æ€æ£€æµ‹å¤±è´¥ï¼‰ï¼Œä¿®å¤ P1 åŽå›žå½’éªŒè¯å³å¯ï¼›å•ç‹¬åˆ—å‡ºé¿å…é—æ¼ã€‚ï¼ˆå¤æ ¸ç¡®è®¤åŒæ ¹å› ï¼Œå·²æ’¤æ¡ˆã€‚ï¼‰
 
-- portable exe 首次启动即在 exe 旁创建 `SpeakType-data\`（speaktype.json、history.json、logs 等齐全），日志：`portable mode, userData at C:\Users\Administrator\portable-test\SpeakType-data`，与安装版 %APPDATA%\SpeakType 完全隔离。
-- 无 legacy 迁移动作（对照安装版日志有 `no legacy userData to migrate` / `userData config already present`，portable 日志无迁移行为，%APPDATA% 配置未被读取——portable 默认配置为全新初始值）。
-- 核心落字因 P1-273-1 失败。
+### P3-273-2 portable å¤–å£³è§£åŒ…ç›®å½•ç¼ºä¹å®Œæ•´æ€§æ ¡éªŒï¼ˆæ–°ç«‹ï¼ŒåŠ å›ºå»ºè®®ï¼‰
 
-### 专项② 文件转录长音频 + 历史页（通过）
+- **åœºæ™¯**ï¼športable å¤–å£³è¢«å¼ºæ€/å´©æºƒä¸” %TEMP%\SpeakType å­è¿›ç¨‹æ®‹ç•™æ—¶ï¼Œé€€å‡ºæ¸…ç†åªåˆ éƒ¨åˆ†æ–‡ä»¶ï¼›ä¸‹æ¬¡å¯åŠ¨åœ¨è„ç›®å½•ä¸Šè¿è¡Œä¼šç¼º sherpa/whisperï¼Œæœ¬åœ° ASR é™é»˜å¤±æ•ˆï¼ˆä»…æ—¥å¿—ä¸€æ¡ warnï¼Œæ— ç”¨æˆ·å¯è§æŠ¥é”™ï¼‰ã€‚
+- **å®žæµ‹è¯æ®**ï¼šæœ¬è½®å®žé™…å¤çŽ°ä¸€æ¬¡ï¼ˆ16/103 æ–‡ä»¶æ®‹ç•™ â†’ `Cannot find module 'sherpa-onnx-node'`ï¼‰ã€‚
+- **å½±å“é¢**ï¼šçœŸå®žç”¨æˆ·åœ¨å´©æºƒã€åŒå¼€ã€ä»»åŠ¡ç®¡ç†å™¨å¼ºæ€ç­‰åœºæ™¯ä¸‹å¯èƒ½è¸©ä¸­ï¼Œä¸”æ— æ˜Žæ˜¾æç¤ºã€‚
+- **ä¿®å¤å»ºè®®**ï¼šâ‘  portable å¯åŠ¨è§£åŒ…å‰è‹¥ RMDir å¤±è´¥åˆ™æ”¹ç”¨å¸¦éšæœºåŽç¼€çš„æ–°ç›®å½•ï¼›â‘¡ æˆ–è§£åŒ…åŽæ ¡éªŒå…³é”®æ–‡ä»¶ï¼ˆsherpa-onnx-node/whisperï¼‰å­˜åœ¨ï¼›â‘¢ åº”ç”¨ä¾§ sherpa æ¨¡å—åŠ è½½å¤±è´¥æ—¶ç»™å‡ºç”¨æˆ·å¯è§é”™è¯¯æç¤ºè€Œéžé™é»˜ã€‚
 
-- ffmpeg 以 `-stream_loop` 正确拼接 RIFF 生成 5 分 41 秒 WAV（10,915,662 bytes）。
-- Transcribe 页选择 long273.wav：流式出段、进度百分比正常，最终 **61 segments** 带时间戳，Copy all / TXT / SRT 导出按钮均出现（截图 ss_6d14c735.png、ss_bc9977df.png）。~5.7 分钟音频约 1.5 分钟转完（含流式显示）。
-- 历史页出现 File 类型条目：`File · 15:36 · long273.wav · 5min`，多行预览 + Show all（截图 ss_90a088b1.png）。
-- 搜索框输入 `long273`：仅命中该 File 条目，fileName 参与搜索确认（截图 ss_791f54c8.png）。
+## å››ã€ä¸“é¡¹é€šè¿‡é¡¹ï¼ˆå«è¯æ®ï¼‰
 
-### 专项④ 官网横幅实查（页面可用性通过；新文案未上线，见 P2-273-1）
+### ä¸“é¡¹â‘  portable ç‰ˆï¼ˆæ•°æ®åˆ†åŒº/è·³è¿‡è¿ç§»ï¼šé€šè¿‡ï¼›æ ¸å¿ƒè½å­—ï¼šå¤æ ¸åŽé€šè¿‡ï¼Œè§ P1-273-1 æ›´æ­£ï¼‰
 
-- `/` 与 `/zh/` 页面本身加载正常、结构完整（Features/Engines/对比表/FAQ/下载区齐全），v0.17.0 下载链接指向 GitHub releases。
-- 新横幅文案未上线，立案 P2-273-1。
+- portable exe é¦–æ¬¡å¯åŠ¨å³åœ¨ exe æ—åˆ›å»º `SpeakType-data\`ï¼ˆspeaktype.jsonã€history.jsonã€logs ç­‰é½å…¨ï¼‰ï¼Œæ—¥å¿—ï¼š`portable mode, userData at C:\Users\Administrator\portable-test\SpeakType-data`ï¼Œä¸Žå®‰è£…ç‰ˆ %APPDATA%\SpeakType å®Œå…¨éš”ç¦»ã€‚
+- æ—  legacy è¿ç§»åŠ¨ä½œï¼ˆå¯¹ç…§å®‰è£…ç‰ˆæ—¥å¿—æœ‰ `no legacy userData to migrate` / `userData config already present`ï¼Œportable æ—¥å¿—æ— è¿ç§»è¡Œä¸ºï¼Œ%APPDATA% é…ç½®æœªè¢«è¯»å–â€”â€”portable é»˜è®¤é…ç½®ä¸ºå…¨æ–°åˆå§‹å€¼ï¼‰ã€‚
+- æ ¸å¿ƒè½å­—å›  P1-273-1 å¤±è´¥ã€‚
 
-## 五、未测试项（如实声明）
+### ä¸“é¡¹â‘¡ æ–‡ä»¶è½¬å½•é•¿éŸ³é¢‘ + åŽ†å²é¡µï¼ˆé€šè¿‡ï¼‰
 
-- 需要真实音频设备的项（系统静音检测、真实麦克风增益/降噪、muteWhileRecording 实际效果）：本 VM 无音频设备，**untested**。
-- 专项③ 设置导入导出兼容旧版本配置、专项⑤ 应用人设规则实测：本轮未选，未测试。
-- 线上发布的 v0.17.0 portable 资产是否与本地构建同样缺失 sherpa 模块：未下载线上资产逐一核验（推断同源，需在修复 P1-273-1 时一并确认）。
-- 手机麦克风（LAN/relay）、ChatGPT/豆包网页通道、AI 润色接入：本轮未覆盖。
-- Alt+Q 免按的 4 段落字来自 fake mic 循环播放同一句；真实多句异构内容的分段边界准确性未单独构造测试。
+- ffmpeg ä»¥ `-stream_loop` æ­£ç¡®æ‹¼æŽ¥ RIFF ç”Ÿæˆ 5 åˆ† 41 ç§’ WAVï¼ˆ10,915,662 bytesï¼‰ã€‚
+- Transcribe é¡µé€‰æ‹© long273.wavï¼šæµå¼å‡ºæ®µã€è¿›åº¦ç™¾åˆ†æ¯”æ­£å¸¸ï¼Œæœ€ç»ˆ **61 segments** å¸¦æ—¶é—´æˆ³ï¼ŒCopy all / TXT / SRT å¯¼å‡ºæŒ‰é’®å‡å‡ºçŽ°ï¼ˆæˆªå›¾ ss_6d14c735.pngã€ss_bc9977df.pngï¼‰ã€‚~5.7 åˆ†é’ŸéŸ³é¢‘çº¦ 1.5 åˆ†é’Ÿè½¬å®Œï¼ˆå«æµå¼æ˜¾ç¤ºï¼‰ã€‚
+- åŽ†å²é¡µå‡ºçŽ° File ç±»åž‹æ¡ç›®ï¼š`File Â· 15:36 Â· long273.wav Â· 5min`ï¼Œå¤šè¡Œé¢„è§ˆ + Show allï¼ˆæˆªå›¾ ss_90a088b1.pngï¼‰ã€‚
+- æœç´¢æ¡†è¾“å…¥ `long273`ï¼šä»…å‘½ä¸­è¯¥ File æ¡ç›®ï¼ŒfileName å‚ä¸Žæœç´¢ç¡®è®¤ï¼ˆæˆªå›¾ ss_791f54c8.pngï¼‰ã€‚
 
-## 六、实测证据与源码推断边界
+### ä¸“é¡¹â‘£ å®˜ç½‘æ¨ªå¹…å®žæŸ¥ï¼ˆé¡µé¢å¯ç”¨æ€§é€šè¿‡ï¼›æ–°æ–‡æ¡ˆæœªä¸Šçº¿ï¼Œè§ P2-273-1ï¼‰
 
-- 实测：构建产物、打包版/portable 版运行日志、Notepad 实际落字文本、Transcribe/History 页面截图、线上页面 curl 文本与截图、解包目录 diff。
-- 推断：官网部署停滞的根因（未查 Cloudflare 后台）；线上 portable 资产受影响范围；P3-273-1 与 P1-273-1 的同根因假设。
+- `/` ä¸Ž `/zh/` é¡µé¢æœ¬èº«åŠ è½½æ­£å¸¸ã€ç»“æž„å®Œæ•´ï¼ˆFeatures/Engines/å¯¹æ¯”è¡¨/FAQ/ä¸‹è½½åŒºé½å…¨ï¼‰ï¼Œv0.17.0 ä¸‹è½½é“¾æŽ¥æŒ‡å‘ GitHub releasesã€‚
+- æ–°æ¨ªå¹…æ–‡æ¡ˆæœªä¸Šçº¿ï¼Œç«‹æ¡ˆ P2-273-1ã€‚
 
-## 七、环境清理
+## äº”ã€æœªæµ‹è¯•é¡¹ï¼ˆå¦‚å®žå£°æ˜Žï¼‰
 
-已关闭 SpeakType（安装版与 portable）、Notepad、fake mic 播放来源进程；已删除 portable-test 目录与临时长 WAV；测试期间未修改产品代码、未提交 secrets、未改防火墙/hosts。
+- éœ€è¦çœŸå®žéŸ³é¢‘è®¾å¤‡çš„é¡¹ï¼ˆç³»ç»Ÿé™éŸ³æ£€æµ‹ã€çœŸå®žéº¦å…‹é£Žå¢žç›Š/é™å™ªã€muteWhileRecording å®žé™…æ•ˆæžœï¼‰ï¼šæœ¬ VM æ— éŸ³é¢‘è®¾å¤‡ï¼Œ**untested**ã€‚
+- ä¸“é¡¹â‘¢ è®¾ç½®å¯¼å…¥å¯¼å‡ºå…¼å®¹æ—§ç‰ˆæœ¬é…ç½®ã€ä¸“é¡¹â‘¤ åº”ç”¨äººè®¾è§„åˆ™å®žæµ‹ï¼šæœ¬è½®æœªé€‰ï¼Œæœªæµ‹è¯•ã€‚
+- çº¿ä¸Šå‘å¸ƒçš„ v0.17.0 portable èµ„äº§æ˜¯å¦ä¸Žæœ¬åœ°æž„å»ºåŒæ ·ç¼ºå¤± sherpa æ¨¡å—ï¼šæœªä¸‹è½½çº¿ä¸Šèµ„äº§é€ä¸€æ ¸éªŒï¼ˆæŽ¨æ–­åŒæºï¼Œéœ€åœ¨ä¿®å¤ P1-273-1 æ—¶ä¸€å¹¶ç¡®è®¤ï¼‰ã€‚
+- æ‰‹æœºéº¦å…‹é£Žï¼ˆLAN/relayï¼‰ã€ChatGPT/è±†åŒ…ç½‘é¡µé€šé“ã€AI æ¶¦è‰²æŽ¥å…¥ï¼šæœ¬è½®æœªè¦†ç›–ã€‚
+- Alt+Q å…æŒ‰çš„ 4 æ®µè½å­—æ¥è‡ª fake mic å¾ªçŽ¯æ’­æ”¾åŒä¸€å¥ï¼›çœŸå®žå¤šå¥å¼‚æž„å†…å®¹çš„åˆ†æ®µè¾¹ç•Œå‡†ç¡®æ€§æœªå•ç‹¬æž„é€ æµ‹è¯•ã€‚
+
+## å…­ã€å®žæµ‹è¯æ®ä¸Žæºç æŽ¨æ–­è¾¹ç•Œ
+
+- å®žæµ‹ï¼šæž„å»ºäº§ç‰©ã€æ‰“åŒ…ç‰ˆ/portable ç‰ˆè¿è¡Œæ—¥å¿—ã€Notepad å®žé™…è½å­—æ–‡æœ¬ã€Transcribe/History é¡µé¢æˆªå›¾ã€çº¿ä¸Šé¡µé¢ curl æ–‡æœ¬ä¸Žæˆªå›¾ã€è§£åŒ…ç›®å½• diffã€‚
+- æŽ¨æ–­ï¼šå®˜ç½‘éƒ¨ç½²åœæ»žçš„æ ¹å› ï¼ˆæœªæŸ¥ Cloudflare åŽå°ï¼‰ï¼›çº¿ä¸Š portable èµ„äº§å—å½±å“èŒƒå›´ï¼›P3-273-1 ä¸Ž P1-273-1 çš„åŒæ ¹å› å‡è®¾ã€‚
+
+## ä¸ƒã€çŽ¯å¢ƒæ¸…ç†
+
+å·²å…³é—­ SpeakTypeï¼ˆå®‰è£…ç‰ˆä¸Ž portableï¼‰ã€Notepadã€fake mic æ’­æ”¾æ¥æºè¿›ç¨‹ï¼›å·²åˆ é™¤ portable-test ç›®å½•ä¸Žä¸´æ—¶é•¿ WAVï¼›æµ‹è¯•æœŸé—´æœªä¿®æ”¹äº§å“ä»£ç ã€æœªæäº¤ secretsã€æœªæ”¹é˜²ç«å¢™/hostsã€‚
