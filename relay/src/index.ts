@@ -109,7 +109,8 @@ export default {
     if (path === "/health") return new Response("ok");
 
     // PWA 资源：装到主屏幕后从 /app 启动，房间号取 localStorage 里上次配对的电脑
-    const lang = url.searchParams.get("lang");
+    // lang 参数缺失时按 Accept-Language 协商（如浏览器在页面脚本重写 manifest link 前抓取）
+    const lang = url.searchParams.get("lang") ?? request.headers.get("accept-language");
     if (path === "/app") return new Response(phonePage(null, base, lang), { headers: HTML_HEADERS });
     if (path === "/manifest.webmanifest") {
       return new Response(manifest(base, lang), { headers: { "content-type": "application/manifest+json" } });

@@ -148,8 +148,8 @@ export interface HistoryItem {
   audioFile?: string;
   /** 产生该条目的 ASR 通道 */
   provider?: AsrProvider;
-  /** 条目来源：文件转录标记为 "file"，未设即听写 */
-  source?: "file";
+  /** 条目来源：文件转录 "file"、手机麦克风 "phone"，未设即本机听写 */
+  source?: "file" | "phone";
 }
 
 export interface Stats {

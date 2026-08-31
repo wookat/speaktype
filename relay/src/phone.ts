@@ -180,7 +180,7 @@ export function resolvePhoneLang(raw: string | null | undefined): PhoneLang | nu
 }
 
 export function manifest(base: string, lang?: string | null): string {
-  const l = resolvePhoneLang(lang) ?? "zh-CN";
+  const l = resolvePhoneLang(lang) ?? "en";
   const L = STRINGS[l];
   return JSON.stringify({
     name: L.appName,
