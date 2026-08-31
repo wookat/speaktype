@@ -74,3 +74,35 @@ en / zh-CN / zh-TW / ja / ko 逐一切换实测：徽标与下拉文案均正确
 ## 清理
 
 测试后已退出 SpeakType（托盘 Quit）、关闭记事本（不保存）与手机模拟 Chrome，删除临时测试产物；界面语言恢复 English。
+
+## 第 279 轮补测（同环境续测，main @ 45d8b17 打包版，无代码变更）
+
+补测第 278 轮列出的两个未测项 + RightCtrl 轻量回归，全部通过，无新立案项。
+
+### 1. LAN 直连手机链路 ✅（实测）
+
+- 设置→手机当麦克风→连接方式切「LAN direct」，生成局域网地址 `https://172.16.12.2:43117/?t=<12位码>`（自签名证书，浏览器需手动跳过警告——手机端预期为扫码进入，属已知体验）。
+- 手机模拟 Chrome（fake mic）打开该地址（含 12 位 token）：显示「Connected to your PC」，按住说话→中文完整落到记事本光标处（ss_8a1901ed）。
+- 注：不带 token 直接打开根地址显示「Link expired」引导重扫码，无法在页面上手输 12 位码（12 位码走 URL token；手输配对码为 internet relay `/relay/app` 的流程）。
+- 刷新重连：Page.reload 后自动重新显示「Connected to your PC」，再次按住说话落字成功。
+- 两条 LAN 手机条目均带绿色「Phone」徽标（ss_a4c196e6），history.json 均为 `source:"phone"`。
+
+### 2. 手机听写失败条目徽标与重试 ✅（实测）
+
+- 构造方式：Provider 临时切「OpenAI-compatible transcription」并指向不可达地址 `http://127.0.0.1:1/v1`（测完已恢复 Built-in offline）。
+- 手机页按住说话→识别失败，历史条目：`status:"failed"`、`source:"phone"`、保留 audioFile 可重试；历史页失败条目带绿色「Phone」徽标 + 红色失败文案 + 「Retry」按钮（ss_b12a23f1）。
+- Provider 仍为坏配置时点 Retry：按当前 Provider 重试再次失败并就地显示错误（ss_fa6dac3d，符合预期）。
+- 恢复 Built-in offline 后点 Retry：重试成功，条目转为正常文本、provider 变 local，且仍保留 `source:"phone"` 与绿色「Phone」徽标（ss_c407ca0f；history.json 实证 source 字段在重试后保留）。
+
+### 3. RightCtrl 中文落字回归 ✅（实测）
+
+- 恢复 Built-in offline（sensevoice-small，语言 zh）后 RightCtrl 按住 8s：整句中文完整落入记事本（ss_4addbc0c）。
+
+### 第 279 轮未测试项
+
+- 真机手机浏览器扫码进入 LAN 页（桌面 Chrome 模拟，自签证书跳过方式与真机不同）。
+- 断网（物理网络中断）场景的失败构造（受禁改防火墙/hosts 约束，用错误 Provider 配置等效构造）。
+
+### 第 279 轮清理
+
+已恢复 Provider=Built-in offline（asrProvider=local 实证）、退出 SpeakType 与记事本、关闭手机模拟 Chrome；临时 OpenAI 假配置仅存于本机测试用户数据，不影响仓库。
