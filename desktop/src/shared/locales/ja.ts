@@ -424,6 +424,7 @@ export const ja: LocaleDict = {
   "history.hotwordAdd": "辞書に追加",
   "error.retryHint": "録音は保持されています — ホットキーをもう一度押すと再試行できます",
   "error.asrNetwork": "音声認識サービスに接続できません — ネットワークを確認するか、設定で認識方式を切り替えてください",
+  "error.asrRuntimeDamaged": "認識エンジンのファイルが見つからないか破損しています — SpeakType を再起動すると自動修復されます。改善しない場合は再インストールしてください",
   "error.asrTimeout": "音声認識サービスが応答しません — 再試行するか、設定で認識方式を切り替えてください",
   "history.expand": "すべて表示",
   "history.collapse": "折りたたむ",
