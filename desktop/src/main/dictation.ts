@@ -217,6 +217,8 @@ export class Dictation {
   private lastWarmUp = 0;
   private muted = false;
   private mode: "hold" | "toggle" = "hold";
+  /** 本次录音的音频来自手机麦克风（remotemic 推流）：历史条目标记来源 */
+  private remoteSource = false;
   /** 免按模式：一句落字后自动继续聆听，直到用户再按一次或长时间无人声 */
   private handsFree = false;
   private handsFreeSilentRounds = 0;
@@ -449,6 +451,7 @@ export class Dictation {
     this.busy = true;
     this.finalizing = false;
     this.mode = mode;
+    this.remoteSource = remote;
     this.pendingEnd = null;
     this.partial = "";
     this.buffered = [];
@@ -867,6 +870,7 @@ export class Dictation {
           error: message,
           audioFile,
           provider: settings.asrProvider,
+          source: this.remoteSource ? "phone" : undefined,
         });
       }
       this.lastFailed = { frames: this.allFrames, durationMs, maxPeak: this.maxPeak, at: Date.now(), historyId: id };
@@ -1012,6 +1016,7 @@ export class Dictation {
         durationMs,
         failed,
         provider: settings.asrProvider,
+        source: this.remoteSource ? "phone" : undefined,
       });
     addStats(countWords(text), durationMs);
 

@@ -17,10 +17,12 @@ function History(props: {
 }) {
   const { t } = props;
   const [query, setQuery] = useState("");
-  // 听写/文件转录混流后可按来源筛选；仅当两类条目同时存在时展示筛选器
-  const [sourceFilter, setSourceFilter] = useState<"all" | "dictation" | "file">("all");
+  // 本机听写/手机听写/文件转录混流后可按来源筛选；仅当多类条目同时存在时展示筛选器
+  const [sourceFilter, setSourceFilter] = useState<"all" | "dictation" | "phone" | "file">("all");
   const hasFileEntries = props.history.some((h) => h.source === "file");
-  const hasDictationEntries = props.history.some((h) => h.source !== "file");
+  const hasPhoneEntries = props.history.some((h) => h.source === "phone");
+  const hasDictationEntries = props.history.some((h) => !h.source);
+  const sourceKinds = Number(hasFileEntries) + Number(hasPhoneEntries) + Number(hasDictationEntries);
   const [retrying, setRetrying] = useState("");
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
@@ -119,7 +121,7 @@ function History(props: {
   const bySource =
     sourceFilter === "all"
       ? props.history
-      : props.history.filter((h) => (sourceFilter === "file") === (h.source === "file"));
+      : props.history.filter((h) => (sourceFilter === "dictation" ? !h.source : h.source === sourceFilter));
   const filtered = q
     ? bySource.filter(
         (h) =>
@@ -143,15 +145,16 @@ function History(props: {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{t("history.title")}</h1>
         <div className="flex items-center gap-3">
-          {hasFileEntries && hasDictationEntries && (
+          {sourceKinds > 1 && (
             <select
               className="rounded-xl border border-slate-200 px-2 py-1.5 text-sm text-slate-500"
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value as "all" | "dictation" | "file")}
+              onChange={(e) => setSourceFilter(e.target.value as "all" | "dictation" | "phone" | "file")}
             >
               <option value="all">{t("history.filterAll")}</option>
-              <option value="dictation">{t("history.filterDictation")}</option>
-              <option value="file">{t("history.filterFile")}</option>
+              {hasDictationEntries && <option value="dictation">{t("history.filterDictation")}</option>}
+              {hasPhoneEntries && <option value="phone">{t("history.filterPhone")}</option>}
+              {hasFileEntries && <option value="file">{t("history.filterFile")}</option>}
             </select>
           )}
           {props.history.length > 0 && (
@@ -215,6 +218,11 @@ function History(props: {
                       {item.source === "file" && (
                         <span className="mr-1.5 rounded-md bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-600">
                           {t("history.sourceFile")}
+                        </span>
+                      )}
+                      {item.source === "phone" && (
+                        <span className="mr-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600">
+                          {t("history.sourcePhone")}
                         </span>
                       )}
                       {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
