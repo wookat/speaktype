@@ -34,6 +34,15 @@ description: How to end-to-end test the SpeakType Windows desktop app (Electron,
 
 This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT test the desktop app via the extension procedure.
 
+## Round 274 learnings (packaged v0.17.0, #366 asrRuntimeDamaged)
+
+- **Damaged-runtime fault injection**: rename `win-unpacked\resources\app.asar.unpacked\node_modules\sherpa-onnx-node` → `*.bak` while the app is CLOSED, relaunch, hold RightCtrl ~4s. Expect localized `error.asrRuntimeDamaged` toast ("识别引擎文件缺失或损坏…" / "Speech engine files are missing or damaged…") plus "已保留录音" retry hint; log shows `sherpa prewarm failed Error: Cannot find module 'sherpa-onnx-node'`. Rename back and relaunch → `sherpa worker started` and dictation recovers, no reinstall needed.
+- **Esc-cancel caveat**: after Esc cancel the UI shows the cancel toast and no text lands, but a `dictation finalize: durationMs=…` line may still appear later in main.log (likely async cleanup). Don't assert "no finalize line" strictly — assert "no text landed + cancel toast" instead.
+- **Personas page layout**: the 按应用自动切人设 rule section is at the TOP of the Personas page; the page can retain a scrolled-to-bottom position where wheel scrolling appears dead — `Ctrl+-` (Electron zoom-out) reveals layout instantly, then wheel-up works. Clicking a persona card SELECTS it as global persona — avoid stray clicks, restore selection afterwards.
+- **Config import/export quick test**: export goes to Documents\speaktype-config-YYYY-MM-DD.json (no credential/micDeviceId keys). Importing a file with unknown/wrong-type/invalid-enum fields shows「配置已导入并生效（跳过 N 个字段…）」and applies live (theme flips immediately); a legacy `hotkeyToggle:"Alt+Space"` is stored but UI shows Alt+Q fallback. Restore by re-importing the exported file.
+- **F8 mock rewrite**: fields under Settings→AI 润色 only render while the enable toggle is ON — toggle on, paste base URL `http://127.0.0.1:8975/v1` (use Set-Clipboard + Ctrl+V; `type` may drop `:`), key/model, click 测试连接 (hits /v1/models), then toggle OFF — baseUrl persists and F8 still works with polishEnabled=false.
+- Native `<select>` dropdowns in the Electron UI often need two separate clicks (first focuses, second opens); verify the options popup in a screenshot before clicking an option.
+
 ## Round 258 learnings (Silero hangover A/B methodology)
 
 - Segment-count is the strongest single signal for Silero segmentation fixes on the 2.2s-gap fixture (`silero256d.wav`, 32 short sentences): broken hangover → ~12 heavily-merged segments; fixed → ~41; peak baseline → ~37 with all heads intact. Count segments from history.json before eyeballing text.
