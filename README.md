@@ -17,6 +17,8 @@ Recognition engine, AI polishing and hotword correction are all yours to configu
 
 [⬇ Download](#-download--install) · [🌐 Website](https://speaktype.zalize.com) · [简体中文](README.zh-CN.md) · [Report an issue](https://github.com/wookat/speaktype/issues) · [Dev docs](desktop/README.md)
 
+<img src="docs/assets/demo.gif" width="720" alt="SpeakType demo — hold a key, speak, and the words land at your cursor" />
+
 <img src="docs/assets/screenshot-home.png" width="720" alt="SpeakType home" />
 
 </div>
@@ -71,10 +73,17 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Googl
 |---|---|---|
 | Windows 10/11 x64 | [SpeakType-Setup-0.17.0.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-Setup-0.17.0.exe) (~98MB) | ✅ Stable |
 | Windows portable | [SpeakType-0.17.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe) (~87MB) | ✅ Stable |
-| Android (phone as microphone) | [SpeakType-0.15.0.apk](https://github.com/wookat/speaktype/releases/download/v0.15.0/SpeakType-0.15.0.apk) | ✅ Available |
+| Android (phone as microphone) | [SpeakType-0.17.0.apk](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk) | ✅ Available |
 | macOS (Apple Silicon / Intel) | Platform layer merged; installer pending a macOS build environment | 🚧 In progress |
 
 Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
+
+Or install via [Scoop](https://scoop.sh):
+
+```powershell
+scoop bucket add speaktype https://github.com/wookat/scoop-speaktype
+scoop install speaktype
+```
 
 1. Install (if SmartScreen objects, click "More info → Run anyway"; the installer is not commercially signed).
 2. Settings → Speech → **Built-in offline** → download a model (or fill in your own API key).

@@ -7,14 +7,16 @@ numbers and links before posting.
 Facts checklist (verified against the repo as of 2026-08-03, do not inflate):
 
 - MIT licensed, public repo: https://github.com/wookat/speaktype
-- Latest release: v0.16.0 (Setup exe + portable exe). Android APK last shipped as v0.15.0.
+- Latest release: v0.17.0 (Setup exe + portable exe + Android APK, all on the same tag).
 - Offline by default: SenseVoice (zh/en/ja/ko/yue), Parakeet TDT 0.6B v3 (en + European), whisper.cpp tiny/base/small.
 - Optional BYOK cloud: any OpenAI-compatible API, ChatGPT, Gemini, Groq, plus domestic channels (Doubao, Zhipu, Bailian).
 - Correction learning: watches later edits in the same field and adds corrections to the dictionary.
 - Phone as remote mic (LAN direct or same-domain relay at speaktype.zalize.com/relay).
 - Windows only today (desktop). No macOS/Linux build yet — do not claim otherwise.
 - Submitted, not yet accepted (do not claim inclusion until merged):
-  winget-pkgs #426225, Scoop Extras #18637, Awesome-Whisper-Apps #34, awesome-windows #269.
+  winget-pkgs #426225, Awesome-Whisper-Apps #34, awesome-windows #269.
+- Scoop Extras #18637 was REJECTED (project too small for Extras — needs ~100 stars / 50 forks);
+  use the self-hosted bucket instead: `scoop bucket add speaktype https://github.com/wookat/scoop-speaktype` then `scoop install speaktype`.
 
 ---
 

@@ -11,11 +11,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-下载安装)
-[![Release](https://img.shields.io/badge/Release-v0.9.2-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v0.17.0-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
 [![i18n](https://img.shields.io/badge/界面语言-5%20种-16a34a.svg)](#-国际化)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](CONTRIBUTING.md)
 
 [⬇ 下载安装包](#-下载安装) · [🌐 官网](https://speaktype.zalize.com) · [English](README.md) · [报告问题](https://github.com/wookat/speaktype/issues) · [开发文档](desktop/README.md)
+
+<img src="docs/assets/demo.gif" width="720" alt="SpeakType 演示 — 按住热键说话，文字落到光标处" />
 
 <img src="docs/assets/screenshot-home.png" width="720" alt="SpeakType 首页" />
 
@@ -71,10 +73,17 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 
 |---|---|---|
 | Windows 10/11 x64 | [SpeakType-Setup-0.17.0.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-Setup-0.17.0.exe)（~98MB） | ✅ 稳定 |
 | Windows 绿色免安装 | [SpeakType-0.17.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe)（~87MB） | ✅ 稳定 |
-| Android（手机当麦克风） | [SpeakType-0.15.0.apk](https://github.com/wookat/speaktype/releases/download/v0.15.0/SpeakType-0.15.0.apk) | ✅ 可用 |
+| Android（手机当麦克风） | [SpeakType-0.17.0.apk](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk) | ✅ 可用 |
 | macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
 
 最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
+
+也可以用 [Scoop](https://scoop.sh) 安装：
+
+```powershell
+scoop bucket add speaktype https://github.com/wookat/scoop-speaktype
+scoop install speaktype
+```
 
 1. 安装（SmartScreen 拦截时点「更多信息 → 仍要运行」，安装包未做商业签名）。
 2. 设置 → 语音识别 → **内置离线** → 下载模型（或填你自己的 API Key）。
