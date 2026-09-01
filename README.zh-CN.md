@@ -11,7 +11,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-下载安装)
-[![Release](https://img.shields.io/badge/Release-v0.9.2-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v0.17.0-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
 [![i18n](https://img.shields.io/badge/界面语言-5%20种-16a34a.svg)](#-国际化)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](CONTRIBUTING.md)
 
