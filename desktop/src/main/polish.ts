@@ -365,13 +365,14 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
  * 超时（timeout）与模型空结果（empty），由调用方分别提示。
  */
 export type RewriteFailure =
-  | { error: "network" | "empty" | "timeout" | "badResponse" }
+  | { error: "network" | "empty" | "timeout" | "badResponse" | "aborted" }
   | { error: "http"; status: number };
 
 export async function rewriteSelection(
   settings: Settings,
   selection: string,
   instruction: string,
+  signal?: AbortSignal,
 ): Promise<string | RewriteFailure> {
   if (!settings.polishBaseUrl) return { error: "empty" };
   // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
@@ -402,7 +403,9 @@ export async function rewriteSelection(
     const res = await fetch(chatUrl(settings.polishBaseUrl), {
       method: "POST",
       headers: chatHeaders(settings),
-      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(CHAT_TIMEOUT_MS)])
+        : AbortSignal.timeout(CHAT_TIMEOUT_MS),
       body: JSON.stringify({
         model: settings.polishModel || "gpt-4o-mini",
         temperature: 0.3,
@@ -425,6 +428,7 @@ export async function rewriteSelection(
   } catch (error) {
     // 服务挂起 30s 后才失败与立刻连不上是两种排查方向，提示要分开
     log.warn(`rewrite: ${error instanceof Error ? error.message : String(error)}`);
+    if (error instanceof Error && error.name === "AbortError") return { error: "aborted" };
     return { error: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network" };
   }
 }
