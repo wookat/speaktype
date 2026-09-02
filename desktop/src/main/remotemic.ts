@@ -175,6 +175,7 @@ function connect() {
   ws.onopen = () => { fails = 0; stateEl.textContent = L.connected; talk.disabled = false; };
   // token 已轮换（桌面端开关过远程麦）时重连永远被拒：连拒 8 次即停，提示重新扫码
   ws.onclose = () => {
+    endHold(true);
     talk.disabled = true;
     if (++fails >= 8) { stateEl.textContent = L.rescan; return; }
     stateEl.textContent = L.reconnecting;
