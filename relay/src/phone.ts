@@ -381,6 +381,7 @@ function connect() {
   };
   ws.onclose = (ev) => {
     if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+    endHold(true);
     talk.disabled = true;
     if (ev.reason === "room occupied" || ev.reason === "replaced") { stateEl.textContent = L.roomOccupied; return; }
     // 房间码已在电脑端更换时重连永远建不起来：连拒 8 次即停，回配对页提示重新配对
