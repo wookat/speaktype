@@ -211,6 +211,7 @@ export const ko: LocaleDict = {
   "settings.remoteMicHint": "PC에 마이크가 없을 때 휴대폰으로 QR을 스캔하고 길게 누른 채 말하면 PC 커서 위치에 텍스트가 입력됩니다(오디오는 LAN 내에서만 전송).",
   "settings.remoteMicScan": "휴대폰으로 QR 스캔",
   "settings.remoteMicSteps": "휴대폰과 PC는 같은 Wi-Fi에 있어야 합니다. 처음 열면 인증서 경고(LAN 자체 서명)가 나오면 “계속”을 선택하세요. 페이지의 원형 버튼을 누른 채 말하고 떼면 입력됩니다.",
+  "settings.remoteMicNoModel": "로컬 모델이 아직 다운로드되지 않았습니다. 휴대폰을 연결해도 인식되지 않으니 먼저 다운로드하세요.",
   "settings.remoteMicWaiting": "휴대폰 연결 대기 중…",
   "settings.remoteMicConnected": "{{n}}대 연결됨",
   "settings.remoteMicMode": "연결 방식",

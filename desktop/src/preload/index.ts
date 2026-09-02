@@ -16,7 +16,6 @@ export interface InitPayload {
   personas: Persona[];
   history: HistoryItem[];
   stats: Stats;
-  onboarded: boolean;
   doubaoReady: boolean;
   holdKeyChoices: string[];
   rewriteKeyChoices: string[];
@@ -63,7 +62,6 @@ const api = {
   loginChatgpt: (): Promise<void> => ipcRenderer.invoke("chatgpt:login"),
   testChatgpt: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("chatgpt:test"),
   testDoubao: (): Promise<{ ok: boolean; detail: string }> => ipcRenderer.invoke("doubao:test"),
-  onboardingDone: (): Promise<void> => ipcRenderer.invoke("onboarding:done"),
   toggleRecord: (): Promise<void> => ipcRenderer.invoke("record:toggle"),
   cancelRecord: (): Promise<void> => ipcRenderer.invoke("record:cancel"),
   micList: (): Promise<MicDevice[]> => ipcRenderer.invoke("mic:list"),

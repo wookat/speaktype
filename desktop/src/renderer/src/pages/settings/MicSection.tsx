@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MicDevice } from "../../api";
 import type { Translator } from "../../i18n";
-import type { RemoteMicInfo, Settings } from "../../../../shared/types";
+import type { LocalModelStatus, RemoteMicInfo, Settings } from "../../../../shared/types";
+import { humanDownloadError } from "../../lib/downloadError";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 
@@ -109,6 +110,19 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
     return api.onRemoteMic(setRemote);
   }, []);
 
+  // 离线通道没模型时手机连上说话也无法识别，扫码前就地提示并给下载入口
+  const [local, setLocal] = useState<LocalModelStatus | null>(null);
+  const localModel = s.localModel || "sensevoice-small";
+  useEffect(() => {
+    if (!s.remoteMicEnabled || s.asrProvider !== "local") return;
+    void api.localModelStatus(localModel).then(setLocal);
+    return api.onLocalModel((st) => {
+      if (st.model === localModel) setLocal(st);
+    });
+  }, [s.remoteMicEnabled, s.asrProvider, localModel]);
+  const needsModel =
+    s.remoteMicEnabled && s.asrProvider === "local" && local !== null && !local.downloaded;
+
   return (
     <>
       <Toggle
@@ -138,6 +152,32 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
             onBlur={(e) => e.target.value !== s.remoteRelayUrl && update({ remoteRelayUrl: e.target.value.trim() })}
           />
         </Row>
+      )}
+      {needsModel && (
+        <div className="ml-4 mt-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>{t("settings.remoteMicNoModel")}</span>
+            <button
+              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
+              disabled={Boolean(local?.downloading)}
+              onClick={() => void api.localModelDownload(localModel).then(setLocal)}
+            >
+              {local?.downloading
+                ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                : local?.partial != null
+                  ? t("settings.localModelResume", { progress: String(local.partial) })
+                  : t("settings.localModelDownload")}
+            </button>
+          </div>
+          {local?.downloading && (
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
+              <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />
+            </div>
+          )}
+          {local?.error && !local.downloading && (
+            <div className="mt-2 text-xs text-red-600">{humanDownloadError(local.error, t)}</div>
+          )}
+        </div>
       )}
       {s.remoteMicEnabled && remote?.error && (
         <div className="ml-4 mt-1 border-l-2 border-red-100 pl-4 text-xs text-red-500">{remote.error}</div>
