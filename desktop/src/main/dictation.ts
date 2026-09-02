@@ -249,6 +249,8 @@ export class Dictation {
   private rewriteTarget: string | null = null;
   /** 改写模式：按下改写键时的前台窗口，粘贴前复核焦点未切走 */
   private rewriteWin: string | null = null;
+  /** 改写请求进行中（polishing 阶段）：Esc 取消由此中断 LLM 请求 */
+  private rewriteAbort: AbortController | null = null;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -518,10 +520,15 @@ export class Dictation {
       // 配置类失败（未登录/未填 key/模型未下载）只闪状态条用户看不见：补常驻 toast 并直达设置
       const configErrors = [t("error.noAppKey"), t("error.noAsrConfig"), t("error.localModelMissing")];
       if (configErrors.includes(message)) {
+        // 模型未下载的完整指引在 toast 里会被 3 行截断吞掉动作动词：正文用短句，路径放进按钮
+        const modelMissing = message === t("error.localModelMissing");
         this.deps.showToast(
           t("toast.asrNotConfigured"),
-          message,
-          { label: t("toast.openSettingsAction"), run: () => this.deps.openModelSettings("voice") },
+          modelMissing ? t("toast.localModelMissingBody") : message,
+          {
+            label: modelMissing ? t("toast.downloadModelAction") : t("toast.openSettingsAction"),
+            run: () => this.deps.openModelSettings("voice"),
+          },
           12000,
         );
       }
@@ -641,6 +648,9 @@ export class Dictation {
         // 转写/处理阶段取消：中断云端上传，结果到达也丢弃，收尾由 finalize 完成
         this.finishCancelled = true;
         this.finishing.cancel();
+      } else if (this.rewriteAbort) {
+        // 改写等待期（polishing）取消：中断 LLM 请求，原文保持不动
+        this.rewriteAbort.abort();
       } else {
         this.pendingEnd = "cancel";
       }
@@ -898,23 +908,31 @@ export class Dictation {
     const retriedId = this.lastFailed?.historyId;
     this.lastFailed = null;
 
-    if (durationMs < settings.minRecordMs || !raw) {
+    // 纯标点/无字词的识别产物（呼吸声、噪声段常被 ASR 输出为「。」）按无有效语音处理，不落字不入历史
+    const noContent = !/[\p{L}\p{N}]/u.test(raw);
+    if (durationMs < settings.minRecordMs || !raw || noContent) {
       this.busy = false;
       this.partial = "";
       this.report("idle");
       if (this.maybeContinueHandsFree(true)) return;
-      if (!raw) this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
+      if (!raw || noContent) this.deps.showToast(t("toast.noSpeech"), t("toast.noSpeechBody"));
       return;
     }
 
     this.report("polishing");
     let text: string;
     if (rewriteTarget) {
-      const rewritten = await rewriteSelection(settings, rewriteTarget, raw);
+      this.rewriteAbort = new AbortController();
+      const rewritten = await rewriteSelection(settings, rewriteTarget, raw, this.rewriteAbort.signal);
+      this.rewriteAbort = null;
       if (typeof rewritten !== "string") {
         this.busy = false;
         this.partial = "";
         this.report("idle");
+        if (rewritten.error === "aborted") {
+          this.deps.showToast(t("toast.canceled"), t("toast.rewriteCanceledBody"), undefined, 2500);
+          return;
+        }
         this.deps.showToast(
           t("toast.rewriteFailed"),
           rewritten.error === "http"
