@@ -247,6 +247,8 @@ export class Dictation {
   private silero: SileroVad | null = null;
   /** 改写模式：按下改写键时抓到的选区文字，本次口述当作改写指令 */
   private rewriteTarget: string | null = null;
+  /** 改写模式：按下改写键时的前台窗口，粘贴前复核焦点未切走 */
+  private rewriteWin: string | null = null;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -439,6 +441,7 @@ export class Dictation {
       return;
     }
     this.rewriteTarget = selection;
+    this.rewriteWin = foregroundWindowKey();
     await this.start("hold");
   }
 
@@ -624,6 +627,7 @@ export class Dictation {
       this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
     }
     this.rewriteTarget = null;
+    this.rewriteWin = null;
     if (!this.busy) {
       // 免按句间空档取消：麦克风跨句保持着，一样要停麦解除静音
       if (wasHandsFree) {
@@ -807,6 +811,8 @@ export class Dictation {
     // 本次会话一开始就消费掉改写意图：空结果/异常提前退出时不能残留到下一次普通听写
     const rewriteTarget = this.rewriteTarget;
     this.rewriteTarget = null;
+    const rewriteWin = this.rewriteWin;
+    this.rewriteWin = null;
     const settings = getSettings();
     const persona = localizePersona(
       findPersona(this.appPersonaId ?? settings.personaId),
@@ -958,7 +964,12 @@ export class Dictation {
       // 前台是桌面壳等非输入目标：盲发 Ctrl+V 会静默丢字，改为提示已存历史
       this.deps.showToast(t("toast.noPasteTarget"), t("toast.noPasteTargetBody"));
     }
-    if ((settings.autoPaste && !noTarget) || rewriteTarget) {
+    // 改写模式：识别期间焦点切走时结果会落进当前前台窗口，粘贴前复核目标窗口未变
+    if (rewriteTarget && rewriteWin && foregroundWindowKey() !== rewriteWin) {
+      clipboard.writeText(text);
+      pastedOk = false;
+      this.deps.showToast(t("toast.rewriteFocusLost"), t("toast.rewriteFocusLostBody"));
+    } else if ((settings.autoPaste && !noTarget) || rewriteTarget) {
       if (!rewriteTarget && isTerminalForeground()) text = deformatForTerminal(text);
       // 免按连续听写的第 2 句起：拉丁字母/数字开头时补空格，避免 "test.And here" 顶格拼接。
       // 不看 handsFree：退出免按（热键/Alt+Q）会先清它再 finalize 最后一句，只认本会话是否已落过字。

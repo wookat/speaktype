@@ -379,6 +379,8 @@ export const zhCN = {
   "toast.rewriteFailedTimeoutBody": "润色服务响应超时（30 秒）——模型可能过载，可重试或换个模型，原文未改动",
   "toast.rewriteFailedHttpBody": "润色服务返回 HTTP {{status}}——请检查模型名与 API Key，原文未改动",
   "toast.rewriteFailedBadResponseBody": "润色服务响应不是 OpenAI 兼容 JSON——请检查 Base URL 是否指向 /v1 对话接口，原文未改动",
+  "toast.rewriteFocusLost": "焦点已切换，未落字",
+  "toast.rewriteFocusLostBody": "改写期间窗口变了——结果已复制到剪贴板，请粘贴到需要的位置",
   "toast.polishFallback": "润色服务不可用",
   "toast.polishFallbackBody": "已按未润色的原文落字",
   "toast.learned": "已学会新词",
