@@ -24,7 +24,13 @@ function GeneralTab(props: {
     return () => clearTimeout(timer);
   }, [confirmReset]);
   // 导出/导入结果提示，几秒后自动消失
-  const [backupMsg, setBackupMsg] = useState<{ text: string; error: boolean } | null>(null);
+  // 存 key/参数而非成品字符串：导入切换界面语言时，提示跟随当前语言重新翻译
+  const [backupMsg, setBackupMsg] = useState<{
+    key: Parameters<Translator>[0];
+    params?: Record<string, string | number>;
+    ignored?: number;
+    error: boolean;
+  } | null>(null);
   useEffect(() => {
     if (!backupMsg) return;
     const timer = setTimeout(() => setBackupMsg(null), 5000);
@@ -35,12 +41,10 @@ function GeneralTab(props: {
     okKey: Parameters<Translator>[0],
   ) => {
     void run().then((res) => {
-      if (res.ok && res.ignored)
-        setBackupMsg({ text: `${t(okKey)}${t("settings.configIgnored", { count: res.ignored })}`, error: false });
-      else if (res.ok) setBackupMsg({ text: t(okKey), error: false });
+      if (res.ok) setBackupMsg({ key: okKey, ignored: res.ignored, error: false });
       else if (res.canceled) setBackupMsg(null);
-      else if (res.invalid) setBackupMsg({ text: t("settings.configInvalid"), error: true });
-      else setBackupMsg({ text: t("settings.configFailed", { error: res.error ?? "" }), error: true });
+      else if (res.invalid) setBackupMsg({ key: "settings.configInvalid", error: true });
+      else setBackupMsg({ key: "settings.configFailed", params: { error: res.error ?? "" }, error: true });
     });
   };
   const [capturing, setCapturing] = useState(false);
@@ -333,7 +337,8 @@ function GeneralTab(props: {
         </Row>
         {backupMsg && (
           <div className={`mt-2 rounded-xl px-4 py-2 text-xs ${backupMsg.error ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-            {backupMsg.text}
+            {t(backupMsg.key, backupMsg.params)}
+            {backupMsg.ignored ? t("settings.configIgnored", { count: backupMsg.ignored }) : ""}
           </div>
         )}
       </section>

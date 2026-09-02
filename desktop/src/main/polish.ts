@@ -1,3 +1,4 @@
+import log from "electron-log/main.js";
 import type { Persona, Settings } from "../shared/types";
 import { httpErrorDetail } from "./asr";
 import { correctHotwords } from "./hotwords";
@@ -360,13 +361,18 @@ export async function testPolish(settings: Settings): Promise<{ ok: boolean; det
 
 /**
  * 选中文字 + 语音指令改写/翻译：把选区和口述指令交给润色模型，只回改写后的正文。
- * 失败时区分连不上服务（network）与模型空结果（empty），由调用方分别提示。
+ * 失败时区分连不上服务（network）、服务报错（http）、非兼容响应（badResponse）、
+ * 超时（timeout）与模型空结果（empty），由调用方分别提示。
  */
+export type RewriteFailure =
+  | { error: "network" | "empty" | "timeout" | "badResponse" }
+  | { error: "http"; status: number };
+
 export async function rewriteSelection(
   settings: Settings,
   selection: string,
   instruction: string,
-): Promise<string | { error: "network" | "empty" | "timeout" }> {
+): Promise<string | RewriteFailure> {
   if (!settings.polishBaseUrl) return { error: "empty" };
   // 指令同样来自 ASR，词典专名纠错在改写路径也要生效
   instruction = correctHotwords(instruction, settings.hotwords);
@@ -403,12 +409,22 @@ export async function rewriteSelection(
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!res.ok) return { error: "network" };
-    const data = (await res.json()) as ChatResponse;
+    if (!res.ok) {
+      log.warn(`rewrite: endpoint returned HTTP ${res.status}`);
+      return { error: "http", status: res.status };
+    }
+    let data: ChatResponse;
+    try {
+      data = (await res.json()) as ChatResponse;
+    } catch {
+      log.warn("rewrite: endpoint returned non-JSON response");
+      return { error: "badResponse" };
+    }
     const content = data.choices?.[0]?.message?.content?.trim();
     return content ? stripLlmWrapper(content) : { error: "empty" };
   } catch (error) {
     // 服务挂起 30s 后才失败与立刻连不上是两种排查方向，提示要分开
+    log.warn(`rewrite: ${error instanceof Error ? error.message : String(error)}`);
     return { error: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network" };
   }
 }

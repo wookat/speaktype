@@ -359,6 +359,8 @@ export const zhTW: LocaleDict = {
   "toast.rewriteFailedBody": "潤色模型沒有回傳結果，原文未變動",
   "toast.rewriteFailedNetworkBody": "無法連線潤色服務——請檢查 Base URL 與網路連線，原文未變動",
   "toast.rewriteFailedTimeoutBody": "潤色服務回應逾時（30 秒）——模型可能過載，可重試或換個模型，原文未變動",
+  "toast.rewriteFailedHttpBody": "潤色服務回傳 HTTP {{status}}——請檢查模型名稱與 API Key，原文未變動",
+  "toast.rewriteFailedBadResponseBody": "潤色服務回應不是 OpenAI 相容 JSON——請檢查 Base URL 是否指向 /v1 對話介面，原文未變動",
   "toast.polishFallback": "潤色服務無法使用",
   "toast.polishFallbackBody": "已按未潤色的原文輸入",
   "toast.learned": "已學會新詞",

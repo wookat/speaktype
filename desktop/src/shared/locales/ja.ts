@@ -385,6 +385,8 @@ export const ja: LocaleDict = {
   "toast.rewriteFailedBody": "推敲モデルから結果が返らなかったため、原文は変更されていません",
   "toast.rewriteFailedNetworkBody": "推敲サービスに接続できません。Base URL とネットワークを確認してください。原文は変更されていません",
   "toast.rewriteFailedTimeoutBody": "推敲サービスがタイムアウトしました（30 秒）。モデルが過負荷の可能性があります。再試行するかモデルを変更してください。原文は変更されていません",
+  "toast.rewriteFailedHttpBody": "推敲サービスが HTTP {{status}} を返しました。モデル名と API キーを確認してください。原文は変更されていません",
+  "toast.rewriteFailedBadResponseBody": "推敲サービスの応答が OpenAI 互換 JSON ではありません。Base URL が /v1 チャットエンドポイントを指しているか確認してください。原文は変更されていません",
   "toast.polishFallback": "推敲サービスを利用できません",
   "toast.polishFallbackBody": "推敲なしの原文を入力しました",
   "toast.learned": "新しい語を学習しました",
