@@ -103,3 +103,57 @@
 ## 8. 环境清理
 
 测试完成后退出 SpeakType 打包版、关闭 Notepad（不保存）、关闭手机模拟 Chrome（9444/9446），未改动防火墙/hosts，未提交任何 secrets，设置保持默认（relay 模式为应用默认配置）。
+
+---
+
+# 第 280 轮补充专项（设置页手机麦克风五语言+深浅色 / relay app 五语言复核 / RightCtrl·Alt+Q·Esc 回归）
+
+- 测试日期：2026-09-02（UTC），同环境、同打包版（v0.17.0, packaged=true）
+- 本节全部为实测证据（打包版 GUI 截图 + 线上 HTTP 实测），除注明「复用前节证据」处。
+
+## 结论摘要（补充专项）
+
+- 专项 A 设置页「手机当麦克风」区块五语言：通过，无截断、无乱码、术语一致；浅色/深色各抽查通过。
+- 专项 B /relay/app 五口径 + manifest zh-TW/ko name：通过。
+- 核心回归 RightCtrl 中文、Alt+Q 免按多句、Esc 取消：全部通过。
+- 本节无新增 P0-P3 立案。
+
+## A. 设置页「手机当麦克风」区块五语言走查（打包版实测截图）
+
+在打包版设置页逐一切换界面语言，检查语音识别页手机麦克风区块（开关、连接方式下拉、中转地址、二维码、房间 URL、配对码、等待状态）：
+
+| 语言 | 区块标题 | 连接方式选项 | 中转地址标签 | 配对码文案 | QR lang 参数 | 主题 |
+|---|---|---|---|---|---|---|
+| en | Phone as microphone | LAN direct / Internet relay | Relay server URL | Pairing code | ?lang=en | 浅色 |
+| zh-CN | 手机当麦克风 | 局域网直连 / 公网中转 | 中转服务地址 | 配对码（手机 App 里扫码可连接） | ?lang=zh-CN | 浅色 |
+| zh-TW | 手機當麥克風 | LAN 直連 / 公網中轉 | 中轉服務地址 | 配對碼（手機 App 內手動輸入即可連線） | ?lang=zh-TW | 浅色 |
+| ja | スマホをマイクに | LAN 直接接続 / インターネット中継 | 中継サーバー URL | ペアリングコード（スマホアプリに入力） | ?lang=ja | 浅色 |
+| ko | 휴대폰을 마이크로 | LAN 직접 연결 / 인터넷 중계 | 중계 서버 URL | 페어링 코드（휴대폰 앱에 입력） | ?lang=ko | 深色 |
+
+- 五语言均无截断、无乱码；「局域网直连 vs 官方中转」在各语言的说明段与下拉选项术语一致（同一 Wi-Fi 走直连 / 不同网络走中转，默认官方中转可自部署）。
+- 二维码在浅色与深色主题下均清晰渲染，房间 URL 的 `?lang=` 跟随界面语言实时切换（实测 zh-TW/ja/ko 截图确认）。
+- 深色主题抽查（ko）：文字对比度正常、无背景/文字同色问题；浅色抽查（en/zh-CN/zh-TW/ja）正常。测试后已恢复 English + 跟随系统主题。
+
+## B. /relay/app 五语言口径复核 + manifest zh-TW/ko
+
+- `/relay/app?lang=en/zh-CN/zh-TW/ja/ko` 五口径 HTTP 实测：全部 200，HTML UTF-8 解码替换字符 0（无乱码）。按住说话按钮、连接状态、错误提示文案的可见文本走查见本文件第 1 节与 round278.md 第 280 轮补测小节（本轮 HTTP 层复核一致，页面版本未变）。
+- manifest 实测（Python urllib，UTF-8 解码逐字比对）：
+  - `?lang=zh-TW` → 200，lang=zh-TW，name=`SpeakType 手機麥克風` ✓
+  - `?lang=ko` → 200，lang=ko，name=`SpeakType 폰 마이크` ✓
+  - （顺带复核 en/zh-CN/ja 三口径 name 亦全部一致）
+
+## C. 核心回归（打包版 + Notepad 实测）
+
+- RightCtrl 中文落字：按住 8s 松开，Notepad 落字「帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复」，日志 `dictation finalize durationMs=8689`。通过。
+- Alt+Q 免按多句：Alt+Q 开启免按模式后不按任何键持续 22s，fake mic 循环语音被自动分句落字 3 句（每句独立成段），再按 Alt+Q 结束。通过（要求两句，实测三句）。
+- Esc 取消：录音 3s 时按 Esc，Notepad 光标位置无任何新增文本（Ln5 Col25 不变），日志无新 finalize 记录。通过。
+
+## D. 证据口径与未测项（补充）
+
+- 实测：设置页五语言/双主题截图、manifest 两口径+五口径逐字比对、/relay/app 五口径 HTTP、RightCtrl/Alt+Q/Esc（Notepad + main.log）。
+- 复用前节证据：/relay/app 页面内可见文案与错误提示明细（本轮页面字节未变化，HTTP 复核一致）。
+- 未测：设置页五语言 × 双主题全组合（仅按「深浅色各抽查一次」执行）；真机手机端渲染。
+
+## E. 环境清理（补充专项后）
+
+界面语言恢复 English、主题恢复跟随系统；退出 SpeakType 与 Notepad（不保存）；无新增模拟浏览器窗口；未改防火墙/hosts、未提交 secrets、Actions 保持禁用。
