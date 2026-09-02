@@ -287,9 +287,9 @@ function handlePhoneMessage(d: RemoteMicDeps, ws: WebSocket, data: unknown, isBi
   try {
     const msg = JSON.parse(String(data)) as { type: string; connected?: boolean };
     if (msg.type === "peer" && ws === relayWs) {
-      // 中转房间的手机上线/离线通知
+      // 中转房间的手机上线/离线通知；录音进行中收到任何 peer 变更（离线或被新手机顶替）都取消当前会话
       relayPhoneConnected = Boolean(msg.connected);
-      if (!relayPhoneConnected && activeWs === ws) {
+      if (activeWs === ws) {
         activeWs = null;
         d.cancel();
       }
@@ -315,7 +315,11 @@ function handlePhoneMessage(d: RemoteMicDeps, ws: WebSocket, data: unknown, isBi
 }
 
 export async function stopRemoteMic(): Promise<void> {
-  activeWs = null;
+  // 手机正按住录音时关掉远程麦开关：同步取消进行中的会话，不留悬挂的录音状态
+  if (activeWs) {
+    activeWs = null;
+    deps?.cancel();
+  }
   relayStopped = true;
   relayPhoneConnected = false;
   if (relayWs) {
