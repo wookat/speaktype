@@ -911,13 +911,17 @@ export class Dictation {
         this.report("idle");
         this.deps.showToast(
           t("toast.rewriteFailed"),
-          t(
-            rewritten.error === "network"
-              ? "toast.rewriteFailedNetworkBody"
-              : rewritten.error === "timeout"
-                ? "toast.rewriteFailedTimeoutBody"
-                : "toast.rewriteFailedBody",
-          ),
+          rewritten.error === "http"
+            ? t("toast.rewriteFailedHttpBody", { status: rewritten.status })
+            : t(
+                rewritten.error === "network"
+                  ? "toast.rewriteFailedNetworkBody"
+                  : rewritten.error === "timeout"
+                    ? "toast.rewriteFailedTimeoutBody"
+                    : rewritten.error === "badResponse"
+                      ? "toast.rewriteFailedBadResponseBody"
+                      : "toast.rewriteFailedBody",
+              ),
         );
         return;
       }

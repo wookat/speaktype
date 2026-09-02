@@ -385,6 +385,8 @@ export const en: LocaleDict = {
   "toast.rewriteFailedBody": "The polish model returned nothing; the text was left unchanged",
   "toast.rewriteFailedNetworkBody": "Could not reach the polish service — check the Base URL and your network; the text was left unchanged",
   "toast.rewriteFailedTimeoutBody": "The polish service timed out (30s) — the model may be overloaded, try again or switch models; the text was left unchanged",
+  "toast.rewriteFailedHttpBody": "The polish service returned HTTP {{status}} — check the model name and API key; the text was left unchanged",
+  "toast.rewriteFailedBadResponseBody": "The polish service response is not OpenAI-compatible JSON — check that the Base URL points at a /v1 chat endpoint; the text was left unchanged",
   "toast.polishFallback": "Polish service unavailable",
   "toast.polishFallbackBody": "Inserted the raw transcript without AI polish",
   "toast.learned": "New word learned",
