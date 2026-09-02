@@ -512,3 +512,10 @@ This is separate from the Chrome extension skill (`testing-speaktype`). Do NOT t
 - NSIS over-install runs the *previously installed* uninstaller, so uninstaller.nsh fixes only take effect from the NEXT upgrade onward. To test such a fix: install the fixed build first, then silently over-install it again and assert on that second upgrade.
 - Silent uninstall must split args correctly: run `"Uninstall SpeakType.exe" /currentuser /S` (quoted exe + separate switches); passing the whole quoted uninstall string as one argument silently fails.
 - Uninstall semantics to assert: install dir + uninstall key + HKCU Run value removed; %APPDATA%\SpeakType (history.json, speaktype.json, models) retained.
+
+## Round 282 learnings (auto-learn / watchedit testing)
+
+- Auto-learn rounds settle after 1.5s of no change (SETTLE_MS): a delete + retype edit must complete within that window or the delete settles separately as a pure insertion (wrong="" -> correctly not learnable). Use per-key retype with <=400ms gaps; `C:\Users\Administrator\tts\fixword.ps1` (select word at offset + retype per key) is a reusable helper.
+- Helper .ps1 files containing Chinese text must be saved WITH a UTF-8 BOM or PowerShell 5.1 mangles the literals when typing them.
+- Since PR #372, a single poll step inserting >11 chars marks the round as bulk edit (paste/rewrite) and skips learning; short pastes (<=11 chars step insert, e.g. pasting a 2-char word over a selection) still learn.
+- Single-char CJK corrections flanked by CJK on both sides are deliberately not learned by the word-boundary guard - expected behavior, not a bug.
