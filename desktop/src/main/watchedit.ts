@@ -23,6 +23,8 @@ const SETTLE_MS = 1500;
 const MAX_SEGMENT = 20;
 /** 中段差异做 LCS 拆分的长度上限，再长视为无关的大改动 */
 const MAX_LCS = 160;
+/** 单次轮询间隔内新增字符超过这个数视为粘贴/大段改写而非逐键纠错，这一轮不学 */
+const MAX_STEP_INSERT = 11;
 
 const PS_SCRIPT = `
 Add-Type -AssemblyName UIAutomationClient
@@ -285,6 +287,17 @@ export function learnableWord(diff: Diff, inserted: string): string | null {
   return diff.right;
 }
 
+/** 一次采样步进里新增的字符数（去共同前后缀后新文本中段长度） */
+function stepInsertLength(prev: string, next: string): number {
+  const a = Array.from(prev);
+  const b = Array.from(next);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let end = 0;
+  while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  return b.length - start - end;
+}
+
 let current: ReturnType<typeof spawn> | null = null;
 
 /**
@@ -312,11 +325,19 @@ export function watchPastedText(
   let baselineId = "";
   let pending: string | null = null;
   let settleTimer: NodeJS.Timeout | null = null;
+  let bulkEdit = false;
   let buf = "";
 
   const settle = (): void => {
     settleTimer = null;
     if (baseline === null || pending === null || pending === baseline) return;
+    // 粘贴覆盖/大段改写不是逐键纠错：这一轮不学，基线照常滚动
+    if (bulkEdit) {
+      bulkEdit = false;
+      baseline = pending;
+      pending = null;
+      return;
+    }
     const learned: Diff[] = [];
     for (const diff of extractCorrections(baseline, pending)) {
       const right = learnableWord(diff, inserted);
@@ -361,6 +382,7 @@ export function watchPastedText(
         continue;
       }
       if (!id || id !== baselineId) continue;
+      if (stepInsertLength(pending ?? baseline, text) > MAX_STEP_INSERT) bulkEdit = true;
       pending = text;
       if (settleTimer) clearTimeout(settleTimer);
       settleTimer = setTimeout(settle, SETTLE_MS);
