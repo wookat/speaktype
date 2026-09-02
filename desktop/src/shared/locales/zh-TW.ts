@@ -198,6 +198,7 @@ export const zhTW: LocaleDict = {
   "settings.remoteMicHint": "電腦沒有麥克風時，用手機掃碼按住說話，文字落到電腦游標處（音訊僅經區域網路）。",
   "settings.remoteMicScan": "手機掃碼連接",
   "settings.remoteMicSteps": "手機與電腦需在同一 Wi-Fi。首次打開會提示憑證不受信任（區域網自簽憑證），選擇「繼續前往」即可；頁面中按住圓鈕說話、鬆手落字。",
+  "settings.remoteMicNoModel": "本地模型尚未下載，手機連上後說話也無法辨識，請先下載。",
   "settings.remoteMicWaiting": "等待手機連接…",
   "settings.remoteMicConnected": "已連接 {{n}} 台裝置",
   "settings.remoteMicMode": "連接方式",

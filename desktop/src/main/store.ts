@@ -76,7 +76,6 @@ interface Schema {
   /** 已迁到独立 history store；保留字段仅为旧版数据一次性迁移 */
   history: HistoryItem[];
   stats: Stats;
-  onboarded: boolean;
   doubaoAppKeyCache: string;
   mainWindowBounds: WindowBounds | null;
 }
@@ -96,7 +95,6 @@ const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
     personas: [],
     history: [],
     stats: { words: 0, durationMs: 0, sessions: 0 },
-    onboarded: false,
     doubaoAppKeyCache: "",
     mainWindowBounds: null,
   },
@@ -431,14 +429,6 @@ export function addStats(words: number, durationMs: number): void {
     durationMs: current.durationMs + durationMs,
     sessions: current.sessions + 1,
   });
-}
-
-export function isOnboarded(): boolean {
-  return store.get("onboarded");
-}
-
-export function setOnboarded(value: boolean): void {
-  store.set("onboarded", value);
 }
 
 export function getAppKeyCache(): string {

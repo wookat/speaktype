@@ -205,6 +205,7 @@ export const zhCN = {
   "settings.remoteMicHint": "电脑没有麦克风时，用手机扫码按住说话，文字落到电脑光标处（音频仅经局域网）。",
   "settings.remoteMicScan": "手机扫码连接",
   "settings.remoteMicSteps": "手机与电脑需在同一 Wi-Fi。首次打开会提示证书不受信任（局域网自签证书），选择“继续访问”即可；页面中按住圆钮说话、松手落字。",
+  "settings.remoteMicNoModel": "本地模型尚未下载，手机连上后说话也无法识别，请先下载。",
   "settings.remoteMicWaiting": "等待手机连接…",
   "settings.remoteMicConnected": "已连接 {{n}} 台设备",
   "settings.remoteMicMode": "连接方式",

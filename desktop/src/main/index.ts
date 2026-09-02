@@ -45,14 +45,12 @@ import {
   getPersonas,
   getSettings,
   getStats,
-  isOnboarded,
   onPersistError,
   parseConfigImport,
   pruneStalePersonaRefs,
   resetSettingsToDefaults,
   restoreHistory,
   setCustomPersonas,
-  setOnboarded,
   setSettings,
   updateHistoryItem,
   wasHistoryRecovered,
@@ -367,7 +365,6 @@ function registerIpc(): void {
     personas: getPersonas(),
     history: getHistory(),
     stats: getStats(),
-    onboarded: isOnboarded(),
     doubaoReady: hasAppKey(),
     holdKeyChoices: HOLD_KEY_CHOICES,
     rewriteKeyChoices: REWRITE_KEY_CHOICES,
@@ -514,7 +511,6 @@ function registerIpc(): void {
   ipcMain.handle("chatgpt:login", () => showChatgptLogin());
   ipcMain.handle("chatgpt:test", () => testChatgpt());
   ipcMain.handle("doubao:test", () => testDoubao());
-  ipcMain.handle("onboarding:done", () => setOnboarded(true));
   ipcMain.handle("record:toggle", () => dictation.toggleHandsFree());
   ipcMain.handle("record:cancel", () => dictation.cancel());
   ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
