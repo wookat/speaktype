@@ -387,6 +387,8 @@ export const ko: LocaleDict = {
   "toast.rewriteFailedTimeoutBody": "다듬기 서비스가 시간 초과되었습니다(30초). 모델이 과부하일 수 있으니 다시 시도하거나 모델을 변경하세요. 원문은 그대로 유지되었습니다",
   "toast.rewriteFailedHttpBody": "다듬기 서비스가 HTTP {{status}}을(를) 반환했습니다. 모델 이름과 API 키를 확인하세요. 원문은 그대로 유지되었습니다",
   "toast.rewriteFailedBadResponseBody": "다듬기 서비스 응답이 OpenAI 호환 JSON이 아닙니다. Base URL이 /v1 채팅 엔드포인트를 가리키는지 확인하세요. 원문은 그대로 유지되었습니다",
+  "toast.rewriteFocusLost": "포커스가 바뀌어 적용 안 함",
+  "toast.rewriteFocusLostBody": "다듬는 동안 창이 바뀌었습니다. 결과는 클립보드에 있습니다",
   "toast.polishFallback": "다듬기 서비스를 사용할 수 없습니다",
   "toast.polishFallbackBody": "다듬지 않은 원문을 입력했습니다",
   "toast.learned": "새 단어를 학습했습니다",

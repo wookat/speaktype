@@ -387,6 +387,8 @@ export const ja: LocaleDict = {
   "toast.rewriteFailedTimeoutBody": "推敲サービスがタイムアウトしました（30 秒）。モデルが過負荷の可能性があります。再試行するかモデルを変更してください。原文は変更されていません",
   "toast.rewriteFailedHttpBody": "推敲サービスが HTTP {{status}} を返しました。モデル名と API キーを確認してください。原文は変更されていません",
   "toast.rewriteFailedBadResponseBody": "推敲サービスの応答が OpenAI 互換 JSON ではありません。Base URL が /v1 チャットエンドポイントを指しているか確認してください。原文は変更されていません",
+  "toast.rewriteFocusLost": "フォーカスが移動したため未適用",
+  "toast.rewriteFocusLostBody": "書き換え中にウィンドウが変わりました。結果はクリップボードにあります",
   "toast.polishFallback": "推敲サービスを利用できません",
   "toast.polishFallbackBody": "推敲なしの原文を入力しました",
   "toast.learned": "新しい語を学習しました",
