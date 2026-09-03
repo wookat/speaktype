@@ -1,0 +1,11 @@
+﻿Korean spacing table (language=ko, sensevoice-small, RightCtrl 7s, history.json raw == text in all 7; Notepad text identical to history)
+| fixture | expected | raw / final | (a) spurious intra-word spaces | (b) missing inter-word spaces | (c) wrong syllables | valid? |
+| ko1 | 내일 오전에 회의가 있으니까 자료를 미리 준비해 주세요 | 내일 오전에 회의가 있으니까 자료를 미리 준비해주세요. | 0 | 1 (준비해주세요, acceptable compound spacing) | 0 | yes |
+| ko2 | 오늘 날씨가 정말 좋아서 공원에서 산책을 했습니다 | 오늘 날씨가 정말 좋아서 공원에서 산책을 했습니다. | 0 | 0 | 0 | yes (exact) |
+| ko3 | 이 프로젝트의 마감일은 다음 주 금요일입니다 | 이 프로젝트의 마감일은 다음 주 금요일입니다. | 0 | 0 | 0 | yes (exact) |
+| ko4 | 저는 한국 음식 중에서 김치찌개를 가장 좋아합니다 | 저는 한국 음식 중에서 김치찌개를 가장 좋아합니다. | 0 | 0 | 0 | yes (exact) |
+| ko5 | 회의록을 정리해서 오늘 저녁까지 이메일로 보내 주세요 | 페이록을 정리해서 오늘 저녁까지 이메일로 보내주세요. | 0 | 1 (보내주세요) | 2 (회의록→페이록) | yes (mostly correct) |
+| ko6 | 새로운 기능을 추가하기 전에 사용자 피드백을 먼저 확인해야 합니다 | 새로운 기능을 추가하기 전에 사용자 피드백을 먼저 확인해야 합니다. | 0 | 0 | 0 | yes (exact) |
+| ko7 | 지하철역에서 만나서 함께 점심을 먹으러 갑시다 | 지하철역에서 만나서 함께 점심을 먹으러 갑시라라. | 0 | 0 | 2 (갑시다→갑시라라) | yes (mostly correct) |
+| ko1 (language=auto) | same | 내일 오전에 회의가 있으니까 자료를 미리 준비해주세요. | 0 | 1 | 0 | identical to language=ko |
+Observation: LIVE CAPTION (partial results during hold) DID show intra-word splits, e.g. ko1 「내일 오전 에 회의가.」, ko3 「프로젠트 의 마감 일은은 다음 음 주 금요일」, ko6 「기능 을 … 전 에 … 피드백 을」, ko7 「지하철역 에서 만 나서」. Final/raw text had none. Under language=auto the ko1 live caption showed 「내일 오전에 회의가.」 (no split) — single sample, may be nondeterministic partial decoding.

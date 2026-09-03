@@ -1,0 +1,9 @@
+﻿2026-09-03T17:59:54.028Z GET /v1/models
+
+---
+2026-09-03T18:00:26.170Z POST /v1/chat/completions
+{"model":"mock-model","max_tokens":4,"messages":[{"role":"user","content":"ping"}]}
+---
+2026-09-03T18:01:13.090Z POST /v1/chat/completions
+{"model":"mock-model","temperature":0.3,"messages":[{"role":"user","content":"你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。\n要求：\n1. 只输出改写后的正文，不要解释、不要引号、不要 Markdown 代码块。\n2. 严格遵守指令；指令没要求的部分不要擅自改动。\n3. 保持原文的换行与列表结构。\n\n口述指令：\n\"\"\"帮我跟老板说，那个方案需要再改一下，明天上午之前。\"\"\"\n\n原文：\n\"\"\"hello this is the original line to be rewritten\"\"\""}]}
+---
