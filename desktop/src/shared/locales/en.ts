@@ -398,6 +398,7 @@ export const en: LocaleDict = {
   "toast.learned": "New word learned",
   "toast.learnedBody": "\"{{word}}\" added to dictionary; future misrecognitions auto-corrected",
   "toast.learnedManyBody": "\"{{words}}\" added to dictionary",
+  "toast.learnedNoFixBody": "\"{{word}}\" added to dictionary (not a homophone of \"{{wrong}}\", so it will not be auto-replaced)",
   "toast.undo": "Undo",
   "toast.undone": "Undone",
   "toast.undoneBody": "\"{{word}}\" removed from dictionary",

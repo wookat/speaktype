@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type MicDevice } from "../../api";
 import type { Translator } from "../../i18n";
-import type { LocalModelStatus, RemoteMicInfo, Settings } from "../../../../shared/types";
+import type { RemoteMicInfo, Settings } from "../../../../shared/types";
 import { humanDownloadError } from "../../lib/downloadError";
+import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 
@@ -111,15 +112,8 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
   }, []);
 
   // 离线通道没模型时手机连上说话也无法识别，扫码前就地提示并给下载入口
-  const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const localModel = s.localModel || "sensevoice-small";
-  useEffect(() => {
-    if (!s.remoteMicEnabled || s.asrProvider !== "local") return;
-    void api.localModelStatus(localModel).then(setLocal);
-    return api.onLocalModel((st) => {
-      if (st.model === localModel) setLocal(st);
-    });
-  }, [s.remoteMicEnabled, s.asrProvider, localModel]);
+  const [local, setLocal] = useLocalModelStatus(localModel, s.remoteMicEnabled && s.asrProvider === "local");
   const needsModel =
     s.remoteMicEnabled && s.asrProvider === "local" && local !== null && !local.downloaded;
 

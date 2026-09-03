@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
-import type { LocalModelStatus, Persona, Settings } from "../../../shared/types";
+import type { Persona, Settings } from "../../../shared/types";
 import { PARAKEET, SENSEVOICE } from "../../../shared/localModels";
 import { PersonaIcon } from "../components/PersonaIcon";
 import { StatCard } from "../components/StatCard";
 import { humanDownloadError } from "../lib/downloadError";
 import { fmtDuration } from "../lib/format";
+import { useLocalModelStatus } from "../lib/useLocalModelStatus";
 
 function Home(props: {
   t: Translator;
@@ -29,15 +30,14 @@ function Home(props: {
   // 熟手默认收起引导卡，新用户默认展开
   const [stepsOpen, setStepsOpen] = useState(props.statsSessions < 10);
   // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
-  const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [modelSize, setModelSize] = useState("");
   const localModel = props.settings.localModel || "sensevoice-small";
+  const isLocal = props.settings.asrProvider === "local";
+  const [local] = useLocalModelStatus(localModel, isLocal);
   useEffect(() => {
-    if (props.settings.asrProvider !== "local") return;
-    void api.localModelStatus(localModel).then(setLocal);
+    if (!isLocal) return;
     void api.localModels().then((models) => setModelSize(models.find((m) => m.id === localModel)?.size ?? ""));
-    return api.onLocalModel(setLocal);
-  }, [props.settings.asrProvider, localModel]);
+  }, [isLocal, localModel]);
   const needsModel = props.settings.asrProvider === "local" && local !== null && !local.downloaded;
   // 标题里的热键要渲染成键帽样式，按占位符拆开
   const [titleBefore, titleAfter = ""] = t("home.title").split("{{key}}");
