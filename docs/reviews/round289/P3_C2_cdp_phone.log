@@ -1,0 +1,12 @@
+2026-09-03T11:51:10.338Z talk box {"x":250,"y":237.625,"w":132,"h":132}
+2026-09-03T11:51:10.344Z STATE {"state":"已连接电脑","partial":"","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:10.350Z mousedown (hold 7000ms)
+2026-09-03T11:51:10.496Z STATE {"state":"录音中…","partial":"","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:11.882Z STATE {"state":"录音中…","partial":"我。","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:13.115Z STATE {"state":"录音中…","partial":"帮我跟老板说。","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:14.348Z STATE {"state":"录音中…","partial":"帮我跟老板说，那个方案需要再改。","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:15.734Z STATE {"state":"录音中…","partial":"帮我跟老板说，那个方案需要再改一下，明天上午。","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:16.966Z STATE {"state":"录音中…","partial":"帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复。","talk":"松手结束","talkDisabled":false,"rec":true,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:17.354Z mouseup
+2026-09-03T11:51:17.425Z STATE {"state":"转写中…","partial":"帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复。","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:51:17.733Z STATE {"state":"已连接电脑","partial":"帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}

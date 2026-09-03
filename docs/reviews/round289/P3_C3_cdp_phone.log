@@ -1,0 +1,6 @@
+2026-09-03T11:52:53.325Z talk box {"x":242.5,"y":242,"w":132,"h":132}
+2026-09-03T11:52:53.329Z STATE {"state":"已连接电脑","partial":"帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:52:53.340Z mousedown (hold 3000ms)
+2026-09-03T11:52:53.483Z STATE {"state":"本地模型还没下载：请在设置 → 语音识别中点“下载模型”","partial":"","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}
+2026-09-03T11:52:56.346Z mouseup
+2026-09-03T11:52:58.433Z STATE {"state":"已连接电脑","partial":"","talk":"按住说话","talkDisabled":false,"rec":false,"pairVisible":"none","room":"4ae9b10c9f08"}
