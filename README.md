@@ -74,7 +74,8 @@ AI polishing likewise accepts any OpenAI-compatible chat endpoint (OpenAI, Googl
 | Windows 10/11 x64 | [SpeakType-Setup-0.17.0.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-Setup-0.17.0.exe) (~98MB) | ✅ Stable |
 | Windows portable | [SpeakType-0.17.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe) (~87MB) | ✅ Stable |
 | Android (phone as microphone) | [SpeakType-0.17.0.apk](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk) | ✅ Available |
-| macOS (Apple Silicon / Intel) | Platform layer merged; installer pending a macOS build environment | 🚧 In progress |
+| macOS Apple Silicon (macOS 15.5+) | [SpeakType-0.17.0-mac-arm64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.dmg) (~113MB) · [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.zip) | 🧪 Preview — unsigned, see [docs/macos.md](docs/macos.md) |
+| macOS Intel (macOS 15.5+) | [SpeakType-0.17.0-mac-x64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.dmg) (~119MB) · [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.zip) | 🧪 Preview — cross-built, not run on Intel hardware |
 
 Latest release: https://github.com/wookat/speaktype/releases/latest · Website: https://speaktype.zalize.com
 

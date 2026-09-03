@@ -45,7 +45,7 @@
       <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe">Portable build</a>
       <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">★ Star on GitHub</a>
     </div>
-    <p class="note">Windows 10/11 x64 · MIT licensed · macOS in progress · <a href="https://github.com/wookat/speaktype/releases/latest">release notes &amp; older builds</a></p>
+    <p class="note">Windows 10/11 x64 · MIT licensed · <a href="#download">macOS preview (Apple Silicon)</a> · <a href="https://github.com/wookat/speaktype/releases/latest">release notes &amp; older builds</a></p>
 
     <div class="wave" aria-hidden="true">
       <i style="animation-delay:0s"></i><i style="animation-delay:.08s"></i><i style="animation-delay:.16s"></i>
@@ -195,7 +195,7 @@
           <tr><td>Phone as microphone</td><td class="yes">Yes, QR-code pairing</td><td class="no">No</td><td class="no">No</td></tr>
           <tr><td>Learns from the words you fix</td><td class="yes">Automatic</td><td class="no">Rarely</td><td class="no">No</td></tr>
           <tr><td>Chinese homophone repair</td><td class="yes">Built in</td><td class="no">Varies</td><td class="no">Varies</td></tr>
-          <tr><td>macOS / Linux</td><td class="no">In progress</td><td class="yes">Usually yes</td><td class="yes">Often yes</td></tr>
+          <tr><td>macOS / Linux</td><td class="yes">macOS preview (unsigned) · Linux no</td><td class="yes">Usually yes</td><td class="yes">Often yes</td></tr>
         </tbody>
       </table>
     </div>
@@ -226,9 +226,10 @@
         <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk">⬇ SpeakType-0.17.0.apk</a>
       </div>
       <div class="dl-card reveal">
-        <h3>macOS</h3>
-        <p>The platform layer is merged; the DMG is waiting on a macOS build machine. Watch the repo for it.</p>
-        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">Follow on GitHub</a>
+        <h3>macOS preview</h3>
+        <p>Apple Silicon, macOS 15.5+ · ~113MB · unsigned: right-click → Open, or <code>xattr -d com.apple.quarantine</code>. Intel build is cross-compiled and untested. <a href="https://github.com/wookat/speaktype/blob/main/docs/macos.md">Setup &amp; permissions guide</a>.</p>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.dmg">⬇ Apple Silicon .dmg</a>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.dmg">Intel .dmg</a>
       </div>
     </div>
     <p class="center reveal" style="margin-top:24px;color:var(--muted,#94a3b8)">Or via <a href="https://scoop.sh" style="color:inherit;text-decoration:underline">Scoop</a>: <code>scoop bucket add speaktype https://github.com/wookat/scoop-speaktype &amp;&amp; scoop install speaktype</code></p>
@@ -248,7 +249,7 @@
     <details class="reveal"><summary>How does “learning from my edits” work?</summary><p>After the text lands, SpeakType watches that one input field via Windows UI Automation. If you fix a word, it diffs the change locally, learns the corrected word into your dictionary and updates the history entry. Switch windows and it stops watching. The comparison never leaves your machine, and you can turn the whole thing off.</p></details>
     <details class="reveal"><summary>Is the ChatGPT / Doubao path allowed?</summary><p>It reuses a session you sign into yourself and calls endpoints those vendors do not document, so it may break or conflict with their terms — the account risk is yours. It ships off by default. Prefer the offline engine or your own API key if you'd rather not take it. <a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">Full disclaimer</a>.</p></details>
     <details class="reveal"><summary>How do I uninstall completely?</summary><p>Run the uninstaller from Start menu or Settings → Apps. It removes the program but keeps your settings, dictionary, history, login cache and downloaded models (including the ~660MB offline model) in <code>%APPDATA%\SpeakType</code> so a reinstall picks up where you left off. To wipe everything, delete that folder after uninstalling.</p></details>
-    <details class="reveal"><summary>macOS or Linux?</summary><p>The platform abstraction is merged and a DMG target is configured; the build needs a macOS machine. Contributions welcome.</p></details>
+    <details class="reveal"><summary>macOS or Linux?</summary><p>macOS has an unsigned preview build (Apple Silicon verified, Intel cross-built). It needs macOS 15.5+ and the Accessibility + Microphone permissions; the offline engines are SenseVoice and Parakeet (whisper.cpp is Windows-only for now). Hold <kbd>Right Option</kbd> to talk. Details in <a href="https://github.com/wookat/speaktype/blob/main/docs/macos.md">docs/macos.md</a>. No Linux build yet — contributions welcome.</p></details>
   </div>
 </section>
 

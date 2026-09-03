@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
-import { LOCAL_MODELS, PARAKEET, SENSEVOICE } from "../shared/localModels";
+import { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
 import { downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
@@ -19,18 +19,13 @@ import { t } from "./i18n";
 
 const PORT = 18717;
 
-export { LOCAL_MODELS, PARAKEET, SENSEVOICE } from "../shared/localModels";
+export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
 
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
 
 const PARAKEET_BASE =
   "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main";
-
-/** 走 sherpa-onnx 进程内推理的模型（否则走 whisper-server 子进程） */
-export function isSherpaModel(model: string): boolean {
-  return model === SENSEVOICE || model === PARAKEET;
-}
 
 /**
  * 本平台可用的本地模型：whisper-server 只随包带了 Windows 二进制（whisper.cpp 上游不发 macOS

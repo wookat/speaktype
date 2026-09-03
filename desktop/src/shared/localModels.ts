@@ -14,4 +14,9 @@ export const LOCAL_MODELS = [
   { id: "small-q5_1", size: "190MB" },
 ] as const;
 
+/** 走 sherpa-onnx 进程内推理的模型（否则走 whisper-server 子进程） */
+export function isSherpaModel(model: string): boolean {
+  return model === SENSEVOICE || model === PARAKEET;
+}
+
 export const LOCAL_MODEL_IDS: ReadonlyArray<string> = LOCAL_MODELS.map((m) => m.id);

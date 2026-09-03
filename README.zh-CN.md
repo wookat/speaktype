@@ -74,7 +74,8 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 
 | Windows 10/11 x64 | [SpeakType-Setup-0.17.0.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-Setup-0.17.0.exe)（~98MB） | ✅ 稳定 |
 | Windows 绿色免安装 | [SpeakType-0.17.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe)（~87MB） | ✅ 稳定 |
 | Android（手机当麦克风） | [SpeakType-0.17.0.apk](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk) | ✅ 可用 |
-| macOS（Apple Silicon / Intel） | 适配层已合并，安装包待 macOS 环境构建 | 🚧 开发中 |
+| macOS Apple Silicon（macOS 15.5+） | [SpeakType-0.17.0-mac-arm64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.dmg)（~113MB）· [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.zip) | 🧪 预览版 — 未签名，见 [docs/macos.md](docs/macos.md) |
+| macOS Intel（macOS 15.5+） | [SpeakType-0.17.0-mac-x64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.dmg)（~119MB）· [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.zip) | 🧪 预览版 — 交叉打包，未在 Intel 机器上实测 |
 
 最新发布：https://github.com/wookat/speaktype/releases/latest · 官网：https://speaktype.zalize.com
 

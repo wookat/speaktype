@@ -5,6 +5,7 @@ import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { Settings } from "../../../../shared/types";
+import { isSherpaModel } from "../../../../shared/localModels";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
@@ -113,7 +114,14 @@ function VoiceTab(props: {
       </Row>
       {s.asrProvider === "local" ? (
         <div className="mt-4 space-y-3">
-          <Row label={t("settings.localModel")} hint={t("settings.localModelHint")}>
+          <Row
+            label={t("settings.localModel")}
+            hint={
+              localModels.some((m) => !isSherpaModel(m.id))
+                ? `${t("settings.localModelHint")}${t("settings.localModelHintWhisper")}`
+                : t("settings.localModelHint")
+            }
+          >
             <select
               className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
               value={localModel}
