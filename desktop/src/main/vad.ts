@@ -27,8 +27,10 @@ const SPEECH_PROB = 0.5;
  * 否则紧贴阈值的自然句间停顿（如 2.2s vs 2.0s）会漏切，下一句句头并入上一段。
  */
 export const SILERO_HANGOVER_MS = 250;
-// sherpa-onnx 预编译产物目前只随包带了 win-x64；其他平台回退峰值门槛
-const SUPPORTED = process.platform === "win32" && process.arch === "x64";
+// sherpa-onnx 预编译产物随包带了 win-x64 与 darwin arm64/x64；其他平台回退峰值门槛
+const SUPPORTED =
+  (process.platform === "win32" && process.arch === "x64") ||
+  (process.platform === "darwin" && (process.arch === "arm64" || process.arch === "x64"));
 
 function vadDir(): string {
   return join(app.getPath("userData"), "vad");

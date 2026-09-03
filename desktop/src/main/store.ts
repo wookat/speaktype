@@ -14,7 +14,8 @@ const CJK_LOCALE = /^(zh|ja|ko|yue)/.test(SYS_LOCALE);
 export const DEFAULT_SETTINGS: Settings = {
   // Alt+Space 是 Windows 系统菜单键，会让目标窗口进入菜单模态吃掉 Ctrl+V，默认避开
   hotkeyToggle: "Alt+Q",
-  hotkeyHold: "RightCtrl",
+  // MacBook 内置键盘与 Magic Keyboard 没有右 Ctrl，mac 默认用右 Option（左右 Option 所有 Mac 键盘都有）
+  hotkeyHold: process.platform === "darwin" ? "RightAlt" : "RightCtrl",
   hotkeyRewrite: "F8",
   holdDelayMs: 120,
   minRecordMs: 300,

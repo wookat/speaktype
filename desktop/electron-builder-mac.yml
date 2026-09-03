@@ -1,5 +1,7 @@
-# mac 打包配置：在主配置基础上回加 koffi darwin 预编译产物（见 electron-builder.yml 注释）
+# mac 打包配置：在主配置基础上按 ${arch} 回加 koffi / sherpa-onnx 的 darwin 预编译产物（见 electron-builder.yml 注释）。
+# npm 只装当前 CPU 的可选依赖，交叉打包 x64 前需先把 sherpa-onnx-darwin-x64 放进 node_modules：见 docs/macos.md
 extends: ./electron-builder.yml
 files:
-  - node_modules/koffi/build/koffi/darwin_arm64/**
-  - node_modules/koffi/build/koffi/darwin_x64/**
+  - "!node_modules/koffi/build/koffi/win32_x64/**"
+  - node_modules/koffi/build/koffi/darwin_${arch}/**
+  - node_modules/sherpa-onnx-darwin-${arch}/**

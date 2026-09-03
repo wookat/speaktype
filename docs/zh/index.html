@@ -45,7 +45,7 @@
       <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe">绿色免安装版</a>
       <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">★ 去 GitHub 点个 Star</a>
     </div>
-    <p class="note">Windows 10/11 x64 · MIT 开源 · macOS 版开发中 · <a href="https://github.com/wookat/speaktype/releases/latest">更新说明与历史版本</a></p>
+    <p class="note">Windows 10/11 x64 · MIT 开源 · <a href="#download">macOS 预览版（Apple Silicon）</a> · <a href="https://github.com/wookat/speaktype/releases/latest">更新说明与历史版本</a></p>
 
     <div class="wave" aria-hidden="true">
       <i style="animation-delay:0s"></i><i style="animation-delay:.08s"></i><i style="animation-delay:.16s"></i>
@@ -195,7 +195,7 @@
           <tr><td>手机当麦克风</td><td class="yes">扫码即用</td><td class="no">没有</td><td class="no">没有</td></tr>
           <tr><td>学你手改的词</td><td class="yes">自动</td><td class="no">少见</td><td class="no">没有</td></tr>
           <tr><td>中文同音纠错</td><td class="yes">内置</td><td class="no">看情况</td><td class="no">看情况</td></tr>
-          <tr><td>macOS / Linux</td><td class="no">开发中</td><td class="yes">一般都有</td><td class="yes">大多有</td></tr>
+          <tr><td>macOS / Linux</td><td class="yes">macOS 预览版（未签名）· Linux 暂无</td><td class="yes">一般都有</td><td class="yes">大多有</td></tr>
         </tbody>
       </table>
     </div>
@@ -226,9 +226,10 @@
         <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk">⬇ SpeakType-0.17.0.apk</a>
       </div>
       <div class="dl-card reveal">
-        <h3>macOS</h3>
-        <p>平台适配层已合并，DMG 还缺一台 macOS 构建机。关注仓库获取进展。</p>
-        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype">在 GitHub 关注</a>
+        <h3>macOS 预览版</h3>
+        <p>Apple Silicon，macOS 15.5+ · ~113MB · 未签名：右键→打开，或 <code>xattr -d com.apple.quarantine</code>。Intel 版为交叉打包、未实测。<a href="https://github.com/wookat/speaktype/blob/main/docs/macos.md">安装与权限说明</a>。</p>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.dmg">⬇ Apple Silicon .dmg</a>
+        <a class="btn btn-ghost" href="https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.dmg">Intel .dmg</a>
       </div>
     </div>
     <p class="center reveal" style="margin-top:24px;color:var(--muted,#94a3b8)">也可以用 <a href="https://scoop.sh" style="color:inherit;text-decoration:underline">Scoop</a> 安装：<code>scoop bucket add speaktype https://github.com/wookat/scoop-speaktype &amp;&amp; scoop install speaktype</code></p>
@@ -248,7 +249,7 @@
     <details class="reveal"><summary>「学你手改的词」是怎么做的？</summary><p>落字后它只盯着那一个输入框（Windows UI Automation）。你改了字，它在本机比对差异，把改对的词学进词典并同步修正历史记录；你切到别的窗口就停止观察。比对全程不出本机，也可以在设置里整块关掉。</p></details>
     <details class="reveal"><summary>ChatGPT / 豆包 那条通道有风险吗？</summary><p>它复用你自己登录的会话，调用的是对方没有公开的接口，可能失效，也可能与对方服务条款冲突，账号风险由你自行判断，默认是关闭的。介意的话请用离线模型或自带 API Key。<a href="https://github.com/wookat/speaktype/blob/main/DISCLAIMER.md">完整免责说明</a>。</p></details>
     <details class="reveal"><summary>怎么彻底卸载？</summary><p>从开始菜单或「设置 → 应用」运行卸载程序即可移除本体；你的设置、词典、历史记录、登录缓存和已下载模型（含约 660MB 离线模型）会保留在 <code>%APPDATA%\SpeakType</code>，重装时无需重新下载。想彻底清理，卸载后手动删除该文件夹即可。</p></details>
-    <details class="reveal"><summary>macOS / Linux 呢？</summary><p>平台抽象层已合并、DMG 打包配置也在了，只差一台 macOS 构建机。欢迎贡献。</p></details>
+    <details class="reveal"><summary>macOS / Linux 呢？</summary><p>macOS 已有未签名的预览版（Apple Silicon 实测通过，Intel 为交叉打包）。需要 macOS 15.5+，还要授予辅助功能和麦克风权限；离线引擎为 SenseVoice / Parakeet（whisper.cpp 暂时仅 Windows）。长按 <kbd>右 Option</kbd> 说话。详见 <a href="https://github.com/wookat/speaktype/blob/main/docs/macos.md">docs/macos.md</a>。Linux 暂无安装包，欢迎贡献。</p></details>
   </div>
 </section>
 

@@ -1,3 +1,4 @@
+import { globalShortcut } from "electron";
 import { UiohookKey, uIOhook, type UiohookKeyboardEvent, type UiohookMouseEvent } from "uiohook-napi";
 
 /**
@@ -7,7 +8,13 @@ import { UiohookKey, uIOhook, type UiohookKeyboardEvent, type UiohookMouseEvent 
  * - 点按组合键：按一下开始、再按一下结束（免按模式）。
  * - 改写键：按住对着选中的文字说指令（改写/翻译），松手替换选区。
  * - Alt+1..9：切换人设。
+ *
+ * macOS 上 uiohook 只能旁听不能吃掉按键，Option+字母/数字会同时在前台输入框打出 œ/¡ 等符号，
+ * 所以点按类组合键（免按切换、人设）改走 Electron globalShortcut（RegisterEventHotKey，会吃掉按键）；
+ * 长按位是单个修饰键，需要按下/松开事件，仍走 uiohook。
  */
+
+const USE_GLOBAL_SHORTCUT = process.platform === "darwin";
 
 export interface HotkeyHandlers {
   onHoldStart(rewrite: boolean): void;
@@ -109,6 +116,9 @@ export class HotkeyManager {
   /** 自追 Alt 按下状态：uiohook 进程首个 Alt 组合事件的 ev.altKey 可能未同步，首次 Alt+Q 会被吞 */
   private altDown = false;
   private started = false;
+  /** macOS：交给 globalShortcut 的免按切换键（Electron accelerator 写法，如 "Alt+Q"）与人设键开关 */
+  private toggleAccelerator: string | null = null;
+  private personaShortcuts = true;
   private capture: ((name: string | null) => void) | null = null;
   /** 刚被录制的键：松开前吃掉系统 key repeat 的 keydown，避免误触发录音 */
   private captureSwallowKeycode = -1;
@@ -138,6 +148,13 @@ export class HotkeyManager {
     this.toggleKeycode = toggleConflict
       ? -1
       : (KEY_NAMES[parts[parts.length - 1] ?? "Space"] ?? UiohookKey.Space);
+    if (USE_GLOBAL_SHORTCUT) {
+      this.toggleAccelerator = toggleConflict ? null : hotkeyToggle;
+      this.personaShortcuts = personaHotkeys;
+      this.toggleKeycode = -1;
+      this.personaHotkeys = false;
+      if (this.started) this.syncGlobalShortcuts();
+    }
   }
 
   start(): void {
@@ -148,12 +165,29 @@ export class HotkeyManager {
     uIOhook.on("mousedown", (ev) => this.onMouseDown(ev));
     uIOhook.on("mouseup", (ev) => this.onMouseUp(ev));
     uIOhook.start();
+    if (USE_GLOBAL_SHORTCUT) this.syncGlobalShortcuts();
   }
 
   stop(): void {
     if (!this.started) return;
     this.started = false;
     uIOhook.stop();
+    if (USE_GLOBAL_SHORTCUT) globalShortcut.unregisterAll();
+  }
+
+  private syncGlobalShortcuts(): void {
+    globalShortcut.unregisterAll();
+    if (this.toggleAccelerator) {
+      try {
+        globalShortcut.register(this.toggleAccelerator, () => this.handlers.onToggle());
+      } catch {
+        // 非法 accelerator（导入的老配置）：不让一个热键拖死其余
+      }
+    }
+    if (!this.personaShortcuts) return;
+    for (let i = 1; i <= 9; i++) {
+      globalShortcut.register(`Alt+${i}`, () => this.handlers.onPersona(i - 1));
+    }
   }
 
   /**
