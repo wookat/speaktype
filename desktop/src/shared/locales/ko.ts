@@ -398,6 +398,7 @@ export const ko: LocaleDict = {
   "toast.learned": "새 단어를 학습했습니다",
   "toast.learnedBody": "‘{{word}}’을(를) 사전에 추가했습니다. 다음부터 자동 교정됩니다",
   "toast.learnedManyBody": "‘{{words}}’을(를) 사전에 추가했습니다",
+  "toast.learnedNoFixBody": "‘{{word}}’을(를) 사전에 추가했습니다 (‘{{wrong}}’과 동음이 아니라 자동 치환되지 않음)",
   "toast.undo": "실행 취소",
   "toast.undone": "취소했습니다",
   "toast.undoneBody": "‘{{word}}’을(를) 사전에서 제거했습니다",

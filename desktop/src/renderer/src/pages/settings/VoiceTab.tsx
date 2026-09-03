@@ -4,7 +4,8 @@ import { humanDownloadError } from "../../lib/downloadError";
 import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
-import type { LocalModelStatus, Settings } from "../../../../shared/types";
+import type { Settings } from "../../../../shared/types";
+import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
@@ -21,18 +22,14 @@ function VoiceTab(props: {
 }) {
   const { t, s, update } = props;
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
-  const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
   const localModel = s.localModel || "base-q5_1";
   const parakeetActive = s.asrProvider === "local" && localModel === "parakeet-tdt-0.6b-v3";
+  const [local, setLocal] = useLocalModelStatus(localModel);
 
   useEffect(() => {
     void api.localModels().then(setLocalModels);
-    return api.onLocalModel(setLocal);
   }, []);
-  useEffect(() => {
-    void api.localModelStatus(localModel).then(setLocal);
-  }, [localModel]);
 
   // 删除模型是百 MB 级不可逆操作：两步确认，几秒不点自动复位
   const [confirmDelete, setConfirmDelete] = useState(false);

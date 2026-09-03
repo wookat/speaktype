@@ -344,6 +344,9 @@ let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 
 // busy 提示短暂锁定：避免随后的 status 广播（idle/transcribing）马上冲掉提示，用户根本来不及看清；
 // 锁定期内被丢弃的最后一条文案存入 heldText，到期后补放，避免会话末尾的 idle 被吞后 busy 文案永久残留
 let busyHold = 0, busyTimer = null, heldText = null;
+// 电脑端确认过本次按住（connecting/recording）后再收到别的状态 = 电脑端自己结束/取消了会话（Alt+Q、RightCtrl、Esc），
+// 手机端立即复位按钮且不再补发 stop/cancel；未确认前的状态可能是上一会话的尾巴，不能据此松手
+let acked = false;
 
 function holdText(text) {
   heldText = text;
@@ -394,6 +397,10 @@ function connect() {
     const m = JSON.parse(ev.data);
     if (m.type === "pong") { pongSeen = true; pongMissed = 0; return; }
     if (m.type === "status") {
+      if (holding) {
+        if (m.state === "connecting" || m.state === "recording") acked = true;
+        else if (acked) endHold(null);
+      }
       partialEl.textContent = m.partial || partialEl.textContent;
       if (m.state === "error") stateEl.textContent = m.message || L.error;
       else {
@@ -497,18 +504,20 @@ async function startHold(ev) {
   if (!(await openMic())) return;
   if (ctx.state === "suspended") await ctx.resume();
   holding = true;
+  acked = false;
   talk.classList.add("rec");
   talk.textContent = L.release;
   stateEl.textContent = L.recording;
   partialEl.textContent = "";
   ws.send(JSON.stringify({ type: "start" }));
 }
+/** cancel: true 取消 / false 结束 / null 仅复位（电脑端已自行结束会话，无需再发） */
 function endHold(cancel) {
   if (!holding) return;
   holding = false;
   talk.classList.remove("rec");
   talk.textContent = L.hold;
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: cancel ? "cancel" : "stop" }));
+  if (cancel !== null && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: cancel ? "cancel" : "stop" }));
 }
 talk.addEventListener("touchstart", startHold, { passive: false });
 talk.addEventListener("touchend", (e) => { e.preventDefault(); endHold(false); }, { passive: false });

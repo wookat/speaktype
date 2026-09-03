@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { FileAudio, Loader2 } from "lucide-react";
 import { api } from "../api";
 import { humanDownloadError } from "../lib/downloadError";
+import { useLocalModelStatus } from "../lib/useLocalModelStatus";
 import type { Translator } from "../i18n";
-import type { LocalModelStatus, Settings, TranscribeState } from "../../../shared/types";
+import type { Settings, TranscribeState } from "../../../shared/types";
 
 const SR = 16000;
 /** 上限 3 小时：16k 浮点采样约 660MB，超过容易把主进程拖爆 */
@@ -72,7 +73,6 @@ function Transcribe(props: {
   const [decoding, setDecoding] = useState(false);
   const [fileName, setFileName] = useState("");
   const [localError, setLocalError] = useState("");
-  const [local, setLocal] = useState<LocalModelStatus | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   // 完成后短暂保留进度行占位，避免下方导出按钮瞬间上移到 Cancel 原位被误点
@@ -98,12 +98,7 @@ function Transcribe(props: {
   }, []);
 
   const model = props.settings.localModel || "base-q5_1";
-  useEffect(() => {
-    void api.localModelStatus(model).then(setLocal);
-    return api.onLocalModel((s) => {
-      if (s.model === model) setLocal(s);
-    });
-  }, [model]);
+  const [local, setLocal] = useLocalModelStatus(model);
   const modelReady = Boolean(local?.downloaded);
 
   const busy = decoding || state.running;

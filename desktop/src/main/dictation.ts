@@ -16,6 +16,7 @@ import {
 } from "./asr";
 import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
+import { correctHotwords } from "./hotwords";
 import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { muteForRecording, unmuteAfterRecording } from "./mute";
@@ -787,10 +788,15 @@ export class Dictation {
     }
     this.deps.pushSettings();
     const words = learned.map((l) => l.right);
+    // 词典只按同音/近音纠错：改成不同音的词（答复→回执）照样收作常用词，但不能许诺“下次自动纠正”
+    const first = learned[0]!;
+    const autoFix = correctHotwords(first.wrong, [first.right]) === first.right;
     const body =
-      learned.length === 1
-        ? t("toast.learnedBody", { word: words[0]! })
-        : t("toast.learnedManyBody", { words: words.join(", ") });
+      learned.length > 1
+        ? t("toast.learnedManyBody", { words: words.join(", ") })
+        : autoFix
+          ? t("toast.learnedBody", { word: first.right })
+          : t("toast.learnedNoFixBody", { word: first.right, wrong: first.wrong });
     // 误编辑（如手滑打错再改回）也会触发学词：toast 上直接给撤销（整批一起撤），不用去词典页手删
     this.deps.showToast(t("toast.learned"), body, {
       label: t("toast.undo"),

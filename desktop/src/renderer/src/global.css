@@ -8,6 +8,23 @@ body,
 }
 
 /*
+ * 浅色可读性：Tailwind 默认的 slate-400 / amber-600 / sky-600 / emerald-600 / red-500 / indigo-500
+ * 作小字正文、浅底胶囊文字或白字按钮底色时对比度不足 4.5:1（WCAG AA），这里在 :root 统一压深，
+ * 各页面沿用原 class 即可。数值按 WCAG 相对亮度公式复核：slate-400 白底 5.1 / 页面底 4.8、amber-600 白字 5.0 /
+ * amber-50 底 4.8、sky-600 sky-50 底 5.6、emerald-600 emerald-50 底 5.2、red-500 白字 5.1、
+ * indigo-500 白字 5.6 / indigo-50 底 5.0。
+ */
+:root {
+  --color-slate-400: #5f6e87;
+  --color-slate-500: #5a6474;
+  --color-amber-600: #b45309;
+  --color-sky-600: #0369a1;
+  --color-emerald-600: #047857;
+  --color-red-500: #d81f28;
+  --color-indigo-500: #5552ea;
+}
+
+/*
  * 暗色模式：整站配色都来自 Tailwind 的 CSS 变量，这里在 .dark 作用域下整体重映射
  * 调色板（slate 明度反转、白色变深色面板、彩色浅底变深底/深字变浅字），
  * 各页面无需逐个加 dark: 类。
@@ -43,7 +60,10 @@ body,
   --color-violet-700: oklch(79% 0.13 292.5);
   --color-red-50: #3b2327;
   --color-red-100: #3b2327;
+  /* 深色下 red-500 / indigo-500 兼作正文与按钮底色（此时 text-white 已映射为深色），提亮到 ≥4.5:1 */
+  --color-red-500: #ff8585;
   --color-red-600: oklch(70% 0.19 22.2);
+  --color-indigo-500: #96a3f7;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
