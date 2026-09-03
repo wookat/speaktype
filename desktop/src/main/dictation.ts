@@ -518,6 +518,7 @@ export class Dictation {
       this.deps.recorder()?.webContents.send("recorder:stop");
       this.unmute();
       const message = error instanceof Error ? error.message : String(error);
+      log.warn(`dictation start failed (${settings.asrProvider}/${settings.localModel}): ${message}`);
       // 配置类失败（未登录/未填 key/模型未下载）只闪状态条用户看不见：补常驻 toast 并直达设置
       const configErrors = [t("error.noAppKey"), t("error.noAsrConfig"), t("error.localModelMissing")];
       if (configErrors.includes(message)) {
@@ -887,6 +888,7 @@ export class Dictation {
           text: "",
           raw: "",
           personaName: persona.name,
+          personaId: persona.builtin ? persona.id : undefined,
           durationMs,
           status: "failed",
           error: message,
@@ -986,6 +988,7 @@ export class Dictation {
       !rewriteTarget && settings.autoPaste && (!hasPasteTarget() || !(await selfWindowPasteable()));
     if (noTarget) {
       // 前台是桌面壳等非输入目标：盲发 Ctrl+V 会静默丢字，改为提示已存历史
+      log.warn(`paste skipped: no input target (fg=${foregroundWindowKey() ?? "?"}), text kept in history`);
       this.deps.showToast(t("toast.noPasteTarget"), t("toast.noPasteTargetBody"));
     }
     // 改写模式：识别期间焦点切走时结果会落进当前前台窗口，粘贴前复核目标窗口未变
@@ -1052,6 +1055,7 @@ export class Dictation {
         text,
         raw,
         personaName: persona.name,
+        personaId: persona.builtin ? persona.id : undefined,
         durationMs,
         failed,
         provider: settings.asrProvider,

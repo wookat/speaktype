@@ -2,10 +2,10 @@ import type { Translator } from "../i18n";
 
 function fmtDuration(ms: number, t: Translator): string {
   const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
+  if (s < 60) return t("time.seconds", { n: s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}min`;
-  return `${Math.floor(m / 60)}h${m % 60}min`;
+  if (m < 60) return t("time.minutes", { n: m });
+  return t("time.hoursMinutes", { h: Math.floor(m / 60), m: m % 60 });
 }
 
 function dayLabel(at: number, t: Translator): string {

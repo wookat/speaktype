@@ -46,6 +46,9 @@ export const ko: LocaleDict = {
   "home.stat.duration": "음성 입력 시간",
   "home.stat.saved": "절약한 시간",
   "home.stat.savedHint": "타자 속도 분당 40자 기준 추정",
+  "time.seconds": "{{n}}초",
+  "time.minutes": "{{n}}분",
+  "time.hoursMinutes": "{{h}}시간 {{m}}분",
   "home.steps.title": "처음이신가요? 4단계로 시작",
   "home.steps.expand": "단계 보기",
   "home.steps.collapse": "단계 숨기기",
@@ -115,8 +118,8 @@ export const ko: LocaleDict = {
     "한 줄에 한 단어, 각 20자까지. 앞뒤 공백은 제거되고 빈 줄은 건너뜁니다.",
   "dict.count": "{{count}}/300 핫워드",
   "dict.limitReached": "{{count}}개 행이 추가되지 않았습니다(300개 핫워드 상한 초과, 20자 초과 또는 기호만 포함).",
-  "dict.kanaNotCorrected":
-    "{{count}}개 단어에 일본어 가나가 포함되어 있습니다. 저장되었지만 자동 교정은 현재 중국어와 영어 단어만 지원합니다.",
+  "dict.notCorrected":
+    "{{count}}개 단어에 일본어 가나 또는 한글이 포함되어 있습니다. 저장되었지만 자동 교정은 현재 중국어와 영어 단어만 지원합니다.",
   "dict.manage": "핫워드 관리",
   "dict.noResults": "일치하는 핫워드가 없습니다.",
   "dict.empty": "아직 핫워드가 없습니다",

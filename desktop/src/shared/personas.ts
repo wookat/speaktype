@@ -11,6 +11,14 @@ export function localizePersona(persona: Persona, t: Translator): Persona {
   };
 }
 
+/** 历史条目的人设显示名：内置人设随当前界面语言，自建人设与无 id 的旧条目用录入时的名字 */
+export function personaDisplayName(personaId: string | undefined, fallback: string, t: Translator): string {
+  if (personaId && BUILTIN_PERSONAS.some((p) => p.id === personaId)) {
+    return t(`persona.${personaId}.name` as LocaleKey);
+  }
+  return fallback;
+}
+
 /**
  * 内置人设 = 一段后处理 prompt，切换只影响润色阶段，不影响识别。
  * 文案与智谱 AI 输入法的内置人设对齐（Alt+1..9 快速切换）。
