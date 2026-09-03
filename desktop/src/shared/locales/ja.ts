@@ -46,6 +46,9 @@ export const ja: LocaleDict = {
   "home.stat.duration": "音声入力時間",
   "home.stat.saved": "節約した時間",
   "home.stat.savedHint": "タイピング速度 40 字/分で換算",
+  "time.seconds": "{{n}} 秒",
+  "time.minutes": "{{n}} 分",
+  "time.hoursMinutes": "{{h}} 時間 {{m}} 分",
   "home.steps.title": "はじめての方へ：4 ステップ",
   "home.steps.expand": "手順を表示",
   "home.steps.collapse": "手順を隠す",
@@ -115,8 +118,8 @@ export const ja: LocaleDict = {
     "1 行に 1 語、各 20 文字まで。前後の空白は削除され、空行はスキップされます。",
   "dict.count": "{{count}}/300 ホットワード",
   "dict.limitReached": "{{count}} 行は追加されませんでした（300 語の上限超過、20 文字超、または記号のみのため）。",
-  "dict.kanaNotCorrected":
-    "{{count}} 語にかなが含まれています。保存されましたが、自動補正は現在中国語と英単語のみ対応しています。",
+  "dict.notCorrected":
+    "{{count}} 語にかなまたはハングルが含まれています。保存されましたが、自動補正は現在中国語と英単語のみ対応しています。",
   "dict.manage": "ホットワードを管理",
   "dict.noResults": "一致するホットワードはありません。",
   "dict.empty": "ホットワードはまだありません",
@@ -252,7 +255,7 @@ export const ja: LocaleDict = {
   "settings.chatgptCodexHint": "このPCで Codex CLI / Codex Desktop にログイン済みなら、そのセッションを自動的に再利用します。",
   "settings.asrProviderLocal": "内蔵オフライン認識（SenseVoice / Parakeet）",
   "settings.asrLocalHint":
-    "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。sensevoice / parakeet モデルは録音中にリアルタイム字幕を表示；whisper 系は発話全体をまとめて認識します。",
+    "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。sensevoice / parakeet モデルは録音中にリアルタイム字幕を表示し、whisper 系は発話全体をまとめて認識します。",
   "settings.localModel": "ローカルモデル",
   "settings.localModelHint": "中国語には sensevoice-small が最適です。同サイズの whisper より高精度かつ高速で、句読点も付きます。英語と欧州言語には parakeet-tdt-0.6b-v3 が最も高精度です（中国語非対応）。",
   "settings.localModelHintWhisper": "whisper 系は対応言語が多く、tiny は最速だが誤りが多め、base はバランス型、small は低速で高精度です。",

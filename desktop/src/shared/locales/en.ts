@@ -46,6 +46,9 @@ export const en: LocaleDict = {
   "home.stat.duration": "Voice input time",
   "home.stat.saved": "Time saved",
   "home.stat.savedHint": "Estimated at 40 words/min typing speed",
+  "time.seconds": "{{n}}s",
+  "time.minutes": "{{n}} min",
+  "time.hoursMinutes": "{{h}}h {{m}}min",
   "home.steps.title": "First time? 4 quick steps",
   "home.steps.expand": "Show steps",
   "home.steps.collapse": "Hide steps",
@@ -115,8 +118,8 @@ export const en: LocaleDict = {
     "One word per line; up to 20 characters each. Leading/trailing spaces are trimmed and empty lines are skipped.",
   "dict.count": "{{count}}/300 hotwords",
   "dict.limitReached": "{{count}} line(s) were not added (over the 300-hotword limit, longer than 20 characters, or symbols only).",
-  "dict.kanaNotCorrected":
-    "{{count}} word(s) contain Japanese kana — saved, but auto-correction currently only supports Chinese and ASCII words.",
+  "dict.notCorrected":
+    "{{count}} word(s) contain Japanese kana or Korean — saved, but auto-correction currently only supports Chinese and ASCII words.",
   "dict.manage": "Manage hotwords",
   "dict.noResults": "No matching hotwords.",
   "dict.empty": "No hotwords yet",

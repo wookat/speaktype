@@ -122,7 +122,8 @@ function Home(props: {
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-4 gap-4">
+      {/* 窄窗（<1024）下每卡仅 ~90px，带单位的时长会折行，改 2×2 */}
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard title={t("home.stat.sessions")} value={`${props.statsSessions}`} />
         <StatCard title={t("home.stat.words")} value={`${props.statsWords}`} />
         <StatCard title={t("home.stat.duration")} value={fmtDuration(props.statsDuration, t)} />
@@ -167,8 +168,8 @@ function Home(props: {
         </button>
       </div>
 
-      <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5">
-        <div>
+      <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="min-w-0">
           <div className="text-xs text-slate-400">{t("home.persona.current")}</div>
           <div className="mt-1 flex items-center gap-2 font-medium">
             <PersonaIcon name={persona?.icon ?? ""} className="h-4 w-4 text-indigo-500" />
@@ -185,7 +186,7 @@ function Home(props: {
             </div>
           )}
         </div>
-        <div className="text-xs text-slate-400">{t("home.persona.switch")}</div>
+        <div className="shrink-0 whitespace-nowrap text-xs text-slate-400">{t("home.persona.switch")}</div>
       </div>
     </div>
   );

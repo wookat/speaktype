@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { HistoryItem, Settings } from "../../../shared/types";
+import { personaDisplayName } from "../../../shared/personas";
 import { toSimplified } from "../../../shared/zhNorm";
 import { ReviewDiff } from "../components/ReviewDiff";
 import { dayLabel, fmtClock, fmtDuration, suggestHotword } from "../lib/format";
@@ -104,7 +105,7 @@ function History(props: {
     const lines = items
       .filter((h) => h.status !== "failed")
       // 多行文本续行补两空格缩进，保持在同一列表项内，不会被解析成新的顶级条目
-      .map((h) => `- ${new Date(h.at).toLocaleString(props.settings.uiLanguage)} · ${h.personaName}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
+      .map((h) => `- ${new Date(h.at).toLocaleString(props.settings.uiLanguage)} · ${personaDisplayName(h.personaId, h.personaName, t)}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
     // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
     const blob = new Blob(["\ufeff", `# SpeakType History\n\n${lines.join("\n\n")}\n`], {
       type: "text/markdown;charset=utf-8",
@@ -128,7 +129,7 @@ function History(props: {
           toSimplified(h.text.toLowerCase()).includes(q) ||
           toSimplified(h.raw.toLowerCase()).includes(q) ||
           // 转录条目的 personaName 是来源文件名，是最自然的检索键；听写条目按人设名筛也合理
-          toSimplified(h.personaName.toLowerCase()).includes(q),
+          toSimplified(personaDisplayName(h.personaId, h.personaName, t).toLowerCase()).includes(q),
       )
     : bySource;
 
@@ -142,12 +143,12 @@ function History(props: {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{t("history.title")}</h1>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold">{t("history.title")}</h1>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-2">
           {sourceKinds > 1 && (
             <select
-              className="rounded-xl border border-slate-200 px-2 py-1.5 text-sm text-slate-500"
+              className="shrink-0 rounded-xl border border-slate-200 px-2 py-1.5 text-sm text-slate-500"
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value as "all" | "dictation" | "phone" | "file")}
             >
@@ -159,7 +160,7 @@ function History(props: {
           )}
           {props.history.length > 0 && (
             <input
-              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+              className="w-40 min-w-0 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
               placeholder={t("history.search")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -167,9 +168,9 @@ function History(props: {
           )}
           {props.history.length > 0 && confirmClear && (
             <>
-              <span className="text-sm text-slate-500">{t("history.clearConfirm")}</span>
+              <span className="whitespace-nowrap text-sm text-slate-500">{t("history.clearConfirm")}</span>
               <button
-                className="text-sm font-medium text-red-500 hover:text-red-600"
+                className="shrink-0 whitespace-nowrap text-sm font-medium text-red-500 hover:text-red-600"
                 onClick={() => {
                   setConfirmClear(false);
                   void api.clearHistory().then(props.setHistory);
@@ -177,14 +178,14 @@ function History(props: {
               >
                 {t("history.clearYes")}
               </button>
-              <button className="text-sm text-slate-400" onClick={() => setConfirmClear(false)}>
+              <button className="shrink-0 whitespace-nowrap text-sm text-slate-400" onClick={() => setConfirmClear(false)}>
                 {t("common.cancel")}
               </button>
             </>
           )}
           {filtered.length > 0 && !confirmClear && (
             <button
-              className="text-sm text-slate-400 hover:text-indigo-500"
+              className="shrink-0 whitespace-nowrap text-sm text-slate-400 hover:text-indigo-500"
               onClick={() => exportHistory(filtered)}
             >
               {t("history.export")}
@@ -192,7 +193,7 @@ function History(props: {
           )}
           {props.history.length > 0 && !confirmClear && (
             <button
-              className="text-sm text-slate-400 hover:text-red-500"
+              className="shrink-0 whitespace-nowrap text-sm text-slate-400 hover:text-red-500"
               onClick={() => setConfirmClear(true)}
             >
               {t("history.clear")}
@@ -225,7 +226,7 @@ function History(props: {
                           {t("history.sourcePhone")}
                         </span>
                       )}
-                      {fmtClock(item.at)} · {item.personaName} · {fmtDuration(item.durationMs, t)}
+                      {fmtClock(item.at)} · {personaDisplayName(item.personaId, item.personaName, t)} · {fmtDuration(item.durationMs, t)}
                       {item.provider && <> · {t(`history.provider.${item.provider}`)}</>}
                     </span>
                     {/* 不用 hover 门控：远程桌面/触屏 (hover:none) 下 group-hover 永不触发 */}

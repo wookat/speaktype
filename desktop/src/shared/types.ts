@@ -140,6 +140,8 @@ export interface HistoryItem {
   text: string;
   raw: string;
   personaName: string;
+  /** 内置人设的 id，渲染时按当前界面语言取名；自建人设不设，直接用 personaName */
+  personaId?: string;
   durationMs: number;
   failed?: string;
   /** 识别失败的会话：音频留存本机，可从历史页重试 */
