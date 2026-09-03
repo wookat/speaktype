@@ -357,6 +357,8 @@ export const zhCN = {
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "长时间没检到人声，已自动停止聆听；再按一次热键可重新开始",
   "toast.handsFreeEndByKey": "按了其他热键，连续听写已停止；再按免按热键可重新开始",
+
+  "toast.handsFreeEndByToggle": "连续听写已停止；再按免按热键可重新开始",
   "toast.historyRecovered": "历史记录已重建",
   "toast.historyRecoveredBody": "历史文件损坏，已重建；原文件备份为 history.json.bad，设置不受影响",
   "toast.configRecovered": "配置已重建",

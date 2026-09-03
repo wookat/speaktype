@@ -568,7 +568,7 @@ export class Dictation {
       this.handsFreeEndedByKey = true; // 用户主动退出：本轮静音不再弹「没听清」
       if (wasHandsFree) {
         // stop() 只在旗标仍在时提示，这里已先清旗标，退出提示由本入口负责
-        this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+        this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByToggle"));
         if (!this.busy) {
           // 句间空档退出：没有进行中会话可收尾，直接停麦、解除静音
           this.deps.recorder()?.webContents.send("recorder:stop");

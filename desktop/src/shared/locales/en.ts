@@ -360,6 +360,8 @@ export const en: LocaleDict = {
   "toast.handsFreeEnd": "Hands-free mode ended",
   "toast.handsFreeEndBody": "No speech detected for a while, so listening stopped. Press the hotkey to start again.",
   "toast.handsFreeEndByKey": "Another hotkey was pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",
+
+  "toast.handsFreeEndByToggle": "Continuous dictation stopped. Press the hands-free hotkey to start again.",
   "toast.historyRecovered": "History rebuilt",
   "toast.historyRecoveredBody": "The history file was corrupted and has been reset; a backup was saved as history.json.bad. Settings are unaffected.",
   "toast.noPasteTarget": "No text field in focus",

@@ -360,6 +360,8 @@ export const ja: LocaleDict = {
   "toast.handsFreeEnd": "ハンズフリーモードを終了しました",
   "toast.handsFreeEndBody": "しばらく音声が検出されなかったため停止しました。ホットキーで再開できます",
   "toast.handsFreeEndByKey": "他のホットキーが押されたため連続入力を停止しました。ハンズフリーキーで再開できます",
+
+  "toast.handsFreeEndByToggle": "連続入力を停止しました。ハンズフリーキーで再開できます",
   "toast.historyRecovered": "履歴を再構築しました",
   "toast.historyRecoveredBody": "履歴ファイルが破損していたため再構築しました。バックアップは history.json.bad です。設定は影響を受けません",
   "toast.noPasteTarget": "入力先のウィンドウがありません",

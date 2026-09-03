@@ -334,6 +334,8 @@ export const zhTW: LocaleDict = {
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "長時間沒檢到人聲，已自動停止聆聽；再按一次熱鍵可重新開始",
   "toast.handsFreeEndByKey": "按了其他熱鍵，連續聽寫已停止；再按免按熱鍵可重新開始",
+
+  "toast.handsFreeEndByToggle": "連續聽寫已停止；再按免按熱鍵可重新開始",
   "toast.historyRecovered": "歷史記錄已重建",
   "toast.historyRecoveredBody": "歷史檔案損壞，已重建；原檔備份為 history.json.bad，設定不受影響",
   "toast.noPasteTarget": "目前沒有可輸入的視窗",
