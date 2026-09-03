@@ -444,6 +444,11 @@ export const ja: LocaleDict = {
   "error.localServerFailed": "ローカル認識エンジンの起動に失敗：情報 → ログフォルダを開く から main.log を確認し、問題を報告してください",
   "error.micDenied": "マイクへのアクセスが拒否されました：Windows 設定 → プライバシー でデスクトップアプリのマイク使用を許可してください",
   "error.micNotFound": "マイクが見つかりません",
+  "error.whisperUnsupported": "whisper.cpp モデルは現在 Windows 版のみ対応です：設定 → 音声認識 で SenseVoice または Parakeet を選んでください",
+  "mac.accessibilityTitle": "アクセシビリティの権限が必要です",
+  "mac.accessibilityBody": "SpeakType はグローバルホットキーで押しながら話す操作を検知し、キー入力をシミュレートしてカーソル位置に文字を貼り付けます。どちらも macOS のアクセシビリティ権限が必要です。\n\nシステム設定 → プライバシーとセキュリティ → アクセシビリティ で SpeakType を有効にしてください。許可されるとホットキーは自動的に有効になり、再起動は不要です。",
+  "mac.openAccessibility": "システム設定を開く",
+  "mac.later": "後で",
 
   "persona.default.name": "デフォルト",
   "persona.default.prompt": "自然で明瞭な話し言葉を保ち、簡潔で読みやすく。文末の句点は削除。",

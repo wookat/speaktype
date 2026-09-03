@@ -444,6 +444,11 @@ export const ko: LocaleDict = {
   "error.localServerFailed": "로컬 인식 엔진 시작 실패: 정보 → 로그 폴더 열기 에서 main.log 를 확인하고 문제를 신고하세요",
   "error.micDenied": "마이크 접근이 거부되었습니다: Windows 설정 → 개인정보 에서 데스크톱 앱의 마이크 사용을 허용하세요",
   "error.micNotFound": "마이크를 찾을 수 없습니다",
+  "error.whisperUnsupported": "whisper.cpp 모델은 현재 Windows 버전에서만 사용할 수 있습니다: 설정 → 음성 인식 에서 SenseVoice 또는 Parakeet 을 선택하세요",
+  "mac.accessibilityTitle": "손쉬운 사용 권한이 필요합니다",
+  "mac.accessibilityBody": "SpeakType 은 전역 핫키로 누르고 말하기를 감지하고, 키 입력을 시뮬레이션해 커서 위치에 텍스트를 붙여 넣습니다. 두 기능 모두 macOS 손쉬운 사용 권한이 필요합니다.\n\n시스템 설정 → 개인정보 보호 및 보안 → 손쉬운 사용 에서 SpeakType 을 켜 주세요. 허용되면 핫키가 자동으로 활성화되며 재시작은 필요 없습니다.",
+  "mac.openAccessibility": "시스템 설정 열기",
+  "mac.later": "나중에",
 
   "persona.default.name": "기본",
   "persona.default.prompt": "자연스럽고 명확한 구어체를 유지하고 간결하고 읽기 쉽게. 문장 끝 마침표는 제거.",

@@ -2,11 +2,12 @@
 import "./reset";
 // 在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
 import "./migrate";
-import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, nativeTheme, shell } from "electron";
+import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, nativeTheme, shell, systemPreferences } from "electron";
 import { basename, join } from "node:path";
 import { createServer } from "node:net";
 import { execFile } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import log from "electron-log/main.js";
 import pkg from "../../package.json";
@@ -22,7 +23,7 @@ import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, tes
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { LOCAL_MODELS, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
+import { AVAILABLE_LOCAL_MODELS, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
@@ -95,8 +96,11 @@ if (process.argv.includes("--test-crash")) {
 const single = app.requestSingleInstanceLock();
 if (!single) app.quit();
 
-// 带 pid 防多实例撞名（单实例锁之外的短暂共存窗口）
-const PCM_PIPE = `\\\\.\\pipe\\speaktype-pcm-${process.pid}`;
+const isMac = process.platform === "darwin";
+// 带 pid 防多实例撞名（单实例锁之外的短暂共存窗口）；Windows 命名管道，macOS 走 unix socket 文件
+const PCM_PIPE = isMac
+  ? join(tmpdir(), `speaktype-pcm-${process.pid}.sock`)
+  : `\\\\.\\pipe\\speaktype-pcm-${process.pid}`;
 // 停录后空闲多久回收录音窗口：短于连续口述的自然间隔会白重建，过长则内存迟迟不归还
 const RECORDER_RECYCLE_IDLE_MS = 30_000;
 
@@ -252,6 +256,47 @@ function applyHotkeys(settings: Settings): void {
     settings.hotkeyRewrite,
     settings.doubleTapHandsFree,
   );
+}
+
+const MAC_ACCESSIBILITY_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
+const ACCESSIBILITY_POLL_MS = 2000;
+
+/**
+ * macOS 上 uiohook 的全局键盘钩子依赖「辅助功能」授权：未授权时 uIOhook.start() 抛
+ * UIOHOOK_ERROR_AXAPI_DISABLED。这里不让它打断启动链，而是弹引导并轮询授权状态，
+ * 用户在系统设置里勾上后热键自动接上，免重启。
+ */
+function startHotkeys(): void {
+  if (isMac && !systemPreferences.isTrustedAccessibilityClient(false)) {
+    log.warn("accessibility not trusted; global hotkeys deferred until granted");
+    void dialog
+      .showMessageBox({
+        type: "warning",
+        title: t("mac.accessibilityTitle"),
+        message: t("mac.accessibilityTitle"),
+        detail: t("mac.accessibilityBody"),
+        buttons: [t("mac.openAccessibility"), t("mac.later")],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (response === 0) void shell.openExternal(MAC_ACCESSIBILITY_URL);
+      });
+    const timer = setInterval(() => {
+      if (!systemPreferences.isTrustedAccessibilityClient(false)) return;
+      clearInterval(timer);
+      log.info("accessibility granted; starting global hotkeys");
+      startHotkeys();
+    }, ACCESSIBILITY_POLL_MS);
+    return;
+  }
+  try {
+    hotkeys.start();
+  } catch (error) {
+    if (!isMac) throw error;
+    log.error("global hotkey hook failed to start", error);
+    dialog.showErrorBox(t("mac.accessibilityTitle"), `${t("mac.accessibilityBody")}\n\n${String(error)}`);
+  }
 }
 
 function pushSettings(): void {
@@ -513,7 +558,7 @@ function registerIpc(): void {
   ipcMain.handle("doubao:test", () => testDoubao());
   ipcMain.handle("record:toggle", () => dictation.toggleHandsFree());
   ipcMain.handle("record:cancel", () => dictation.cancel());
-  ipcMain.handle("local:models", () => LOCAL_MODELS.map((m) => ({ ...m })));
+  ipcMain.handle("local:models", () => AVAILABLE_LOCAL_MODELS.map((m) => ({ ...m })));
   ipcMain.handle("local:status", (_e, model: string) => localModelStatus(model));
   ipcMain.handle("local:download", async (_e, model: string) => {
     const result = await downloadLocalModel(model);
@@ -632,6 +677,8 @@ function registerIpc(): void {
     sock.on("error", (error) => log.warn("pcm pipe socket error", error));
   });
   pipeServer.on("error", (error) => log.error("pcm pipe server error", error));
+  // 上次异常退出残留的 socket 文件会让 listen 报 EADDRINUSE
+  if (isMac) rmSync(PCM_PIPE, { force: true });
   pipeServer.listen(PCM_PIPE);
   ipcMain.on("recorder:error", (_e, message: string) => {
     dictation.cancel();
@@ -674,7 +721,7 @@ void app.whenReady().then(() => {
   const settings = getSettings();
   applyHotkeys(settings);
   applyNativeTheme(settings.theme);
-  hotkeys.start();
+  startHotkeys();
   void applyLaunchAtLogin(settings.launchAtLogin);
   // 仅当前 provider 是豆包才预载桥接窗口：其他 provider 下残留的 app key 缓存不应触发任何出网
   if (settings.asrProvider === "doubao" && hasAppKey()) ensureBridge();
@@ -700,6 +747,8 @@ void app.whenReady().then(() => {
   });
 
   app.on("second-instance", () => showMain());
+  // macOS 点 Dock 图标：主窗口被关进托盘后重新展示
+  app.on("activate", () => showMain());
 });
 
 app.on("before-quit", () => {
@@ -707,6 +756,7 @@ app.on("before-quit", () => {
   hotkeys.stop();
   stopLocalServer();
   void stopRemoteMic();
+  if (isMac) rmSync(PCM_PIPE, { force: true });
 });
 
 app.on("window-all-closed", () => {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Electron/V8 在 hardened runtime 下运行 JIT 的必需项 -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- 加载第三方原生模块（uiohook/koffi/sherpa-onnx 的 .node 与 .dylib）；ad-hoc 签名无 Team ID，库校验必须关 -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- 录音 -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <!-- osascript 控制 System Events/前台应用（模拟 Cmd+V 粘贴、读前台应用名） -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+  </dict>
+</plist>

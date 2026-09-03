@@ -444,6 +444,11 @@ export const en: LocaleDict = {
   "error.localServerFailed": "Local recognition engine failed to start: check main.log via About → Open log folder and report the issue",
   "error.micDenied": "Microphone access denied: allow desktop apps to use the microphone in Windows Settings → Privacy",
   "error.micNotFound": "No microphone found",
+  "error.whisperUnsupported": "whisper.cpp models are currently Windows-only: pick SenseVoice or Parakeet under Settings → Speech",
+  "mac.accessibilityTitle": "Accessibility permission needed",
+  "mac.accessibilityBody": "SpeakType listens for the push-to-talk hotkey system-wide and pastes text at your cursor with simulated keystrokes. Both need macOS Accessibility permission.\n\nEnable SpeakType under System Settings → Privacy & Security → Accessibility. Hotkeys start working as soon as it's granted — no restart needed.",
+  "mac.openAccessibility": "Open System Settings",
+  "mac.later": "Later",
 
   "persona.default.name": "Default",
   "persona.default.prompt": "Keep the text natural, clear and conversational, concise and readable; drop the trailing period.",

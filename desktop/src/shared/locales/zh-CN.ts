@@ -435,6 +435,11 @@ export const zhCN = {
   "error.localServerFailed": "本地识别引擎启动失败：请从「关于 → 打开日志目录」查看 main.log 并反馈",
   "error.micDenied": "麦克风权限被拒绝：请在 Windows 设置 → 隐私 → 麦克风中允许桌面应用使用麦克风",
   "error.micNotFound": "没有找到麦克风设备",
+  "error.whisperUnsupported": "whisper.cpp 模型目前仅 Windows 版可用：请在 设置 → 语音识别 中改选 SenseVoice 或 Parakeet",
+  "mac.accessibilityTitle": "需要「辅助功能」权限",
+  "mac.accessibilityBody": "SpeakType 通过全局热键监听按住说话、并用模拟按键把文字粘贴到光标处，这两项都需要 macOS 的「辅助功能」权限。\n\n请在 系统设置 → 隐私与安全性 → 辅助功能 中勾选 SpeakType；授权后热键会自动生效，无需重启。",
+  "mac.openAccessibility": "打开系统设置",
+  "mac.later": "稍后",
 
   "persona.default.name": "默认风格",
   "persona.default.prompt": "让文本保持自然、清晰、口语化的语气，同时更精炼易读，要把句尾的句号去掉。",

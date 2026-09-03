@@ -16,6 +16,8 @@ files:
   - node_modules/koffi/build/koffi/win32_x64/koffi.node
   # mac 打包时用 pack:mac 脚本叠加 electron-builder-mac.yml 回加 darwin 产物，
   # 避免 Windows 安装包多背 ~8MB 而超 GitHub 100MB 单文件限制
+  # sherpa-onnx darwin 预编译包每个架构 ~59MB：顶层全排，mac 配置里按 ${arch} 只回加当前架构那一个
+  - "!node_modules/sherpa-onnx-darwin-*/**"
 compression: maximum
 # 只保留 UI 支持的 5 种语言的 Chromium 语言包，其余 ~50 个 .pak 不入包
 electronLanguages:
@@ -24,34 +26,51 @@ electronLanguages:
   - zh-TW
   - ja
   - ko
-# 内置离线识别：whisper.cpp server 及其 CPU 后端 DLL（模型由应用内下载，不入包）
-extraResources:
-  - from: resources/whisper
-    to: whisper
 asarUnpack:
   - "**/*.node"
   - node_modules/koffi/**
-  # sherpa-onnx（SenseVoice 离线引擎）的 .node 会去同级目录 require 依赖 DLL
+  # sherpa-onnx（SenseVoice 离线引擎）的 .node 会去同级目录 require/动态链接依赖 DLL/dylib
   - node_modules/sherpa-onnx-node/**
   - node_modules/sherpa-onnx-win-x64/**
+  - node_modules/sherpa-onnx-darwin-*/**
 win:
   target:
     - target: nsis
       arch:
         - x64
   icon: build/icon.png
+  # 内置离线识别备选引擎：whisper.cpp server 及其 CPU 后端 DLL（模型由应用内下载，不入包）。
+  # 只有 Windows 二进制，放在 win 块里免得 ~7MB DLL 被带进 mac 包
+  extraResources:
+    - from: resources/whisper
+      to: whisper
 mac:
   target:
     - target: dmg
       arch:
         - arm64
         - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
   icon: build/icon.png
   category: public.app-category.productivity
+  # 没有 Apple Developer 证书：ad-hoc 签名（identity "-"）。不能公证，但能让 entitlements 生效，
+  # 且 TCC（辅助功能/麦克风）按签名识别应用，完全不签名的包每次替换都会丢授权
+  identity: "-"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # 与 sherpa-onnx 1.13.4 自带 libonnxruntime 的 minos 一致（otool -l 实测），再低的系统加载会失败
+  minimumSystemVersion: "15.5"
   extendInfo:
     NSMicrophoneUsageDescription: SpeakType uses the microphone for voice typing.
+    NSAppleEventsUsageDescription: SpeakType controls the frontmost app to paste dictated text at the cursor.
+  artifactName: SpeakType-${version}-mac-${arch}.${ext}
 dmg:
-  artifactName: SpeakType-${version}-${arch}.dmg
+  artifactName: SpeakType-${version}-mac-${arch}.dmg
 portable:
   artifactName: SpeakType-${version}-portable.exe
   unpackDirName: SpeakType

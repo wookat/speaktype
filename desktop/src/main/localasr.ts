@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
-import { PARAKEET, SENSEVOICE } from "../shared/localModels";
+import { LOCAL_MODELS, PARAKEET, SENSEVOICE } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
 import { downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
@@ -31,6 +31,13 @@ const PARAKEET_BASE =
 export function isSherpaModel(model: string): boolean {
   return model === SENSEVOICE || model === PARAKEET;
 }
+
+/**
+ * 本平台可用的本地模型：whisper-server 只随包带了 Windows 二进制（whisper.cpp 上游不发 macOS
+ * 可执行文件，仅有 xcframework），非 Windows 平台只列 sherpa-onnx 的 SenseVoice/Parakeet。
+ */
+export const AVAILABLE_LOCAL_MODELS: ReadonlyArray<{ id: string; size: string }> =
+  process.platform === "win32" ? LOCAL_MODELS : LOCAL_MODELS.filter((m) => isSherpaModel(m.id));
 
 function modelsDir(): string {
   return join(app.getPath("userData"), "models");
@@ -393,7 +400,10 @@ export async function ensureLocalServer(model: string): Promise<string> {
 
   if (!proc || !ready) {
     const exe = serverExe();
-    if (!existsSync(exe)) throw new Error(`whisper-server.exe not found: ${exe}`);
+    if (!existsSync(exe)) {
+      if (process.platform !== "win32") throw new Error(t("error.whisperUnsupported"));
+      throw new Error(`whisper-server.exe not found: ${exe}`);
+    }
     const child = spawn(
       exe,
       ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto", "--prompt", "以下是普通话的句子。"],
