@@ -334,7 +334,7 @@ function History(props: {
                         <>
                           <ReviewDiff before={item.raw} after={item.text} />
                           <button
-                            className="mt-1 text-slate-300 hover:text-slate-500"
+                            className="mt-1 text-slate-400 hover:text-slate-600"
                             onClick={() => setDiffOpen(null)}
                           >
                             {t("history.hideRaw")}
@@ -342,7 +342,7 @@ function History(props: {
                         </>
                       ) : (
                         <button
-                          className="text-slate-300 hover:text-slate-500"
+                          className="text-slate-400 hover:text-slate-600"
                           onClick={() => setDiffOpen(item.id)}
                         >
                           {t("history.showRaw")}

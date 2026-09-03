@@ -360,6 +360,8 @@ export const ko: LocaleDict = {
   "toast.handsFreeEnd": "핸즈프리 모드 종료",
   "toast.handsFreeEndBody": "한동안 음성이 감지되지 않아 중지했습니다. 단축키로 다시 시작할 수 있습니다",
   "toast.handsFreeEndByKey": "다른 단축키가 눌려 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
+
+  "toast.handsFreeEndByToggle": "연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
   "toast.historyRecovered": "기록을 다시 만들었습니다",
   "toast.historyRecoveredBody": "기록 파일이 손상되어 다시 만들었습니다. 백업: history.json.bad. 설정은 영향이 없습니다",
   "toast.noPasteTarget": "입력할 수 있는 창이 없습니다",

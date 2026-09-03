@@ -59,7 +59,7 @@ function MicSection(props: {
       <Row label={t("settings.mic")} hint={t("settings.micHint")}>
         <div className="flex items-center gap-2">
           <select
-            className="max-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            className="min-w-0 max-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.micDeviceId}
             onChange={(e) => update({ micDeviceId: e.target.value })}
           >
@@ -71,7 +71,7 @@ function MicSection(props: {
             ))}
           </select>
           <button
-            className={`rounded-xl px-3 py-1.5 text-sm ${
+            className={`shrink-0 whitespace-nowrap rounded-xl px-3 py-1.5 text-sm ${
               testing ? "bg-red-500 text-white" : "bg-slate-900 text-white hover:bg-slate-700"
             }`}
             onClick={toggleTest}
