@@ -1,17 +1,9 @@
-import { Converter } from "opencc-js/t2cn";
 import type { Settings } from "../shared/types";
+import { toSimplified } from "../shared/zhNorm";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
 import { transcribeViaChatgpt } from "./chatgpt";
 import { ensureLocalServer, isSherpaModel, transcribeSherpa } from "./localasr";
-
-// whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
-let t2cn: ((text: string) => string) | null = null;
-
-function toSimplified(text: string): string {
-  if (!t2cn) t2cn = Converter({ from: "t", to: "cn" });
-  return t2cn(text);
-}
 
 const SAMPLE_RATE = 16000;
 // 离线流式字幕：每 1s 重解一次已录音频，1s 起步；超过 20s 后改解最后 20s 滑窗，成本恒定、字幕不断供
@@ -267,6 +259,7 @@ export function startLocalAsrSession(
       }
       const data = (await res.json()) as TranscriptionResponse;
       const text = (data.text ?? "").trim();
+      // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
       return settings.localSimplified !== false ? toSimplified(text) : text;
     },
   };

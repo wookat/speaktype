@@ -21,6 +21,7 @@ export const zhCN = {
   "transcribe.copy": "复制全文",
   "transcribe.copied": "已复制",
   "transcribe.empty": "没有检测到人声。",
+  "transcribe.cancelled": "已取消（{{percent}}%），以下为部分结果",
   "transcribe.tooLong": "文件超过 3 小时上限，请先分割后再转录。",
   "transcribe.decodeFailed": "无法解码该文件：请确认是常见音频格式（mp3 / wav / m4a / ogg / flac）。",
   "transcribe.noModel": "文件转录使用离线模型 {{model}}（与实时听写的云端服务无关），请先下载。",
@@ -361,6 +362,7 @@ export const zhCN = {
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "长时间没检到人声，已自动停止聆听；再按一次热键可重新开始",
   "toast.handsFreeEndByKey": "按了其他热键，连续听写已停止；再按免按热键可重新开始",
+  "toast.handsFreeEndByEsc": "已按 Esc，连续听写已停止；再按免按热键可重新开始",
 
   "toast.handsFreeEndByToggle": "连续听写已停止；再按免按热键可重新开始",
   "toast.historyRecovered": "历史记录已重建",

@@ -624,16 +624,20 @@ export class Dictation {
   /** 录音/转写进行中按 Esc 一键取消；无进行中会话时返回 false，让 Esc 保持系统默认行为 */
   cancelByKey(): boolean {
     if (!this.busy && !this.handsFree) return false;
-    this.cancel();
+    this.cancel(true);
     return true;
   }
 
-  cancel(): void {
+  /** @param byEsc 来自 Esc 热键（退出提示点明按键）；悬浮条 ×、手机端断连、录音出错等走默认文案 */
+  cancel(byEsc = false): void {
     // 免按退出已有专属提示；普通取消给一条短提示，让用户能区分「已取消」与「识别失败」
     const wasHandsFree = this.handsFree;
     if (this.handsFree) {
       this.handsFree = false;
-      this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByKey"));
+      this.deps.showToast(
+        t("toast.handsFreeEnd"),
+        t(byEsc ? "toast.handsFreeEndByEsc" : "toast.handsFreeEndByToggle"),
+      );
     }
     this.rewriteTarget = null;
     this.rewriteWin = null;

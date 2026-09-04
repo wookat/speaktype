@@ -21,6 +21,7 @@ export const ja: LocaleDict = {
   "transcribe.copy": "全文をコピー",
   "transcribe.copied": "コピーしました",
   "transcribe.empty": "音声が検出されませんでした。",
+  "transcribe.cancelled": "{{percent}}% でキャンセルしました（部分的な結果）",
   "transcribe.tooLong": "ファイルが 3 時間の上限を超えています。先に分割してください。",
   "transcribe.decodeFailed": "このファイルをデコードできません：一般的な音声形式（mp3 / wav / m4a / ogg / flac）か確認してください。",
   "transcribe.noModel": "ファイル文字起こしはオフラインモデル {{model}} を使用します（リアルタイム入力のクラウドサービスとは無関係）。先にダウンロードしてください。",
@@ -364,6 +365,7 @@ export const ja: LocaleDict = {
   "toast.handsFreeEnd": "ハンズフリーモードを終了しました",
   "toast.handsFreeEndBody": "しばらく音声が検出されなかったため停止しました。ホットキーで再開できます",
   "toast.handsFreeEndByKey": "他のホットキーが押されたため連続入力を停止しました。ハンズフリーキーで再開できます",
+  "toast.handsFreeEndByEsc": "Esc が押されたため連続入力を停止しました。ハンズフリーキーで再開できます",
 
   "toast.handsFreeEndByToggle": "連続入力を停止しました。ハンズフリーキーで再開できます",
   "toast.historyRecovered": "履歴を再構築しました",

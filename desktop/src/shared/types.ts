@@ -177,6 +177,8 @@ export interface TranscribeState {
   fileName?: string;
   /** 完成时刻（ms），恢复态下区分「这是什么时候转的」 */
   finishedAt?: number;
+  /** 用户中途取消：segments 是截至 percent 的部分结果，不是完整转录 */
+  cancelled?: boolean;
   error?: string;
 }
 

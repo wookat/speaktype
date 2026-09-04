@@ -98,13 +98,13 @@ function Personas(props: {
 
       {/* 按应用自动切人设：录音起手时读前台进程名/窗口标题，命中即用该人设润色 */}
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
             <div className="text-sm font-medium">{t("personas.appRules")}</div>
             <div className="mt-1 text-xs text-slate-500">{t("personas.appRulesHint")}</div>
           </div>
           <button
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-50"
+            className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 px-3 py-1.5 text-xs hover:bg-slate-50"
             onClick={() =>
               props.update({
                 appPersonas: [

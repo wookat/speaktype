@@ -21,6 +21,7 @@ export const ko: LocaleDict = {
   "transcribe.copy": "전체 복사",
   "transcribe.copied": "복사됨",
   "transcribe.empty": "음성이 감지되지 않았습니다.",
+  "transcribe.cancelled": "{{percent}}%에서 취소됨 — 일부 결과",
   "transcribe.tooLong": "파일이 3시간 제한을 초과합니다. 먼저 분할해 주세요.",
   "transcribe.decodeFailed": "파일을 디코딩할 수 없습니다: 일반적인 오디오 형식(mp3 / wav / m4a / ogg / flac)인지 확인하세요.",
   "transcribe.noModel": "파일 전사는 오프라인 모델 {{model}}을(를) 사용합니다(실시간 받아쓰기의 클라우드 서비스와 무관). 먼저 다운로드하세요.",
@@ -364,6 +365,7 @@ export const ko: LocaleDict = {
   "toast.handsFreeEnd": "핸즈프리 모드 종료",
   "toast.handsFreeEndBody": "한동안 음성이 감지되지 않아 중지했습니다. 단축키로 다시 시작할 수 있습니다",
   "toast.handsFreeEndByKey": "다른 단축키가 눌려 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
+  "toast.handsFreeEndByEsc": "Esc를 눌러 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
 
   "toast.handsFreeEndByToggle": "연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",
   "toast.historyRecovered": "기록을 다시 만들었습니다",

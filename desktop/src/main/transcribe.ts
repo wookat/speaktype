@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
-import { Converter } from "opencc-js/t2cn";
 import log from "electron-log/main.js";
 import type { Settings, TranscribeSegment, TranscribeState } from "../shared/types";
+import { toSimplified } from "../shared/zhNorm";
 import { pcmToWav } from "./asr";
 import { correctHotwords } from "./hotwords";
 import { t } from "./i18n";
@@ -36,13 +36,6 @@ const PAUSE_2_S = 0.3;
 const QUIET_RATIO = 0.02;
 /** 段内峰值低于该值视为纯静音段，跳过识别避免幻听 */
 const SILENT_PEAK = 0.008;
-
-let t2cn: ((text: string) => string) | null = null;
-
-function toSimplified(text: string): string {
-  if (!t2cn) t2cn = Converter({ from: "t", to: "cn" });
-  return t2cn(text);
-}
 
 const state: TranscribeState = { running: false, percent: 0, segments: [] };
 let notify: ((s: TranscribeState) => void) | null = null;
@@ -107,7 +100,8 @@ function push(patch: Partial<TranscribeState>): void {
 export function cancelTranscribe(): void {
   if (!state.running) return;
   jobId++;
-  push({ running: false });
+  log.info(`file transcribe cancelled at ${state.percent}% (${state.segments.length} segments)`);
+  push({ running: false, cancelled: true });
 }
 
 /** 每 100ms 的 RMS，用于找静音切点 */
@@ -256,7 +250,15 @@ export async function startTranscribe(
   loadLastResult();
   const model = settings.localModel || "base-q5_1";
   const job = ++jobId;
-  push({ running: true, percent: 0, segments: [], fileName, finishedAt: undefined, error: undefined });
+  push({
+    running: true,
+    percent: 0,
+    segments: [],
+    fileName,
+    finishedAt: undefined,
+    cancelled: undefined,
+    error: undefined,
+  });
   log.info(`file transcribe started (${(samples.length / SR).toFixed(1)}s, model=${model})`);
 
   const ranges = splitSegments(samples);

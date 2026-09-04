@@ -22,6 +22,7 @@ export const en: LocaleDict = {
   "transcribe.copy": "Copy all",
   "transcribe.copied": "Copied",
   "transcribe.empty": "No speech detected.",
+  "transcribe.cancelled": "Cancelled at {{percent}}% — partial result",
   "transcribe.tooLong": "File exceeds the 3-hour limit — please split it first.",
   "transcribe.decodeFailed": "Could not decode this file: make sure it is a common audio format (mp3 / wav / m4a / ogg / flac).",
   "transcribe.noModel": "File transcription runs on the offline model {{model}} (independent of your cloud dictation provider) — download it first.",
@@ -364,6 +365,7 @@ export const en: LocaleDict = {
   "toast.handsFreeEnd": "Hands-free mode ended",
   "toast.handsFreeEndBody": "No speech detected for a while, so listening stopped. Press the hotkey to start again.",
   "toast.handsFreeEndByKey": "Another hotkey was pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",
+  "toast.handsFreeEndByEsc": "Esc pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",
 
   "toast.handsFreeEndByToggle": "Continuous dictation stopped. Press the hands-free hotkey to start again.",
   "toast.historyRecovered": "History rebuilt",

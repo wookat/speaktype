@@ -160,20 +160,30 @@ async function downloadFromUrl(
 
   let got = offset;
   const out = createWriteStream(part, resumed ? { flags: "a" } : {});
+  // 写盘错误（ENOSPC 等）由 fs 异步回调以 error 事件抛出，不经 write()/end() 的返回值；
+  // 不接住会变成进程级 uncaughtException，且等 drain 的 await 会永久悬挂
+  const writeFailed = new Promise<never>((_, reject) => out.on("error", reject));
+  writeFailed.catch(() => {});
+  const reader = res.body.getReader();
   try {
-    const reader = res.body.getReader();
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await Promise.race([reader.read(), writeFailed]);
       if (done) break;
       const buf = Buffer.from(value);
       got += buf.length;
-      if (!out.write(buf)) await new Promise<void>((r) => out.once("drain", () => r()));
+      if (!out.write(buf)) {
+        await Promise.race([new Promise<void>((r) => out.once("drain", () => r())), writeFailed]);
+      }
       onProgress?.(got, total);
     }
-    await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
+    await Promise.race([
+      new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve()))),
+      writeFailed,
+    ]);
   } catch (error) {
-    // 网络中断：保留 .part 与元数据，下次续传
+    // 网络中断 / 磁盘写满：保留 .part 与元数据（已落盘前缀仍有效），下次续传
     out.destroy();
+    reader.cancel().catch(() => {});
     throw error;
   }
 

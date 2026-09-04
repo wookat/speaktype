@@ -142,7 +142,9 @@ function Transcribe(props: {
   };
 
   const allText = state.segments.map((s) => s.text).join("\n");
-  const exportBase = (state.fileName || fileName).replace(/\.[^.]+$/, "") || "transcript";
+  // 主进程的 fileName 优先：切页重挂载后组件本地的 fileName 为空，任务却还在跑
+  const shownFileName = state.fileName || fileName;
+  const exportBase = shownFileName.replace(/\.[^.]+$/, "") || "transcript";
   const exportTxt = () => saveText(`${allText}\n`, `${exportBase}.txt`, "text/plain;charset=utf-8");
   const exportSrt = () => {
     const srt = state.segments
@@ -238,7 +240,7 @@ function Transcribe(props: {
               : t("transcribe.drop")}
         </div>
         <div className="mt-1 text-xs text-slate-400">
-          {busy && fileName ? fileName : t("transcribe.formats")}
+          {busy && shownFileName ? shownFileName : t("transcribe.formats")}
         </div>
         <input
           ref={inputRef}
@@ -272,6 +274,11 @@ function Transcribe(props: {
       {done && state.segments.length === 0 && (
         <div className="mt-6 text-center text-sm text-slate-400">{t("transcribe.empty")}</div>
       )}
+      {!busy && state.cancelled && state.segments.length === 0 && (
+        <div className="mt-6 text-center text-sm text-slate-400">
+          {t("transcribe.cancelled", { percent: state.percent })}
+        </div>
+      )}
 
       {state.segments.length > 0 && (
         <>
@@ -280,6 +287,11 @@ function Transcribe(props: {
               {t("transcribe.result", { count: state.segments.length })}
               {state.fileName && (
                 <span className="ml-2 font-normal text-slate-400">{state.fileName}</span>
+              )}
+              {!state.running && state.cancelled && (
+                <span className="ml-2 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-normal text-amber-700">
+                  {t("transcribe.cancelled", { percent: state.percent })}
+                </span>
               )}
               {!state.running && state.finishedAt && (
                 <span className="ml-2 font-normal text-slate-400">
