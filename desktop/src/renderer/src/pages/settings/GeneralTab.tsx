@@ -73,6 +73,7 @@ function GeneralTab(props: {
               ? t("settings.holdMouseHint")
               : t("settings.holdHint", { key: s.hotkeyHold })
           }
+          warning={captureError ? t("settings.holdCaptureUnsupported") : undefined}
         >
           <div className="flex items-center gap-2">
             <select
@@ -103,9 +104,6 @@ function GeneralTab(props: {
               {capturing ? t("settings.holdCapturing") : t("settings.holdCapture")}
             </button>
           </div>
-          {captureError && (
-            <div className="mt-1 text-xs text-amber-600">{t("settings.holdCaptureUnsupported")}</div>
-          )}
         </Row>
         <Row
           label={t("settings.rewriteKey")}
@@ -113,6 +111,11 @@ function GeneralTab(props: {
             s.hotkeyRewrite === "Off"
               ? t("settings.rewriteKeyOffHint")
               : t("settings.rewriteKeyHint", { key: s.hotkeyRewrite })
+          }
+          warning={
+            s.hotkeyRewrite !== "Off" && s.hotkeyRewrite === s.hotkeyHold
+              ? t("settings.rewriteKeyConflict")
+              : undefined
           }
         >
           <select
@@ -134,11 +137,16 @@ function GeneralTab(props: {
               </option>
             ))}
           </select>
-          {s.hotkeyRewrite !== "Off" && s.hotkeyRewrite === s.hotkeyHold && (
-            <div className="mt-1 text-xs text-amber-600">{t("settings.rewriteKeyConflict")}</div>
-          )}
         </Row>
-        <Row label={t("settings.toggle")} hint={t("settings.toggleHint", { key: s.hotkeyToggle })}>
+        <Row
+          label={t("settings.toggle")}
+          hint={t("settings.toggleHint", { key: s.hotkeyToggle })}
+          warning={
+            s.hotkeyToggle === s.hotkeyHold || (s.hotkeyRewrite !== "Off" && s.hotkeyToggle === s.hotkeyRewrite)
+              ? t("settings.toggleKeyConflict")
+              : undefined
+          }
+        >
           <select
             className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
             value={s.hotkeyToggle}
@@ -148,10 +156,6 @@ function GeneralTab(props: {
               <option key={key}>{key}</option>
             ))}
           </select>
-          {(s.hotkeyToggle === s.hotkeyHold ||
-            (s.hotkeyRewrite !== "Off" && s.hotkeyToggle === s.hotkeyRewrite)) && (
-            <div className="mt-1 text-xs text-amber-600">{t("settings.toggleKeyConflict")}</div>
-          )}
         </Row>
         <Row label={t("settings.holdDelay")} hint={t("settings.holdDelayHint")}>
           <select

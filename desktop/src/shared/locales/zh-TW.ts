@@ -21,6 +21,7 @@ export const zhTW: LocaleDict = {
   "transcribe.copy": "複製全文",
   "transcribe.copied": "已複製",
   "transcribe.empty": "沒有偵測到人聲。",
+  "transcribe.cancelled": "已取消（{{percent}}%），以下為部分結果",
   "transcribe.tooLong": "檔案超過 3 小時上限，請先分割後再轉錄。",
   "transcribe.decodeFailed": "無法解碼該檔案：請確認是常見音訊格式（mp3 / wav / m4a / ogg / flac）。",
   "transcribe.noModel": "檔案轉錄使用離線模型 {{model}}（與即時聽寫的雲端服務無關），請先下載。",
@@ -338,6 +339,7 @@ export const zhTW: LocaleDict = {
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "長時間沒檢到人聲，已自動停止聆聽；再按一次熱鍵可重新開始",
   "toast.handsFreeEndByKey": "按了其他熱鍵，連續聽寫已停止；再按免按熱鍵可重新開始",
+  "toast.handsFreeEndByEsc": "已按 Esc，連續聽寫已停止；再按免按熱鍵可重新開始",
 
   "toast.handsFreeEndByToggle": "連續聽寫已停止；再按免按熱鍵可重新開始",
   "toast.historyRecovered": "歷史記錄已重建",
