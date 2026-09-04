@@ -1,0 +1,1 @@
+2026-09-04T15:12:55.469Z POST /v1/chat/completions auth=<omitted> body={"model":"mock-llm","temperature":0.3,"messages":[{"role":"user","content":"你按用户的口述指令改写下面这段文字（可能是改写、润色、翻译、扩写、缩写等）。\n要求：\n1. 只输出改写后的正文，不要解释、不要引号、不要 Markdown 代码块。\n2. 严格遵守指令；指令没要求的部分不要擅自改动。\n3. 保持原文的换行与列表结构。\n\n口述指令：\n\"\"\"今天天气很好!我们一起去公园散步!\"\"\"\n\n原文：\n\"\"\"hello world round 292\"\"\""}]}
