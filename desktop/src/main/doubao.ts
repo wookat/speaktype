@@ -53,7 +53,7 @@ export function ensureBridge(): BrowserWindow {
   bridge = createBridgeWindow();
   bridge.webContents.on("did-finish-load", () => {
     loaded = true;
-    void injectKeyHook(bridge!);
+    void injectKeyHook(bridge!, !hasAppKey() || bridge!.isVisible());
   });
   bridge.on("closed", () => {
     bridge = null;
@@ -75,22 +75,45 @@ export function showBridge(): void {
 }
 
 /**
- * app key 是 doubao.com 前端自己下发的参数（随其改版轮换），不内置在应用里：
- * 在页面主世界 hook WebSocket 构造，用户用一次豆包自带语音就能自动截到。
+ * app key 是 doubao.com 前端自己下发的参数（随其改版轮换），不内置在应用里。两条捕获路径：
+ * 1. hook 页面主世界的 WebSocket 构造——用户用一次豆包自带语音，voicegenie 建连 URL 里就带着 key（权威来源）；
+ * 2. scanBundles：key 同时以字面量写在豆包前端 bundle 里，紧邻 voicegenie 的 version_code 参数表，
+ *    登录后扫一遍已加载脚本即可免语音直接拿到（脚本走浏览器缓存，全量约 1s）。
  */
-async function injectKeyHook(win: BrowserWindow): Promise<void> {
+async function injectKeyHook(win: BrowserWindow, scanBundles: boolean): Promise<void> {
   await win.webContents
     .executeJavaScript(
       `(() => {
         if (window.__speaktypeHook) return;
         window.__speaktypeHook = true;
+        const report = (key) => window.postMessage({ source: "speaktype-doubao-hook", appKey: key }, location.origin);
+        if (${scanBundles}) {
+          const seen = new Set();
+          let found = false;
+          const pattern = /"([A-Za-z0-9_-]{12,32})",\\w+=\\{version_code:"/;
+          const scan = async (urls) => {
+            for (const url of urls) {
+              if (found || seen.has(url) || !/\\.js(\\?|$)/.test(url)) continue;
+              seen.add(url);
+              try {
+                const match = pattern.exec(await (await fetch(url)).text());
+                if (match && !found) {
+                  found = true;
+                  report(match[1]);
+                }
+              } catch {}
+            }
+          };
+          new PerformanceObserver((list) => void scan(list.getEntries().map((e) => e.name)))
+            .observe({ type: "resource", buffered: true });
+        }
         const Native = window.WebSocket;
         window.WebSocket = function (url, protocols) {
           try {
             const text = String(url);
             if (/voicegenie/i.test(text)) {
               const key = new URL(text).searchParams.get("api_app_key");
-              if (key) window.postMessage({ source: "speaktype-doubao-hook", appKey: key }, location.origin);
+              if (key) report(key);
             }
           } catch {}
           return protocols === undefined ? new Native(url) : new Native(url, protocols);
@@ -108,7 +131,7 @@ function emit(ev: BridgeEvent): void {
 
 ipcMain.on("doubao:event", (_e, ev: BridgeEvent) => {
   if (ev.type === "app-key") {
-    if (/^[A-Za-z0-9_-]{12,32}$/.test(ev.key)) {
+    if (/^[A-Za-z0-9_-]{12,32}$/.test(ev.key) && ev.key !== getAppKeyCache()) {
       setAppKeyCache(ev.key);
       appKeyCaptured?.();
     }
