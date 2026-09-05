@@ -33,7 +33,7 @@ export const ko: LocaleDict = {
   "home.subtitleNoToggle": "키를 떼면 커서 위치에 글자가 입력됩니다.",
   "home.activate.title": "마지막 단계: 음성 인식 설정",
   "home.activate.desc":
-    "Doubao 에 로그인하고 내장 음성 입력을 한 번 사용하면 SpeakType 이 App Key 를 자동으로 가져옵니다. 설정에서 직접 입력할 수도 있습니다.",
+    "Doubao 에 로그인하면 SpeakType 이 App Key 를 자동으로 가져옵니다. 계속 미설정이면 Doubao 의 음성 입력을 한 번 사용하세요. 설정에서 직접 입력할 수도 있습니다.",
   "home.activate.button": "설정하기",
   "home.model.title": "오프라인 음성 모델 다운로드",
   "home.model.desc": "처음 한 번만 다운로드하면(약 {{size}}) 이후에는 인터넷과 API 키 없이 로컬에서 동작합니다.",
@@ -230,7 +230,7 @@ export const ko: LocaleDict = {
 
   "settings.asr": "음성 인식 서비스",
   "settings.asrHint":
-    "SpeakType 은 자체 인식 서비스를 제공하지 않고 사용자의 계정을 사용합니다: Doubao 에 로그인하고 음성 입력을 한 번 사용하면 App Key 를 자동 획득하거나 직접 입력하세요.",
+    "SpeakType 은 자체 인식 서비스를 제공하지 않고 사용자의 계정을 사용합니다: Doubao 에 로그인하면 App Key 를 자동 획득(계속 미설정이면 음성 입력을 한 번 사용)하거나 직접 입력하세요.",
   "settings.asrStatus": "상태",
   "settings.asrReady": "준비 완료",
   "settings.asrNotReady": "미설정",
@@ -420,7 +420,7 @@ export const ko: LocaleDict = {
   "tray.quit": "종료",
 
   "error.noAppKey":
-    "음성 인식이 설정되지 않았습니다: Doubao 에 로그인해 음성 입력을 한 번 사용하거나 설정에서 App Key 를 입력하세요",
+    "음성 인식이 설정되지 않았습니다: Doubao 에 로그인(필요하면 음성 입력을 한 번 사용)하거나 설정에서 App Key 를 입력하세요",
   "error.chatgptNotReady": "ChatGPT 페이지가 아직 로드되지 않았습니다: 잠시 후 다시 시도하거나 설정에서 “ChatGPT 로그인”을 누르세요",
   "error.chatgptNotLoggedIn": "ChatGPT 에 로그인되지 않았습니다: 설정 → 음성 인식에서 “ChatGPT 로그인”을 누르세요",
   "error.chatgptBlocked": "ChatGPT가 이 요청을 거부했습니다(403). 해당 엔드포인트를 계정 또는 지역에서 사용할 수 없거나 보호 정책에 의해 차단되었습니다. 내장 오프라인 인식이나 SiliconFlow 무료 모델을 사용하세요.",

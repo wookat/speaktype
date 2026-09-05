@@ -31,7 +31,7 @@ export const zhCN = {
   "home.subtitle": "松开按键即自动整理并落到光标处；按一下 {{toggle}} 可免按说话。",
   "home.subtitleNoToggle": "松开按键即自动整理并落到光标处。",
   "home.activate.title": "还差一步：配置语音识别",
-  "home.activate.desc": "登录豆包并用一次它自带的语音输入，SpeakType 会自动记住语音入口；也可以在设置里手动填 App Key。",
+  "home.activate.desc": "登录豆包后 SpeakType 会自动获取语音入口；若状态仍未就绪，在豆包页面用一次它自带的语音输入即可。也可以在设置里手动填 App Key。",
   "home.activate.button": "去配置",
   "home.model.title": "下载离线识别模型",
   "home.model.desc": "首次使用需下载一次（约 {{size}}），之后完全在本机识别，不联网、不需密钥。",
@@ -224,7 +224,7 @@ export const zhCN = {
 
   "settings.asr": "语音识别服务",
   "settings.asrHint":
-    "SpeakType 本身不提供识别服务，识别走你自己的账号：登录豆包并用一次它自带的语音输入即可自动获取 App Key，也可以手动填写。",
+    "SpeakType 本身不提供识别服务，识别走你自己的账号：登录豆包即可自动获取 App Key（若仍未就绪，在豆包页面用一次它自带的语音输入），也可以手动填写。",
   "settings.asrStatus": "识别状态",
   "settings.asrReady": "已就绪",
   "settings.asrNotReady": "未配置",
@@ -411,7 +411,7 @@ export const zhCN = {
   "tray.settings": "语音识别设置",
   "tray.quit": "退出",
 
-  "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包并用一次它自带的语音输入，或手动填写 App Key",
+  "error.noAppKey": "尚未配置语音识别：请在设置中登录豆包（必要时用一次它自带的语音输入），或手动填写 App Key",
   "error.chatgptNotReady": "ChatGPT 页面还没加载完：请稍后重试，或先在设置里点“登录 ChatGPT”",
   "error.chatgptNotLoggedIn": "未登录 ChatGPT：请在设置 → 语音识别里点“登录 ChatGPT”完成登录",
   "error.chatgptBlocked": "ChatGPT 拒绝了这次请求（403）：该接口对你的账号或地区不可用，或被风控拦截。可改用内置离线识别或 SiliconFlow 免费模型。",

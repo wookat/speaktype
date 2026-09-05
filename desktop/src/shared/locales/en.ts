@@ -33,7 +33,7 @@ export const en: LocaleDict = {
   "home.subtitleNoToggle": "Release the key and the text lands at your cursor.",
   "home.activate.title": "One more step: set up speech recognition",
   "home.activate.desc":
-    "Sign in to Doubao and use its built-in voice input once — SpeakType will capture the app key automatically. You can also enter it manually in Settings.",
+    "Sign in to Doubao and SpeakType captures the app key automatically; if the status still says not configured, use Doubao's built-in voice input once. You can also enter the key manually in Settings.",
   "home.activate.button": "Set up",
   "home.model.title": "Download the offline speech model",
   "home.model.desc": "One-time download (~{{size}}). After that everything runs on your machine — no network, no API key.",
@@ -230,7 +230,7 @@ export const en: LocaleDict = {
 
   "settings.asr": "Speech recognition service",
   "settings.asrHint":
-    "SpeakType ships no recognition service of its own — it uses your account: sign in to Doubao and use its voice input once to auto-capture the app key, or enter one manually.",
+    "SpeakType ships no recognition service of its own — it uses your account: sign in to Doubao to auto-capture the app key (if it stays not configured, use Doubao's voice input once), or enter one manually.",
   "settings.asrStatus": "Status",
   "settings.asrReady": "Ready",
   "settings.asrNotReady": "Not configured",
@@ -420,7 +420,7 @@ export const en: LocaleDict = {
   "tray.quit": "Quit",
 
   "error.noAppKey":
-    "Speech recognition not configured: sign in to Doubao and use its voice input once, or enter an App Key in Settings",
+    "Speech recognition not configured: sign in to Doubao (use its voice input once if needed), or enter an App Key in Settings",
   "error.chatgptNotReady": "The ChatGPT page hasn't finished loading — retry shortly, or click “Sign in to ChatGPT” in Settings first",
   "error.chatgptNotLoggedIn": "Not signed in to ChatGPT: click “Sign in to ChatGPT” in Settings → Speech recognition",
   "error.chatgptBlocked": "ChatGPT refused this request (403): the endpoint is unavailable for your account or region, or was blocked by abuse protection. Switch to built-in offline recognition or a free SiliconFlow model.",
