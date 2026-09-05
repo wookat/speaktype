@@ -11,7 +11,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4.svg)](#-下载安装)
-[![Release](https://img.shields.io/badge/Release-v0.17.0-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v0.17.2-8b5cf6.svg)](https://github.com/wookat/speaktype/releases/latest)
 [![i18n](https://img.shields.io/badge/界面语言-5%20种-16a34a.svg)](#-国际化)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](CONTRIBUTING.md)
 
@@ -71,8 +71,8 @@ AI 润色同样接任意 OpenAI 兼容 Chat 端点（OpenAI / Google Gemini 的 
 
 | 平台 | 下载 | 状态 |
 |---|---|---|
-| Windows 10/11 x64 | [SpeakType-Setup-0.17.0.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-Setup-0.17.0.exe)（~98MB） | ✅ 稳定 |
-| Windows 绿色免安装 | [SpeakType-0.17.0-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0-portable.exe)（~87MB） | ✅ 稳定 |
+| Windows 10/11 x64 | [SpeakType-Setup-0.17.2.exe](https://github.com/wookat/speaktype/releases/download/v0.17.2/SpeakType-Setup-0.17.2.exe)（~98MB） | ✅ 稳定 |
+| Windows 绿色免安装 | [SpeakType-0.17.2-portable.exe](https://github.com/wookat/speaktype/releases/download/v0.17.2/SpeakType-0.17.2-portable.exe)（~87MB） | ✅ 稳定 |
 | Android（手机当麦克风） | [SpeakType-0.17.0.apk](https://github.com/wookat/speaktype/releases/download/v0.17.0/SpeakType-0.17.0.apk) | ✅ 可用 |
 | macOS Apple Silicon（macOS 15.5+） | [SpeakType-0.17.0-mac-arm64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.dmg)（~113MB）· [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-arm64.zip) | 🧪 预览版 — 未签名，见 [docs/macos.md](docs/macos.md) |
 | macOS Intel（macOS 15.5+） | [SpeakType-0.17.0-mac-x64.dmg](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.dmg)（~119MB）· [zip](https://github.com/wookat/speaktype/releases/download/v0.17.1-mac-preview/SpeakType-0.17.0-mac-x64.zip) | 🧪 预览版 — 交叉打包，未在 Intel 机器上实测 |

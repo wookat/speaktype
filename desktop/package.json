@@ -1,7 +1,7 @@
 {
   "name": "speaktype-desktop",
   "productName": "SpeakType",
-  "version": "0.17.0",
+  "version": "0.17.2",
   "private": true,
   "description": "Hold a hotkey to speak, release to drop text at the cursor of any Windows app",
   "author": "SpeakType",
