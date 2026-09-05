@@ -132,6 +132,8 @@ export interface LocalModelStatus {
   /** 磁盘上已有可续传的半途数据时的完成百分比（0-99），无残片时不设 */
   partial?: number;
   error?: string;
+  /** 另一个模型正在下载时设为其 id：下载串行，此模型的下载按钮应禁用并说明原因 */
+  busyModel?: string;
 }
 
 export interface HistoryItem {
@@ -182,6 +184,17 @@ export interface TranscribeState {
   error?: string;
 }
 
+/** 渲染进程请求主进程弹原生「另存为」并写入文本（历史/词典/转录导出） */
+export interface SaveTextRequest {
+  /** 对话框标题，跟随界面语言 */
+  title: string;
+  /** 默认文件名（含扩展名，扩展名同时用作类型过滤） */
+  fileName: string;
+  /** 类型过滤器显示名，如 "Markdown" */
+  filterName: string;
+  content: string;
+}
+
 export interface StatusPayload {
   state: RecordState;
   message?: string;
@@ -189,5 +202,7 @@ export interface StatusPayload {
   personaName: string;
   /** 本次录音命中按应用规则时，实际生效的人设名 */
   appPersonaName?: string;
+  /** 改写模式会话（F8 抓选区后开录）：悬浮条据此区分「改写」与普通听写/润色 */
+  rewrite?: boolean;
   hotkeyHold: string;
 }

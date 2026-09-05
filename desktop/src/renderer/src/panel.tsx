@@ -89,6 +89,11 @@ function Panel() {
       )}
       {(recording || working || status?.state === "error") && (
       <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#292929]/95 px-4 py-2 shadow-xl">
+        {(recording || working) && status?.rewrite && (
+          <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] text-amber-300">
+            {t("panel.rewriteBadge")}
+          </span>
+        )}
         {(recording || working) && status?.appPersonaName && (
           <span className="max-w-[120px] truncate rounded-full bg-violet-500/20 px-2 py-0.5 text-[11px] text-violet-300">
             {status.appPersonaName}
@@ -108,7 +113,11 @@ function Panel() {
         {working && (
           <span className="flex items-center gap-2 text-[13px] text-slate-300">
             <Loader2 size={16} className="animate-spin text-violet-400" />
-            {status?.state === "transcribing" ? t("panel.transcribing") : t("panel.polishing")}
+            {status?.state === "transcribing"
+              ? t("panel.transcribing")
+              : status?.rewrite
+                ? t("panel.rewriting")
+                : t("panel.polishing")}
           </span>
         )}
         {status?.state === "error" && (

@@ -51,11 +51,13 @@ function Home(props: {
         {titleAfter}
       </h1>
       <p className="mt-2 text-sm text-slate-500">
-        {props.settings.hotkeyToggle === props.settings.hotkeyHold ||
-        (props.settings.hotkeyRewrite !== "Off" &&
-          props.settings.hotkeyToggle === props.settings.hotkeyRewrite)
-          ? t("home.subtitleNoToggle")
-          : t("home.subtitle", { toggle: props.settings.hotkeyToggle })}
+        {!props.settings.autoPaste
+          ? t("home.subtitleHistoryOnly")
+          : props.settings.hotkeyToggle === props.settings.hotkeyHold ||
+              (props.settings.hotkeyRewrite !== "Off" &&
+                props.settings.hotkeyToggle === props.settings.hotkeyRewrite)
+            ? t("home.subtitleNoToggle")
+            : t("home.subtitle", { toggle: props.settings.hotkeyToggle })}
       </p>
 
       {needsModel && (
@@ -87,19 +89,32 @@ function Home(props: {
                 ))}
               </div>
             )}
+            {local?.busyModel && (
+              <div className="mt-2 text-xs text-indigo-500">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+            )}
             {local?.error && <div className="mt-1 text-sm text-red-500">{humanDownloadError(local.error, t)}</div>}
           </div>
-          <button
-            className="shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
-            disabled={local?.downloading}
-            onClick={() => void api.localModelDownload(localModel)}
-          >
-            {local?.downloading
-              ? `${Math.round(local.progress)}%`
-              : local?.partial != null
-                ? t("settings.localModelResume", { progress: String(local.partial) })
-                : t("home.model.button")}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-60"
+              disabled={local?.downloading || Boolean(local?.busyModel)}
+              onClick={() => void api.localModelDownload(localModel)}
+            >
+              {local?.downloading
+                ? `${Math.round(local.progress)}%`
+                : local?.partial != null
+                  ? t("settings.localModelResume", { progress: String(local.partial) })
+                  : t("home.model.button")}
+            </button>
+            {local?.downloading && (
+              <button
+                className="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm text-indigo-500 hover:bg-indigo-100"
+                onClick={() => void api.localModelCancelDownload()}
+              >
+                {t("common.cancel")}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -149,7 +164,7 @@ function Home(props: {
               t("home.steps.1"),
               t("home.steps.2"),
               t("home.steps.3", { key: props.settings.hotkeyHold }),
-              t("home.steps.4"),
+              t(props.settings.autoPaste ? "home.steps.4" : "home.steps.4HistoryOnly"),
             ].map((step, i) => (
               <li key={step} className="rounded-xl bg-slate-50 p-3">
                 <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-white">

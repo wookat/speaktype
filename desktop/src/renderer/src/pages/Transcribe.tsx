@@ -29,17 +29,6 @@ function clockTime(sec: number): string {
     : `${Math.floor(s / 60)}:${pad(s % 60)}`;
 }
 
-function saveText(content: string, filename: string, mime: string): void {
-  // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
-  const blob = new Blob(["\ufeff", content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 /** WAV（RIFF/WAVE）从头部直接读出时长，免去全量解码；非 WAV 或解析失败返回 null */
 async function wavDurationSeconds(file: File): Promise<number | null> {
   try {
@@ -131,12 +120,14 @@ function Transcribe(props: {
   // 主进程的 fileName 优先：切页重挂载后组件本地的 fileName 为空，任务却还在跑
   const shownFileName = state.fileName || fileName;
   const exportBase = shownFileName.replace(/\.[^.]+$/, "") || "transcript";
-  const exportTxt = () => saveText(`${allText}\n`, `${exportBase}.txt`, "text/plain;charset=utf-8");
+  const saveText = (content: string, fileName: string, filterName: string) =>
+    void api.saveTextFile({ title: t("common.exportTitle"), fileName, filterName, content });
+  const exportTxt = () => saveText(`${allText}\n`, `${exportBase}.txt`, "Text");
   const exportSrt = () => {
     const srt = state.segments
       .map((s, i) => `${i + 1}\n${srtTime(s.start)} --> ${srtTime(s.end)}\n${s.text}\n`)
       .join("\n");
-    saveText(srt, `${exportBase}.srt`, "text/plain;charset=utf-8");
+    saveText(srt, `${exportBase}.srt`, "SubRip");
   };
   const copyAll = () => {
     void navigator.clipboard.writeText(allText).then(() => {
@@ -159,18 +150,31 @@ function Transcribe(props: {
         <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <div className="flex items-center justify-between gap-3">
             <span>{t("transcribe.noModel", { model })}</span>
-            <button
-              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
-              disabled={Boolean(local?.downloading)}
-              onClick={() => void api.localModelDownload(model).then(setLocal)}
-            >
-              {local?.downloading
-                ? t("settings.localModelDownloading", { progress: String(local.progress) })
-                : local?.partial != null
-                  ? t("settings.localModelResume", { progress: String(local.partial) })
-                  : t("settings.localModelDownload")}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                disabled={Boolean(local?.downloading) || Boolean(local?.busyModel)}
+                onClick={() => void api.localModelDownload(model).then(setLocal)}
+              >
+                {local?.downloading
+                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  : local?.partial != null
+                    ? t("settings.localModelResume", { progress: String(local.partial) })
+                    : t("settings.localModelDownload")}
+              </button>
+              {local?.downloading && (
+                <button
+                  className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100"
+                  onClick={() => void api.localModelCancelDownload()}
+                >
+                  {t("common.cancel")}
+                </button>
+              )}
+            </div>
           </div>
+          {local?.busyModel && (
+            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+          )}
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
               <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />
@@ -287,7 +291,8 @@ function Transcribe(props: {
                 </span>
               )}
             </div>
-            <div className="flex shrink-0 gap-2">
+            {/* ml-auto：窄窗整组掉行后仍靠右，与宽窗布局一致 */}
+            <div className="ml-auto flex shrink-0 gap-2">
               <button
                 className="whitespace-nowrap rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
                 onClick={copyAll}

@@ -212,6 +212,13 @@ export class Dictation {
   private buffered: Int16Array[] = [];
   private busy = false;
   private pendingEnd: "stop" | "cancel" | null = null;
+  /**
+   * 上一句还在转写/落字时用户又按下了热键：排队而不是静默丢弃。
+   * 排队期间麦克风已开，到达的帧暂存 pendingFrames，上一句收尾后立即开新会话补喂；
+   * 若排队期间就松手（released），新会话建立后直接收尾转写
+   */
+  private pendingStart: { mode: "hold" | "toggle"; remote: boolean; released: boolean; at: number } | null = null;
+  private pendingFrames: Int16Array[] = [];
   private startedAt = 0;
   /** 本次录音起手时前台应用命中的人设；录完再读窗口就已经切走了，必须在按下时取 */
   private appPersonaId: string | null = null;
@@ -252,6 +259,8 @@ export class Dictation {
   private rewriteWin: string | null = null;
   /** 改写请求进行中（polishing 阶段）：Esc 取消由此中断 LLM 请求 */
   private rewriteAbort: AbortController | null = null;
+  /** 整个改写会话期间（录音→转写→改写→落字）为 true，回到空闲/出错时清零；供悬浮条标识模式 */
+  private rewriting = false;
   private allFrames: Int16Array[] = [];
   private lastFailed: {
     frames: Int16Array[];
@@ -273,6 +282,7 @@ export class Dictation {
       appPersonaName: this.appPersonaId
         ? localizePersona(findPersona(this.appPersonaId), translator()).name
         : undefined,
+      rewrite: this.rewriting || undefined,
       hotkeyHold: settings.hotkeyHold,
     };
   }
@@ -300,8 +310,10 @@ export class Dictation {
   private report(state: RecordState, message = ""): void {
     this.state = state;
     this.message = message;
-    if (state === "idle" || state === "error") this.releaseEscape();
-    else this.grabEscape();
+    if (state === "idle" || state === "error") {
+      this.releaseEscape();
+      this.rewriting = false;
+    } else this.grabEscape();
     this.deps.broadcast(this.status());
     if (state === "error") {
       // 可重试的失败多给些时间让用户读完提示并按键重试
@@ -356,6 +368,10 @@ export class Dictation {
     // 下一句起手时补喂。finalize 期间 session 已置空，这些帧若走 buffered 会在下一句
     // start 时被整批丢弃——这正是免按短停顿句头丢字（P3-2541）的根因
     if (!this.busy || this.finalizing) {
+      if (this.pendingStart) {
+        if (this.pendingFrames.length < MAX_BUFFERED_FRAMES) this.pendingFrames.push(frame);
+        return;
+      }
       if (this.handsFree && this.mode === "toggle") {
         this.handsFreeCarry.push(frame);
         this.handsFreeCarrySamples += frame.length;
@@ -431,7 +447,11 @@ export class Dictation {
    * 没选中文字或没配润色模型时直接提示，不进入录音。
    */
   async startRewrite(): Promise<void> {
-    if (this.busy) return;
+    if (this.busy) {
+      // 改写要在按下瞬间抓选区，不能像普通按住那样排队：上一句收尾中时明确提示稍候再按
+      if (this.finalizing) this.deps.showToast(t("toast.busy"), t("toast.busyBody"), undefined, 2500);
+      return;
+    }
     const settings = getSettings();
     if (!settings.polishBaseUrl) {
       this.deps.showToast(t("toast.rewriteNoModel"), t("toast.rewriteNoModelBody"));
@@ -445,24 +465,34 @@ export class Dictation {
     }
     this.rewriteTarget = selection;
     this.rewriteWin = foregroundWindowKey();
+    this.rewriting = true;
     await this.start("hold");
   }
 
   /** remote=true 时音频由手机端经 remotemic 推流，不开本机麦克风 */
   async start(mode: "hold" | "toggle" = "hold", remote = false): Promise<void> {
-    if (this.busy) return;
+    if (this.busy) {
+      this.queueStart(mode, remote);
+      return;
+    }
     if (this.state === "error" && (await this.retryLast())) return;
+    const queued = this.pendingStart;
+    this.pendingStart = null;
+    const carryFrames = this.pendingFrames;
+    this.pendingFrames = [];
     // 全新录音：丢弃上一次失败的重试上下文，成功后不得吞掉历史里的失败条目
     this.lastFailed = null;
     this.busy = true;
     this.finalizing = false;
     this.mode = mode;
     this.remoteSource = remote;
-    this.pendingEnd = null;
+    // 排队期间已松手：会话建立后立即按松手意图收尾
+    this.pendingEnd = queued?.released ? "stop" : null;
     this.partial = "";
     this.buffered = [];
     this.allFrames = [];
-    this.startedAt = Date.now();
+    // 排队接续的会话：录音时长从按下那一刻起算，否则排队期间已松手的短句会被 minRecordMs 判为误触
+    this.startedAt = queued?.at ?? Date.now();
     // 免按跨句：记下上一句句尾人声时刻，本句首个有声帧与它的差即句间停顿
     this.prevVoiceEndAt = this.handsFree && mode === "toggle" && this.handsFreeTyped ? this.lastVoiceAt : 0;
     this.lastVoiceAt = Date.now();
@@ -481,6 +511,10 @@ export class Dictation {
     } else {
       this.handsFreeCarry = [];
       this.handsFreeCarrySamples = 0;
+    }
+    if (queued) {
+      log.info(`dictation start: resumed queued ${queued.mode} (frames=${carryFrames.length}, released=${queued.released})`);
+      for (const frame of carryFrames) this.pushPcm(frame);
     }
 
     try {
@@ -515,6 +549,9 @@ export class Dictation {
       this.busy = false;
       this.pendingEnd = null;
       this.session = null;
+      // 改写意图随本次会话作废，不能残留到下一次普通听写
+      this.rewriteTarget = null;
+      this.rewriteWin = null;
       this.deps.recorder()?.webContents.send("recorder:stop");
       this.unmute();
       const message = error instanceof Error ? error.message : String(error);
@@ -536,6 +573,34 @@ export class Dictation {
       }
       this.report("error", humanizeAsrError(message));
     }
+  }
+
+  /**
+   * 上一句仍在收尾（转写/润色/落字）时又按下热键：记下意图并提前开麦，收尾后自动开新会话。
+   * 只在 hold 模式且非免按下排队——免按本身跨句连续；录音中/连接中重复按下属 key repeat，忽略。
+   * 改写键不排队：改写要在按下瞬间抓选区，延后再抓已不是用户当时的意图，改为明确提示稍候。
+   */
+  private queueStart(mode: "hold" | "toggle", remote: boolean): void {
+    if (this.pendingStart) return;
+    if (this.handsFree || mode !== "hold" || !this.finalizing) return;
+    this.pendingStart = { mode, remote, released: false, at: Date.now() };
+    this.pendingFrames = [];
+    log.info("dictation start: previous session still finalizing, queued");
+    if (!remote) this.deps.recorder()?.webContents.send("recorder:start", { deviceId: getSettings().micDeviceId });
+  }
+
+  /** 收尾结束后若有排队的按住：立刻开新会话（出错态不接续，让用户看到错误） */
+  private resumeQueued(): void {
+    const queued = this.pendingStart;
+    if (!queued) return;
+    if (this.busy) return;
+    if (this.state !== "idle") {
+      this.pendingStart = null;
+      this.pendingFrames = [];
+      if (!queued.remote) this.deps.recorder()?.webContents.send("recorder:stop");
+      return;
+    }
+    void this.start(queued.mode, queued.remote);
   }
 
   /** provider→会话的唯一入口：启动/重试/历史重跑都走这里，避免分支拷贝分叉 */
@@ -613,6 +678,11 @@ export class Dictation {
         return;
       }
     }
+    if (this.pendingStart) {
+      // 排队中的按住已松手：等上一句收尾、新会话建立后立即转写这段
+      this.pendingStart.released = true;
+      return;
+    }
     if (!this.busy) return;
     if (!this.session) {
       this.pendingEnd = "stop";
@@ -641,6 +711,13 @@ export class Dictation {
     }
     this.rewriteTarget = null;
     this.rewriteWin = null;
+    if (this.pendingStart) {
+      // 取消连排队的下一句一起作废；排队时提前开的麦克风一并关掉
+      const queued = this.pendingStart;
+      this.pendingStart = null;
+      this.pendingFrames = [];
+      if (!queued.remote) this.deps.recorder()?.webContents.send("recorder:stop");
+    }
     if (!this.busy) {
       // 免按句间空档取消：麦克风跨句保持着，一样要停麦解除静音
       if (wasHandsFree) {
@@ -825,6 +902,15 @@ export class Dictation {
   }
 
   private async finalize(): Promise<void> {
+    try {
+      await this.finalizeSession();
+    } finally {
+      this.finalizing = false;
+      this.resumeQueued();
+    }
+  }
+
+  private async finalizeSession(): Promise<void> {
     const session = this.session;
     if (!session) return;
     this.session = null;

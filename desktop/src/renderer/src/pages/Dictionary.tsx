@@ -44,16 +44,14 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
 
   const remove = (word: string) => props.update({ hotwords: words.filter((w) => w !== word) });
   // 导出一行一词的 .txt，与粘贴导入天然 round-trip
-  const exportWords = () => {
-    // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码；导入侧 trim() 会剥掉 \ufeff，round-trip 不受影响
-    const blob = new Blob(["\ufeff", `${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `speaktype-dictionary-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // 主进程写入时带 UTF-8 BOM；导入侧 trim() 会剥掉 \ufeff，round-trip 不受影响
+  const exportWords = () =>
+    void api.saveTextFile({
+      title: t("common.exportTitle"),
+      fileName: `speaktype-dictionary-${new Date().toISOString().slice(0, 10)}.txt`,
+      filterName: "Text",
+      content: `${words.join("\n")}\n`,
+    });
   // 与 History 搜索同口径：搜索键与热词都做简繁归一，繁体关键词可命中简体热词，反之亦然
   const q = toSimplified(query.trim().toLowerCase());
   const filtered = q ? words.filter((w) => toSimplified(w.toLowerCase()).includes(q)) : words;

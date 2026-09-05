@@ -27,6 +27,12 @@ function History(props: {
   const [retrying, setRetrying] = useState("");
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [copiedId, setCopiedId] = useState("");
+  useEffect(() => {
+    if (!copiedId) return;
+    const timer = setTimeout(() => setCopiedId(""), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   // 本地断句/标点后几乎每条 raw≠text，常显 diff 是满屏红字噪音；收进“查看原文”按需展开
@@ -100,22 +106,18 @@ function History(props: {
       props.setHistory(await api.history());
     });
   };
-  // 导出当前筛选结果为 Markdown（失败条目除外），浏览器下载通道落到本地文件
+  // 导出当前筛选结果为 Markdown（失败条目除外），原生「另存为」落到本地文件
   const exportHistory = (items: HistoryItem[]): void => {
     const lines = items
       .filter((h) => h.status !== "failed")
       // 多行文本续行补两空格缩进，保持在同一列表项内，不会被解析成新的顶级条目
       .map((h) => `- ${new Date(h.at).toLocaleString(props.settings.uiLanguage)} · ${personaDisplayName(h.personaId, h.personaName, t)}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
-    // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
-    const blob = new Blob(["\ufeff", `# SpeakType History\n\n${lines.join("\n\n")}\n`], {
-      type: "text/markdown;charset=utf-8",
+    void api.saveTextFile({
+      title: t("common.exportTitle"),
+      fileName: `speaktype-history-${new Date().toISOString().slice(0, 10)}.md`,
+      filterName: "Markdown",
+      content: `# SpeakType History\n\n${lines.join("\n\n")}\n`,
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `speaktype-history-${new Date().toISOString().slice(0, 10)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
   // 搜索键与被搜文本都做简繁归一：繁体关键词可命中简体条目，反之亦然
   const q = toSimplified(query.trim().toLowerCase());
@@ -232,8 +234,11 @@ function History(props: {
                     </span>
                     {/* 不用 hover 门控：远程桌面/触屏 (hover:none) 下 group-hover 永不触发 */}
                     <span className="flex shrink-0 gap-3 whitespace-nowrap">
-                      <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
-                        {t("history.copy")}
+                      <button
+                        className={copiedId === item.id ? "text-emerald-600" : "hover:text-slate-600"}
+                        onClick={() => void navigator.clipboard.writeText(item.text).then(() => setCopiedId(item.id))}
+                      >
+                        {copiedId === item.id ? t("history.copied") : t("history.copy")}
                       </button>
                       {item.status !== "failed" && (
                         <button
