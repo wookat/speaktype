@@ -1,5 +1,6 @@
+import log from "electron-log/main.js";
 import type { Settings } from "../shared/types";
-import { toSimplified } from "../shared/zhNorm";
+import { simplifyWhisperOutput } from "../shared/zhNorm";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
 import { transcribeViaChatgpt } from "./chatgpt";
@@ -258,9 +259,21 @@ export function startLocalAsrSession(
         throw new Error(`Local ASR HTTP ${res.status} ${body}`);
       }
       const data = (await res.json()) as TranscriptionResponse;
-      const text = (data.text ?? "").trim();
-      // whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）
-      return settings.localSimplified !== false ? toSimplified(text) : text;
+      return finalizeWhisperText((data.text ?? "").trim(), settings);
     },
   };
+}
+
+/**
+ * whisper 中文常出繁体；仅本地通道落字前做繁→简（云端通道本就输出简体，不套以免误伤专名）。
+ * 真改了字时记 debug 日志（只记计数不记原文），线上“日文被改成简体”一类回归才可追溯。
+ */
+export function finalizeWhisperText(text: string, settings: Settings): string {
+  const out = simplifyWhisperOutput(text, settings.language, settings.localSimplified !== false);
+  if (out !== text) {
+    let changed = 0;
+    for (let i = 0; i < text.length; i++) if (text[i] !== out[i]) changed++;
+    log.debug(`whisper t2cn applied (language=${settings.language || "auto"}): ${changed}/${text.length} chars changed`);
+  }
+  return out;
 }

@@ -193,6 +193,8 @@ export const zhCN = {
   "download.errNetwork": "下载失败：网络连不上，请检查网络后重试。",
   "download.errStorage": "下载失败：无法写入模型目录，请检查磁盘空间与文件夹权限。",
   "download.errChecksum": "下载失败：文件校验未通过，请重试。",
+  "download.errNotFound": "下载失败：所有下载源上都找不到该文件，请更新到最新版本后重试。",
+  "download.errServer": "下载失败：下载服务器暂时不可用（服务端错误），请稍后重试。",
   "settings.themeLight": "浅色",
   "settings.themeDark": "深色",
   "settings.followSystem": "跟随系统",
@@ -303,7 +305,7 @@ export const zhCN = {
   "settings.itn": "数字规范化（中文）",
   "settings.itnHint": "把口语数字和时间转成书面数字：三点半 → 3:30，两千五 → 2500，百分之五 → 5%。",
   "settings.localSimplified": "强制简体输出",
-  "settings.localSimplifiedHint": "whisper 中文识别常出繁体，开启后落字前自动繁→简（仅对离线通道生效）。",
+  "settings.localSimplifiedHint": "whisper 中文识别常出繁体，开启后落字前自动繁→简。仅识别语言为中文/粤语或自动检测时生效；日/韩/英文原样保留。",
   "settings.asrOpenaiHint":
     "任意兼容 /audio/transcriptions 的服务都能接（OpenAI / SiliconFlow / Groq / 本地 Whisper 等），密钥只存本机。整句识别，录音中不显示实时文字。",
   "settings.asrBaseUrl": "Base URL",

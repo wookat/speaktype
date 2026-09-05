@@ -75,21 +75,7 @@ function Transcribe(props: {
   const [localError, setLocalError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
-  // 完成后短暂保留进度行占位，避免下方导出按钮瞬间上移到 Cancel 原位被误点
-  const [settling, setSettling] = useState(false);
-  const wasRunning = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (wasRunning.current && !state.running) {
-      wasRunning.current = false;
-      setSettling(true);
-      const timer = setTimeout(() => setSettling(false), 600);
-      return () => clearTimeout(timer);
-    }
-    wasRunning.current = state.running;
-    return undefined;
-  }, [state.running]);
 
   useEffect(() => {
     // 切页回来接上进行中的任务
@@ -255,13 +241,14 @@ function Transcribe(props: {
         />
       </div>
 
-      {(state.running || settling) && (
+      {/* 进度行在任务结束后保留（进度定格、取消键隐身占位）：下方导出行不上移到 Cancel 原位，不会被误点 */}
+      {(state.running || state.percent > 0) && (
         <div className="mt-3 flex items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${state.percent}%` }} />
           </div>
           <button
-            className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 disabled:opacity-40"
+            className={`shrink-0 whitespace-nowrap rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 ${state.running ? "" : "invisible"}`}
             disabled={!state.running}
             onClick={() => void api.transcribeCancel()}
           >
@@ -282,26 +269,27 @@ function Transcribe(props: {
 
       {state.segments.length > 0 && (
         <>
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm font-medium">
-              {t("transcribe.result", { count: state.segments.length })}
+          {/* 头部允许整体换行：窄窗下导出按钮组整组落到下一行，徽标/时间各自不断字，按钮不被压扁 */}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
+              <span className="whitespace-nowrap">{t("transcribe.result", { count: state.segments.length })}</span>
               {state.fileName && (
-                <span className="ml-2 font-normal text-slate-400">{state.fileName}</span>
+                <span className="truncate font-normal text-slate-400">{state.fileName}</span>
               )}
               {!state.running && state.cancelled && (
-                <span className="ml-2 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-normal text-amber-700">
+                <span className="whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-normal text-amber-700">
                   {t("transcribe.cancelled", { percent: state.percent })}
                 </span>
               )}
               {!state.running && state.finishedAt && (
-                <span className="ml-2 font-normal text-slate-400">
+                <span className="whitespace-nowrap font-normal text-slate-400">
                   · {new Date(state.finishedAt).toLocaleString(props.settings.uiLanguage)}
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2">
               <button
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                className="whitespace-nowrap rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
                 onClick={copyAll}
               >
                 {copied ? t("transcribe.copied") : t("transcribe.copy")}

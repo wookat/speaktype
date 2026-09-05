@@ -199,6 +199,8 @@ export const ko: LocaleDict = {
   "download.errNetwork": "다운로드 실패: 네트워크에 연결할 수 없습니다. 연결을 확인한 후 다시 시도하세요.",
   "download.errStorage": "다운로드 실패: 모델 폴더에 쓸 수 없습니다. 디스크 공간과 폴더 권한을 확인하세요.",
   "download.errChecksum": "다운로드 실패: 파일 무결성 검사를 통과하지 못했습니다. 다시 시도하세요.",
+  "download.errNotFound": "다운로드 실패: 모든 다운로드 소스에서 파일을 찾을 수 없습니다. 최신 버전으로 업데이트한 뒤 다시 시도하세요.",
+  "download.errServer": "다운로드 실패: 다운로드 서버를 일시적으로 사용할 수 없습니다 (서버 오류). 잠시 후 다시 시도하세요.",
   "settings.themeLight": "라이트",
   "settings.themeDark": "다크",
   "settings.followSystem": "시스템 따르기",
@@ -311,7 +313,7 @@ export const ko: LocaleDict = {
   "settings.itn": "숫자 정규화 (중국어)",
   "settings.itnHint": "중국어 구어체 숫자와 시간을 숫자 표기로 변환: 三点半 → 3:30, 两千五 → 2500, 百分之五 → 5%.",
   "settings.localSimplified": "간체자 강제 변환",
-  "settings.localSimplifiedHint": "Whisper 는 번체자를 출력하는 경우가 많아 입력 전에 간체자로 변환합니다 (오프라인 채널만 해당).",
+  "settings.localSimplifiedHint": "Whisper 는 번체자를 출력하는 경우가 많아 입력 전에 간체자로 변환합니다. 인식 언어가 중국어/광둥어 또는 자동일 때만 적용되며 일본어·한국어·영어는 그대로 유지됩니다.",
   "settings.asrOpenaiHint":
     "/audio/transcriptions 호환 서비스라면 무엇이든 사용 가능 (OpenAI / SiliconFlow / Groq / 로컬 Whisper). 키는 이 PC 에만 저장. 발화 전체를 인식하므로 녹음 중 실시간 자막은 없습니다.",
   "settings.asrBaseUrl": "Base URL",

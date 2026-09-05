@@ -6,6 +6,7 @@ import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { Settings } from "../../../../shared/types";
 import { isSherpaModel } from "../../../../shared/localModels";
+import { simplifyApplies } from "../../../../shared/zhNorm";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
@@ -178,7 +179,8 @@ function VoiceTab(props: {
             )}
             {local?.error && <span className="text-sm text-red-500">{humanDownloadError(local.error, t)}</span>}
           </div>
-          {!parakeetActive && (
+          {/* 只对 whisper 中文/粤语/自动识别有效：sherpa 系不过繁→简，日韩英也不转，无效时不展示避免误导 */}
+          {!isSherpaModel(localModel) && simplifyApplies(s.language) && (
             <Toggle
               label={t("settings.localSimplified")}
               hint={t("settings.localSimplifiedHint")}

@@ -5,7 +5,9 @@ export function humanDownloadError(message: string, t: Translator): string {
   if (/sha256 mismatch|incomplete download/i.test(message)) return t("download.errChecksum");
   if (/EACCES|EPERM|EBUSY|ENOSPC|EROFS|EMFILE|permission denied|no space left/i.test(message))
     return t("download.errStorage");
-  if (/fetch failed|HTTP \d{3}|too many redirects|incomplete: \d|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|network/i.test(message))
+  if (/HTTP 404/.test(message)) return t("download.errNotFound");
+  if (/HTTP 5\d\d/.test(message)) return t("download.errServer");
+  if (/fetch failed|HTTP \d{3}|too many redirects|stalled|incomplete: \d|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|network|abort/i.test(message))
     return t("download.errNetwork");
   return message;
 }
