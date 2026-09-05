@@ -199,6 +199,8 @@ export const en: LocaleDict = {
   "download.errNetwork": "Download failed: network error — check your connection and try again.",
   "download.errStorage": "Download failed: cannot write to the models folder — check disk space and file permissions.",
   "download.errChecksum": "Download failed: file integrity check did not pass — please retry.",
+  "download.errNotFound": "Download failed: the file is missing on every download source - please update to the latest version and retry.",
+  "download.errServer": "Download failed: download servers are temporarily unavailable (server error) - please try again later.",
   "settings.themeLight": "Light",
   "settings.themeDark": "Dark",
   "settings.followSystem": "Follow system",
@@ -311,7 +313,7 @@ export const en: LocaleDict = {
   "settings.itn": "Format spoken numbers (Chinese)",
   "settings.itnHint": "Converts spoken Chinese numbers and times to digits: \u4e09\u70b9\u534a \u2192 3:30, \u4e24\u5343\u4e94 \u2192 2500, \u767e\u5206\u4e4b\u4e94 \u2192 5%.",
   "settings.localSimplified": "Force Simplified Chinese",
-  "settings.localSimplifiedHint": "Whisper often outputs Traditional Chinese; converts to Simplified before typing (offline channel only).",
+  "settings.localSimplifiedHint": "Whisper often outputs Traditional Chinese; converts to Simplified before typing. Applies only when the recognition language is Chinese/Cantonese or Auto; Japanese/Korean/English are left untouched.",
   "settings.asrOpenaiHint":
     "Any service compatible with /audio/transcriptions works (OpenAI / SiliconFlow / Groq / local Whisper). Keys stay on this machine. Whole-utterance recognition — no live text while recording.",
   "settings.asrBaseUrl": "Base URL",

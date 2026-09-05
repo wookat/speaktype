@@ -11,6 +11,30 @@ import log from "electron-log";
 
 const GH_RELEASE_BASE = "https://github.com/wookat/speaktype/releases/download/models-v1/";
 
+/** 响应头或正文连续无数据的上限：半开连接（服务端接了 TCP 不应答）不会自己报错，要靠它落下一源 */
+const STALL_TIMEOUT_MS = 30_000;
+
+/** 空闲超时守卫：每收到一块数据重新计时，连续 STALL_TIMEOUT_MS 无数据则 abort 整个请求 */
+function stallGuard(host: string): { signal: AbortSignal; touch: () => void; clear: () => void } {
+  const controller = new AbortController();
+  let timer: NodeJS.Timeout | null = null;
+  const touch = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(
+      () => controller.abort(new Error(`stalled: no data for ${STALL_TIMEOUT_MS / 1000}s (${host})`)),
+      STALL_TIMEOUT_MS,
+    );
+  };
+  touch();
+  return {
+    signal: controller.signal,
+    touch,
+    clear: () => {
+      if (timer) clearTimeout(timer);
+    },
+  };
+}
+
 /** models-v1 自托管资产的 sha256 清单（与上游 HF LFS oid 逐一核对）：GH 直链没有
 X-Linked-ETag，第三源恰是前两源都挂的兜底场景，更需要完整性保护 */
 const GH_ASSET_SHA256: Record<string, string> = {
@@ -76,11 +100,12 @@ function sha256FromHeaders(headers: Headers): string {
 async function fetchFollow(
   url: string,
   headers: Record<string, string>,
+  signal: AbortSignal,
 ): Promise<{ res: Response; linkedSha256: string }> {
   let current = url;
   let linkedSha256 = "";
   for (let hop = 0; hop < 8; hop++) {
-    const res = await fetch(current, { headers, redirect: "manual" });
+    const res = await fetch(current, { headers, redirect: "manual", signal });
     if (res.status >= 300 && res.status < 400) {
       linkedSha256 ||= sha256FromHeaders(res.headers);
       const location = res.headers.get("location");
@@ -108,7 +133,9 @@ async function hashFile(path: string): Promise<string> {
 
 /**
  * 从单个 URL 下载到 dest（内部）：
- * - .part + .part.json 元数据匹配（同 etag）时发 Range 续传，服务端不支持（200）则重下；
+ * - .part + .part.json 元数据存在时发 Range 续传（同一 dest 的各源是同一文件，换源也续；etag 不一致才重下），
+ *   服务端不支持（200）则重下；
+ * - 响应头/正文连续 STALL_TIMEOUT_MS 无数据则中止，交给上层换源；
  * - 边下边算 sha256，结束后与 HF ETag 比对，不匹配删残片抛错；
  * - 网络中断保留 .part 供下次续传，只有校验失败才删。
  */
@@ -124,7 +151,7 @@ async function downloadFromUrl(
   let offset = 0;
   const meta = existsSync(part) ? readMeta(metaPath) : null;
   const headers: Record<string, string> = {};
-  if (meta && meta.url === url) {
+  if (meta) {
     offset = statSync(part).size;
     // 已下满但在校验/改名前被杀：直接本地收尾，不发 Range（服务端会回 416 被误判源失败）
     if (meta.total > 0 && offset >= meta.total) {
@@ -142,14 +169,29 @@ async function downloadFromUrl(
     }
   }
 
-  const { res, linkedSha256 } = await fetchFollow(url, headers);
-  const expected = linkedSha256 || knownSha256(url);
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
+  const guard = stallGuard(new URL(url).host);
+  let res: Response;
+  let linkedSha256: string;
+  try {
+    ({ res, linkedSha256 } = await fetchFollow(url, headers, guard.signal));
+  } catch (error) {
+    guard.clear();
+    throw error;
+  }
+  if (!res.ok || !res.body) {
+    guard.clear();
+    await res.body?.cancel().catch(() => {});
+    throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
+  }
 
   const resumed = res.status === 206 && offset > 0;
   if (!resumed) offset = 0;
+  // 换源续传时新源可能不带校验值，沿用首源记在元数据里的期望值，续传结果仍能整体校验
+  const expected = linkedSha256 || knownSha256(url) || (resumed ? meta?.etag || "" : "");
   if (resumed && meta && expected && meta.etag && meta.etag !== expected) {
     // 服务端文件已变化，续传无意义：从头重下
+    guard.clear();
+    await res.body.cancel().catch(() => {});
     rmSync(part, { force: true });
     rmSync(metaPath, { force: true });
     return downloadFromUrl(url, dest, onProgress);
@@ -169,6 +211,7 @@ async function downloadFromUrl(
     for (;;) {
       const { done, value } = await Promise.race([reader.read(), writeFailed]);
       if (done) break;
+      guard.touch();
       const buf = Buffer.from(value);
       got += buf.length;
       if (!out.write(buf)) {
@@ -176,12 +219,14 @@ async function downloadFromUrl(
       }
       onProgress?.(got, total);
     }
+    guard.clear();
     await Promise.race([
       new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve()))),
       writeFailed,
     ]);
   } catch (error) {
-    // 网络中断 / 磁盘写满：保留 .part 与元数据（已落盘前缀仍有效），下次续传
+    // 网络中断 / 停滞超时 / 磁盘写满：保留 .part 与元数据（已落盘前缀仍有效），下次续传
+    guard.clear();
     out.destroy();
     reader.cancel().catch(() => {});
     throw error;
@@ -206,7 +251,10 @@ export function partialProgress(dest: string): { got: number; total: number } | 
   if (!existsSync(part)) return null;
   const meta = readMeta(`${part}.json`);
   if (!meta || !Number.isFinite(meta.total) || meta.total <= 0) return null;
-  return { got: Math.min(statSync(part).size, meta.total), total: meta.total };
+  const got = statSync(part).size;
+  // 残片比元数据总长还大：元数据与文件已不对应，下次开始会丢弃重下，不能当“快下完了”展示
+  if (got > meta.total) return null;
+  return { got, total: meta.total };
 }
 
 /** 本机存储类错误：换源重试无意义，且对用户最可操作，报错时应优先选它 */
@@ -214,24 +262,29 @@ function isStorageError(error: unknown): boolean {
   return /EACCES|EPERM|EBUSY|ENOSPC|EROFS|EMFILE|permission denied|no space left/i.test(String(error));
 }
 
-/** 下载单个文件到 dest：依次尝试 sources 里的完整 URL；全部失败时抛最可操作的错误（存储类优先，否则最后一个） */
+/**
+ * 下载单个文件到 dest：依次尝试 sources 里的完整 URL；全部失败时抛最可操作的错误：
+ * 存储类优先；其次是非 404 的最后一个（某源缺资产是该源的问题，不该盖住其他源的网络/服务端错误）；
+ * 全部 404 才报「文件不存在」。
+ */
 export async function downloadFile(
   sources: string[],
   dest: string,
   onProgress?: (got: number, total: number) => void,
 ): Promise<void> {
-  let lastError: unknown = null;
+  const errors: Error[] = [];
   for (const url of sources) {
     try {
       await downloadFromUrl(url, dest, onProgress);
       return;
     } catch (error) {
       log.warn(`download source failed: ${url}`, error);
-      if (isStorageError(error)) throw error instanceof Error ? error : new Error(String(error));
-      lastError = error;
+      const err = error instanceof Error ? error : new Error(String(error));
+      if (isStorageError(err)) throw err;
+      errors.push(err);
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw errors.filter((e) => !/HTTP 404/.test(e.message)).at(-1) ?? errors.at(-1) ?? new Error("no sources");
 }
 
 /** 下载一组文件（已存在的跳过）；全部文件带 size 时总进度按字节加权，否则按文件个数均分 */

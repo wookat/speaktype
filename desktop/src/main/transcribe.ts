@@ -4,8 +4,7 @@ import { join } from "node:path";
 import { app } from "electron";
 import log from "electron-log/main.js";
 import type { Settings, TranscribeSegment, TranscribeState } from "../shared/types";
-import { toSimplified } from "../shared/zhNorm";
-import { pcmToWav } from "./asr";
+import { finalizeWhisperText, pcmToWav } from "./asr";
 import { correctHotwords } from "./hotwords";
 import { t } from "./i18n";
 import { ensureLocalServer, isSherpaModel, transcribeSherpa } from "./localasr";
@@ -236,8 +235,7 @@ async function transcribeSlice(
   const res = await fetch(url, { method: "POST", body: form });
   if (!res.ok) throw new Error(`Local ASR HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
   const data = (await res.json()) as { text?: string };
-  const text = (data.text ?? "").trim();
-  return settings.localSimplified !== false ? toSimplified(text) : text;
+  return finalizeWhisperText((data.text ?? "").trim(), settings);
 }
 
 /** 转录一整个文件的采样（16k mono）。进度和分段结果通过 onTranscribeState 推送 */

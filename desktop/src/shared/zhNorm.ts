@@ -10,3 +10,20 @@ export function toSimplified(text: string): string {
   if (!t2cn) t2cn = Converter({ from: "t", to: "cn" });
   return t2cn(text);
 }
+
+const KANA_HANGUL_RE = /[\u3040-\u30ff\u31f0-\u31ff\u1100-\u11ff\uac00-\ud7af]/;
+
+/** 「强制简体」是否对当前识别语言有意义：只有中文/粤语或自动检测时才可能出繁体中文 */
+export function simplifyApplies(language: string): boolean {
+  return language === "zh" || language === "yue" || language === "auto" || !language;
+}
+
+/**
+ * whisper 本地通道的繁→简：日文汉字与繁体中文共用大量码位（東/園/図…），t2cn 全表会把日文改成简体中文，
+ * 所以只在识别语言为中文/粤语时转换；自动检测下含假名/谚文的文本视为非中文不转。
+ */
+export function simplifyWhisperOutput(text: string, language: string, enabled: boolean): string {
+  if (!enabled || !simplifyApplies(language)) return text;
+  if ((language === "auto" || !language) && KANA_HANGUL_RE.test(text)) return text;
+  return toSimplified(text);
+}

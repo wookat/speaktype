@@ -145,8 +145,9 @@ function History(props: {
     <div className="mx-auto max-w-3xl">
       <div className="flex items-center justify-between gap-4">
         <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold">{t("history.title")}</h1>
+        {/* 清空确认态接管整条工具栏（筛选/搜索/导出暂隐）：窄窗下确认文案不折行、搜索框不被压缩 */}
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-2">
-          {sourceKinds > 1 && (
+          {sourceKinds > 1 && !confirmClear && (
             <select
               className="shrink-0 rounded-xl border border-slate-200 px-2 py-1.5 text-sm text-slate-500"
               value={sourceFilter}
@@ -158,7 +159,7 @@ function History(props: {
               {hasFileEntries && <option value="file">{t("history.filterFile")}</option>}
             </select>
           )}
-          {props.history.length > 0 && (
+          {props.history.length > 0 && !confirmClear && (
             <input
               className="w-40 min-w-0 rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
               placeholder={t("history.search")}

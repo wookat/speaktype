@@ -10,6 +10,8 @@ import type { AppPersonaRule, HistoryItem, Persona, Settings, Stats } from "../s
 // 系统语言决定默认本地模型：中日韩粵用 SenseVoice；英语/欧洲语系用 Parakeet（这些语言准确率更高）。只影响全新用户默认值
 const SYS_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
 const CJK_LOCALE = /^(zh|ja|ko|yue)/.test(SYS_LOCALE);
+// 繁体区（台港澳 / Hant）默认不强制简体，否则 whisper 用户的繁体输出会被改写
+const HANT_LOCALE = /^zh-(hant|tw|hk|mo)/.test(SYS_LOCALE);
 
 export const DEFAULT_SETTINGS: Settings = {
   // Alt+Space 是 Windows 系统菜单键，会让目标窗口进入菜单模态吃掉 Ctrl+V，默认避开
@@ -47,7 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   asrApiKey: "",
   asrModel: "",
   localModel: CJK_LOCALE ? "sensevoice-small" : "parakeet-tdt-0.6b-v3",
-  localSimplified: true,
+  localSimplified: !HANT_LOCALE,
   enhancedVad: false,
   enhancedPunct: false,
   itn: true,
