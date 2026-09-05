@@ -369,7 +369,10 @@ export class Dictation {
     // start 时被整批丢弃——这正是免按短停顿句头丢字（P3-2541）的根因
     if (!this.busy || this.finalizing) {
       if (this.pendingStart) {
-        if (this.pendingFrames.length < MAX_BUFFERED_FRAMES) this.pendingFrames.push(frame);
+        // 排队的按住已松手后到达的帧不属于这一句，丢弃；否则松手后说的话会被并进排队句
+        if (!this.pendingStart.released && this.pendingFrames.length < MAX_BUFFERED_FRAMES) {
+          this.pendingFrames.push(frame);
+        }
         return;
       }
       if (this.handsFree && this.mode === "toggle") {
