@@ -19,7 +19,7 @@ import { t } from "./i18n";
 
 const PORT = 18717;
 
-export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
+export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel, whisperLanguage } from "../shared/localModels";
 
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
@@ -84,6 +84,9 @@ function serverExe(): string {
 let proc: ChildProcess | null = null;
 let procModel = "";
 let ready: Promise<void> | null = null;
+// whisper-server 每次推理都往 stderr 刷十几行计时信息，只留最近一段，异常退出时一次性落日志
+const STDERR_TAIL = 30;
+let stderrTail: string[] = [];
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
@@ -388,13 +391,23 @@ export function stopLocalServer(): void {
     proc.kill();
     proc = null;
     ready = null;
+    stderrTail = [];
     log.info("local whisper-server stopped");
   }
 }
 
+function flushStderrTail(reason: string): void {
+  if (stderrTail.length === 0) return;
+  log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
+  stderrTail = [];
+}
+
 async function waitHealthy(): Promise<void> {
   for (let i = 0; i < 120; i++) {
-    if (!proc) throw new Error(t("error.localServerFailed"));
+    if (!proc) {
+      flushStderrTail("exited before ready");
+      throw new Error(t("error.localServerFailed"));
+    }
     try {
       await fetch(`http://127.0.0.1:${PORT}/`, { method: "GET" });
       return;
@@ -402,6 +415,7 @@ async function waitHealthy(): Promise<void> {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
+  flushStderrTail("not ready after 60s");
   throw new Error("whisper-server did not become ready");
 }
 
@@ -419,13 +433,23 @@ export async function ensureLocalServer(model: string): Promise<string> {
     const child = spawn(
       exe,
       ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto", "--prompt", "以下是普通话的句子。"],
-      { stdio: "ignore", windowsHide: true },
+      { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
     );
     proc = child;
     procModel = model;
+    stderrTail = [];
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk: string) => {
+      for (const line of chunk.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        stderrTail.push(line);
+        if (stderrTail.length > STDERR_TAIL) stderrTail.shift();
+      }
+    });
     child.on("exit", (code) => {
       if (proc === child) {
         log.warn(`local whisper-server exited (${code})`);
+        flushStderrTail(`exit ${code}`);
         proc = null;
         ready = null;
       }

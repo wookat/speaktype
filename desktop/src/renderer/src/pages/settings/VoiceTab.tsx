@@ -5,9 +5,10 @@ import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { Settings } from "../../../../shared/types";
-import { isSherpaModel } from "../../../../shared/localModels";
+import { isSherpaModel, supportsCantonese } from "../../../../shared/localModels";
 import { simplifyApplies } from "../../../../shared/zhNorm";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
+import { useConfirm } from "../../lib/useConfirm";
 import { EnhancedPunct } from "../../components/EnhancedPunct";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
@@ -27,20 +28,18 @@ function VoiceTab(props: {
   const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
   const localModel = s.localModel || "base-q5_1";
   const parakeetActive = s.asrProvider === "local" && localModel === "parakeet-tdt-0.6b-v3";
+  // whisper 小模型选粤语会被主进程降为普通话解码：选项禁止新选，已选中的旧值给提示
+  const yueUnsupported = s.asrProvider === "local" && !parakeetActive && !supportsCantonese(localModel);
   const [local, setLocal] = useLocalModelStatus(localModel);
 
   useEffect(() => {
     void api.localModels().then(setLocalModels);
   }, []);
 
-  // 删除模型是百 MB 级不可逆操作：两步确认，几秒不点自动复位
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  useEffect(() => {
-    if (!confirmDelete) return;
-    const timer = setTimeout(() => setConfirmDelete(false), 4000);
-    return () => clearTimeout(timer);
-  }, [confirmDelete]);
-  useEffect(() => setConfirmDelete(false), [localModel]);
+  // 删除模型是百 MB 级不可逆操作：两步确认
+  const del = useConfirm();
+  const confirmDelete = del.armed === true;
+  useEffect(() => del.disarm(), [localModel, del.disarm]);
 
   const [chatgptReady, setChatgptReady] = useState(false);
   const [chatgptDetail, setChatgptDetail] = useState("");
@@ -172,12 +171,7 @@ function VoiceTab(props: {
                     ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
                     : "border-slate-200 text-slate-500 hover:bg-slate-50"
                 }`}
-                onClick={() => {
-                  if (confirmDelete) {
-                    setConfirmDelete(false);
-                    void api.localModelDelete(localModel).then(setLocal);
-                  } else setConfirmDelete(true);
-                }}
+                onClick={() => del.press(true, () => void api.localModelDelete(localModel).then(setLocal))}
               >
                 {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
                 <span className="relative inline-block">
@@ -315,7 +309,13 @@ function VoiceTab(props: {
       )}
       <Row
         label={t("settings.asrLanguage")}
-        hint={parakeetActive ? t("settings.asrLanguageParakeetHint") : undefined}
+        hint={
+          parakeetActive
+            ? t("settings.asrLanguageParakeetHint")
+            : yueUnsupported && s.language === "yue"
+              ? t("settings.asrLanguageYueWhisperHint")
+              : undefined
+        }
       >
         {parakeetActive ? (
           // Parakeet 自带语言检测且不吃 language 设置：禁用态显示其真实语义而非历史选中值（如「中文」会与 hint 矛盾）
@@ -333,7 +333,7 @@ function VoiceTab(props: {
           <option value="en">English</option>
           <option value="ja">日本語 Japanese</option>
           <option value="ko">한국어 Korean</option>
-          <option value="yue">粤语 Cantonese</option>
+          <option value="yue" disabled={yueUnsupported}>粤语 Cantonese</option>
         </select>
         )}
       </Row>

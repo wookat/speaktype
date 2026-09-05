@@ -105,7 +105,7 @@ export default function App() {
   const localized = personas.map((p) => localizePersona(p, t));
 
   const update = (patch: Partial<Settings>) => {
-    setSettings({ ...settings, ...patch });
+    setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
     void api.updateSettings(patch);
   };
 
