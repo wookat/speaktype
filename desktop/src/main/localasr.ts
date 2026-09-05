@@ -8,7 +8,7 @@ import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
-import { downloadFiles, hfSources, partialProgress } from "./download";
+import { DownloadCancelled, downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
 
 /**
@@ -89,6 +89,7 @@ const status: LocalModelStatus = { model: "", downloaded: false, downloading: fa
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
 const lastError = new Map<string, string>();
 let notify: ((s: LocalModelStatus) => void) | null = null;
+let downloadAbort: AbortController | null = null;
 
 export function onLocalModelStatus(cb: (s: LocalModelStatus) => void): void {
   notify = cb;
@@ -98,6 +99,7 @@ export function localModelStatus(model: string): LocalModelStatus {
   if (status.downloading && status.model === model) return { ...status };
   const downloaded = modelReady(model);
   const s: LocalModelStatus = { model, downloaded, downloading: false, progress: 0 };
+  if (status.downloading) s.busyModel = status.model;
   if (!downloaded) {
     const partial = modelPartialPercent(model);
     if (partial !== null) s.partial = partial;
@@ -157,26 +159,41 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   lastError.delete(model);
   push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, error: undefined });
   const files = modelFiles(model);
+  downloadAbort = new AbortController();
   try {
     await downloadFiles(
       files.map(([remote, dest, size]) => ({ sources: hfSources(remote), dest, size })),
       (percent) => push({ progress: percent }),
+      downloadAbort.signal,
     );
     push({ downloading: false, downloaded: true, progress: 100, partial: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    lastError.set(model, message);
-    push({
-      downloading: false,
-      downloaded: false,
-      progress: 0,
-      partial: modelPartialPercent(model) ?? undefined,
-      error: message,
-    });
-    log.warn(`local model ${model} download failed`, error);
+    if (error instanceof DownloadCancelled) {
+      // 用户取消：残片保留，回到「继续下载（x%）」，不记为错误
+      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined });
+      log.info(`local model ${model} download cancelled`);
+    } else {
+      const message = error instanceof Error ? error.message : String(error);
+      lastError.set(model, message);
+      push({
+        downloading: false,
+        downloaded: false,
+        progress: 0,
+        partial: modelPartialPercent(model) ?? undefined,
+        error: message,
+      });
+      log.warn(`local model ${model} download failed`, error);
+    }
+  } finally {
+    downloadAbort = null;
   }
   return { ...status };
+}
+
+/** 取消进行中的模型下载；已落盘的 .part 保留供下次续传 */
+export function cancelLocalModelDownload(): void {
+  downloadAbort?.abort(new DownloadCancelled());
 }
 
 /** 删除模型的全部落盘文件（含可续传残片）；调用方需先停掉占用模型的 worker/server */

@@ -135,10 +135,10 @@ function VoiceTab(props: {
               ))}
             </select>
           </Row>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
-              disabled={Boolean(local?.downloading) || Boolean(local?.downloaded)}
+              disabled={Boolean(local?.downloading) || Boolean(local?.downloaded) || Boolean(local?.busyModel)}
               onClick={() => void api.localModelDownload(localModel).then(setLocal)}
             >
               {local?.downloaded
@@ -150,9 +150,20 @@ function VoiceTab(props: {
                     : t("settings.localModelDownload")}
             </button>
             {local?.downloading && (
-              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
-              </div>
+              <>
+                <div className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-indigo-400" style={{ width: `${local.progress}%` }} />
+                </div>
+                <button
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+                  onClick={() => void api.localModelCancelDownload()}
+                >
+                  {t("common.cancel")}
+                </button>
+              </>
+            )}
+            {local?.busyModel && !local.downloaded && (
+              <span className="text-sm text-slate-400">{t("settings.localModelBusy", { model: local.busyModel })}</span>
             )}
             {!local?.downloading && (local?.downloaded || local?.partial != null) && (
               <button

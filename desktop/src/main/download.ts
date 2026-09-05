@@ -14,10 +14,18 @@ const GH_RELEASE_BASE = "https://github.com/wookat/speaktype/releases/download/m
 /** 响应头或正文连续无数据的上限：半开连接（服务端接了 TCP 不应答）不会自己报错，要靠它落下一源 */
 const STALL_TIMEOUT_MS = 30_000;
 
-/** 空闲超时守卫：每收到一块数据重新计时，连续 STALL_TIMEOUT_MS 无数据则 abort 整个请求 */
-function stallGuard(host: string): { signal: AbortSignal; touch: () => void; clear: () => void } {
+/**
+ * 空闲超时守卫：每收到一块数据重新计时，连续 STALL_TIMEOUT_MS 无数据则 abort 整个请求；
+ * 外部 signal（用户取消）触发时同样中止当前请求
+ */
+function stallGuard(
+  host: string,
+  external?: AbortSignal,
+): { signal: AbortSignal; touch: () => void; clear: () => void } {
   const controller = new AbortController();
   let timer: NodeJS.Timeout | null = null;
+  const onExternalAbort = (): void => controller.abort(external?.reason);
+  external?.addEventListener("abort", onExternalAbort, { once: true });
   const touch = (): void => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(
@@ -31,8 +39,17 @@ function stallGuard(host: string): { signal: AbortSignal; touch: () => void; cle
     touch,
     clear: () => {
       if (timer) clearTimeout(timer);
+      external?.removeEventListener("abort", onExternalAbort);
     },
   };
+}
+
+/** 用户主动取消的下载中断（与网络错误区分：不算失败、不换源、不记错误） */
+export class DownloadCancelled extends Error {
+  constructor() {
+    super("download cancelled");
+    this.name = "DownloadCancelled";
+  }
 }
 
 /** models-v1 自托管资产的 sha256 清单（与上游 HF LFS oid 逐一核对）：GH 直链没有
@@ -143,7 +160,9 @@ async function downloadFromUrl(
   url: string,
   dest: string,
   onProgress?: (got: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
+  if (signal?.aborted) throw new DownloadCancelled();
   mkdirSync(dirname(dest), { recursive: true });
   const part = `${dest}.part`;
   const metaPath = `${part}.json`;
@@ -169,14 +188,14 @@ async function downloadFromUrl(
     }
   }
 
-  const guard = stallGuard(new URL(url).host);
+  const guard = stallGuard(new URL(url).host, signal);
   let res: Response;
   let linkedSha256: string;
   try {
     ({ res, linkedSha256 } = await fetchFollow(url, headers, guard.signal));
   } catch (error) {
     guard.clear();
-    throw error;
+    throw signal?.aborted ? new DownloadCancelled() : error;
   }
   if (!res.ok || !res.body) {
     guard.clear();
@@ -194,7 +213,7 @@ async function downloadFromUrl(
     await res.body.cancel().catch(() => {});
     rmSync(part, { force: true });
     rmSync(metaPath, { force: true });
-    return downloadFromUrl(url, dest, onProgress);
+    return downloadFromUrl(url, dest, onProgress, signal);
   }
   const remaining = Number(res.headers.get("content-length")) || 0;
   const total = resumed ? offset + remaining : remaining;
@@ -225,11 +244,11 @@ async function downloadFromUrl(
       writeFailed,
     ]);
   } catch (error) {
-    // 网络中断 / 停滞超时 / 磁盘写满：保留 .part 与元数据（已落盘前缀仍有效），下次续传
+    // 网络中断 / 停滞超时 / 磁盘写满 / 用户取消：保留 .part 与元数据（已落盘前缀仍有效），下次续传
     guard.clear();
     out.destroy();
     reader.cancel().catch(() => {});
-    throw error;
+    throw signal?.aborted ? new DownloadCancelled() : error;
   }
 
   if (total && got !== total) throw new Error(`incomplete: ${got}/${total} bytes (${new URL(url).host})`);
@@ -271,13 +290,15 @@ export async function downloadFile(
   sources: string[],
   dest: string,
   onProgress?: (got: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const errors: Error[] = [];
   for (const url of sources) {
     try {
-      await downloadFromUrl(url, dest, onProgress);
+      await downloadFromUrl(url, dest, onProgress, signal);
       return;
     } catch (error) {
+      if (error instanceof DownloadCancelled) throw error;
       log.warn(`download source failed: ${url}`, error);
       const err = error instanceof Error ? error : new Error(String(error));
       if (isStorageError(err)) throw err;
@@ -291,6 +312,7 @@ export async function downloadFile(
 export async function downloadFiles(
   files: Array<{ sources: string[]; dest: string; size?: number }>,
   onProgress: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const weighted = files.every((f) => f.size && f.size > 0);
   const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
@@ -304,14 +326,19 @@ export async function downloadFiles(
       // 大小与预期不符：损坏/截断文件，删掉重新下载
       rmSync(file.dest, { force: true });
     }
-    await downloadFile(file.sources, file.dest, (got, total) => {
-      if (!total) return;
-      const percent =
-        weighted && totalBytes > 0
-          ? ((doneBytes + (got / total) * (file.size || 0)) / totalBytes) * 100
-          : ((index + got / total) / files.length) * 100;
-      onProgress(Math.floor(percent));
-    });
+    await downloadFile(
+      file.sources,
+      file.dest,
+      (got, total) => {
+        if (!total) return;
+        const percent =
+          weighted && totalBytes > 0
+            ? ((doneBytes + (got / total) * (file.size || 0)) / totalBytes) * 100
+            : ((index + got / total) / files.length) * 100;
+        onProgress(Math.floor(percent));
+      },
+      signal,
+    );
     doneBytes += file.size || 0;
   }
 }

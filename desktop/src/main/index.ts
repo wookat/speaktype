@@ -15,7 +15,7 @@ import pkg from "../../package.json";
 // 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
 declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
-import type { HistoryItem, Persona, Settings, StatusPayload } from "../shared/types";
+import type { HistoryItem, Persona, SaveTextRequest, Settings, StatusPayload } from "../shared/types";
 import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, closeChatgptBridge, showChatgptLogin, testChatgpt } from "./chatgpt";
@@ -23,7 +23,7 @@ import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, tes
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { AVAILABLE_LOCAL_MODELS, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
+import { AVAILABLE_LOCAL_MODELS, cancelLocalModelDownload, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
@@ -467,6 +467,25 @@ function registerIpc(): void {
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
+  // 历史/词典/转录导出统一走原生「另存为」：浏览器 a[download] 通道的保存框标题会露出 blob:file:///…UUID
+  ipcMain.handle("file:saveText", async (_e, req: SaveTextRequest): Promise<boolean> => {
+    const ext = req.fileName.split(".").pop() ?? "txt";
+    const res = await dialog.showSaveDialog({
+      title: req.title,
+      defaultPath: join(app.getPath("documents"), req.fileName),
+      filters: [{ name: req.filterName, extensions: [ext] }],
+    });
+    if (res.canceled || !res.filePath) return false;
+    try {
+      // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
+      writeFileSync(res.filePath, `\ufeff${req.content}`, "utf8");
+      return true;
+    } catch (error) {
+      log.error(`save text failed (${res.filePath})`, error);
+      showToast(t("toast.exportFailed"), error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  });
   ipcMain.handle("config:import", async () => {
     const res = await dialog.showOpenDialog({
       filters: [{ name: "JSON", extensions: ["json"] }],
@@ -568,6 +587,7 @@ function registerIpc(): void {
     }
     return result;
   });
+  ipcMain.handle("local:cancelDownload", () => cancelLocalModelDownload());
   ipcMain.handle("local:delete", (_e, model: string) => {
     // 先停掉可能占用模型文件的推理进程/线程，Windows 下否则删不掉
     releaseSherpaWorker();

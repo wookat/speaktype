@@ -56,6 +56,10 @@ let stream: MediaStream | null = null;
 let node: AudioWorkletNode | null = null;
 let source: MediaStreamAudioSourceNode | null = null;
 let pcmSock: Socket | null = null;
+/** getUserMedia 进行中：同期再来的 start 直接复用，避免开出两条采集链路只留一条引用 */
+let starting = false;
+/** 开麦尚未完成就收到 stop（短按即松/取消）：开完立即关，不让麦克风悬空开着 */
+let stopWhileStarting = false;
 
 function ensurePipe(): Socket {
   if (pcmSock && !pcmSock.destroyed) return pcmSock;
@@ -68,7 +72,12 @@ function ensurePipe(): Socket {
 }
 
 async function start(deviceId = ""): Promise<void> {
-  if (ctx) return;
+  if (ctx || starting) {
+    stopWhileStarting = false;
+    return;
+  }
+  starting = true;
+  stopWhileStarting = false;
   try {
     const base = { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true };
     stream = await navigator.mediaDevices
@@ -93,6 +102,7 @@ async function start(deviceId = ""): Promise<void> {
     };
     source.connect(node);
   } catch (error) {
+    starting = false;
     await stop();
     const name = error instanceof DOMException ? error.name : "";
     // 发送错误码，由主进程按界面语言翻译成提示文案
@@ -106,19 +116,31 @@ async function start(deviceId = ""): Promise<void> {
             ? error.message
             : String(error),
     );
+  } finally {
+    starting = false;
+    if (stopWhileStarting) {
+      stopWhileStarting = false;
+      await stop();
+    }
   }
 }
 
 async function stop(): Promise<void> {
+  if (starting) {
+    stopWhileStarting = true;
+    return;
+  }
+  // 先同步清状态再等 close：stop 紧接 start（上一句收尾中又按下热键）时 start 不会因 ctx 未清而被吞
+  const closing = ctx;
   node?.port.close();
   node?.disconnect();
   source?.disconnect();
   for (const track of stream?.getTracks() ?? []) track.stop();
-  await ctx?.close().catch(() => undefined);
   ctx = null;
   stream = null;
   node = null;
   source = null;
+  await closing?.close().catch(() => undefined);
 }
 
 async function enumerate(): Promise<void> {
