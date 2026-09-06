@@ -377,6 +377,7 @@ export const ko: LocaleDict = {
   "toast.exportNoSpace": "디스크가 가득 찼습니다. 공간을 확보하거나 다른 드라이브를 선택하세요.",
   "toast.exportInUse": "파일이 다른 앱에서 열려 있습니다. 닫고 다시 시도하세요.",
   "toast.canceledBody": "입력된 텍스트가 없습니다",
+  "toast.canceledQueuedBody": "대기 중이던 다음 문장을 취소했습니다",
   "toast.handsFreeEnd": "핸즈프리 모드 종료",
   "toast.handsFreeEndBody": "한동안 음성이 감지되지 않아 중지했습니다. 단축키로 다시 시작할 수 있습니다",
   "toast.handsFreeEndByKey": "다른 단축키가 눌려 연속 받아쓰기를 중지했습니다. 핸즈프리 단축키로 다시 시작할 수 있습니다",

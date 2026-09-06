@@ -374,6 +374,7 @@ export const zhCN = {
   "toast.exportNoSpace": "磁盘已满，请清理空间或换个磁盘。",
   "toast.exportInUse": "文件正被其他程序打开，请关闭后重试。",
   "toast.canceledBody": "未落入任何文字",
+  "toast.canceledQueuedBody": "排队中的下一句已作废",
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "长时间没检到人声，已自动停止聆听；再按一次热键可重新开始",
   "toast.handsFreeEndByKey": "按了其他热键，连续听写已停止；再按免按热键可重新开始",

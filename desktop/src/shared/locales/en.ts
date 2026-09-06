@@ -377,6 +377,7 @@ export const en: LocaleDict = {
   "toast.exportNoSpace": "The disk is full — free up space or pick another drive.",
   "toast.exportInUse": "The file is open in another app — close it and try again.",
   "toast.canceledBody": "Nothing was typed",
+  "toast.canceledQueuedBody": "The queued next sentence was discarded",
   "toast.handsFreeEnd": "Hands-free mode ended",
   "toast.handsFreeEndBody": "No speech detected for a while, so listening stopped. Press the hotkey to start again.",
   "toast.handsFreeEndByKey": "Another hotkey was pressed, so continuous dictation stopped. Press the hands-free hotkey to start again.",

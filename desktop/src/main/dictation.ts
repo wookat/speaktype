@@ -936,7 +936,9 @@ export class Dictation {
       if (this.pasteCancelled) {
         // Esc 落在本句已落字之后：本句不受影响，但排队句已被作废，不能静默
         this.pasteCancelled = false;
-        if (this.queueDropped) this.deps.showToast(t("toast.canceled"), t("toast.canceledBody"), undefined, 2500);
+        if (this.queueDropped) {
+          this.deps.showToast(t("toast.canceled"), t("toast.canceledQueuedBody"), undefined, 2500);
+        }
       }
       this.queueDropped = false;
       this.resumeQueued();

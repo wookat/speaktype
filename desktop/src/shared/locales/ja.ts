@@ -377,6 +377,7 @@ export const ja: LocaleDict = {
   "toast.exportNoSpace": "ディスクの空き容量がありません。空きを確保するか別のドライブを選んでください。",
   "toast.exportInUse": "ファイルが他のアプリで開かれています。閉じてから再試行してください。",
   "toast.canceledBody": "テキストは入力されていません",
+  "toast.canceledQueuedBody": "待機中の次の文は破棄されました",
   "toast.handsFreeEnd": "ハンズフリーモードを終了しました",
   "toast.handsFreeEndBody": "しばらく音声が検出されなかったため停止しました。ホットキーで再開できます",
   "toast.handsFreeEndByKey": "他のホットキーが押されたため連続入力を停止しました。ハンズフリーキーで再開できます",

@@ -351,6 +351,7 @@ export const zhTW: LocaleDict = {
   "toast.exportNoSpace": "磁碟已滿，請清理空間或換個磁碟。",
   "toast.exportInUse": "檔案正被其他程式開啟，請關閉後重試。",
   "toast.canceledBody": "未輸入任何文字",
+  "toast.canceledQueuedBody": "排隊中的下一句已作廢",
   "toast.handsFreeEnd": "免按模式已退出",
   "toast.handsFreeEndBody": "長時間沒檢到人聲，已自動停止聆聽；再按一次熱鍵可重新開始",
   "toast.handsFreeEndByKey": "按了其他熱鍵，連續聽寫已停止；再按免按熱鍵可重新開始",
