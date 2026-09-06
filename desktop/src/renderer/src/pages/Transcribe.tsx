@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { FileAudio, Loader2 } from "lucide-react";
+import { Check, FileAudio, Loader2 } from "lucide-react";
 import { api } from "../api";
-import { downloadPhaseText, humanDownloadError } from "../lib/downloadError";
+import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../lib/downloadError";
 import { useLocalModelStatus } from "../lib/useLocalModelStatus";
 import type { Translator } from "../i18n";
 import type { LocaleKey } from "../../../shared/i18n";
 import type { Settings, TranscribeState } from "../../../shared/types";
+import { PARAKEET_FP32, isParakeetModel } from "../../../shared/localModels";
 
 const SR = 16000;
 /** 上限 3 小时：16k 浮点采样约 660MB，超过容易把主进程拖爆 */
@@ -77,7 +78,7 @@ function Transcribe(props: {
   const [fileName, setFileName] = useState("");
   const [localError, setLocalError] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"ok" | "fail" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,7 +96,7 @@ function Transcribe(props: {
   const handleFile = async (file: File) => {
     if (busy) return;
     setLocalError("");
-    setCopied(false);
+    setCopied(null);
     setFileName(file.name);
     setDecoding(true);
     let ctx: AudioContext | null = null;
@@ -158,11 +159,16 @@ function Transcribe(props: {
     }
   };
   const copyAll = () => {
-    void navigator.clipboard.writeText(allText).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(allText).then(
+      () => setCopied("ok"),
+      () => setCopied("fail"),
+    );
   };
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(null), copied === "ok" ? 2000 : 4000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const done = !busy && state.percent === 100 && !state.error;
   const error = localError || state.error;
@@ -185,7 +191,7 @@ function Transcribe(props: {
                 onClick={() => void api.localModelDownload(model).then(setLocal)}
               >
                 {local?.downloading
-                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  ? downloadingLabel(local, t)
                   : local?.partial != null
                     ? t("settings.localModelResume", { progress: String(local.partial) })
                     : t("settings.localModelDownload")}
@@ -219,9 +225,10 @@ function Transcribe(props: {
         </div>
       )}
 
-      {model.startsWith("parakeet") && (
+      {isParakeetModel(model) && (
         <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-2.5 text-xs text-indigo-600">
           {t("transcribe.parakeetHint")}
+          {model === PARAKEET_FP32 && <span className="ml-1">{t("transcribe.parakeetFp32Hint")}</span>}
         </div>
       )}
 
@@ -327,10 +334,22 @@ function Transcribe(props: {
             {/* ml-auto：窄窗整组掉行后仍靠右，与宽窗布局一致 */}
             <div className="ml-auto flex shrink-0 gap-2">
               <button
-                className="whitespace-nowrap rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+                className={`flex items-center gap-1 whitespace-nowrap rounded-xl border px-3 py-1.5 text-xs ${
+                  copied === "ok"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : copied === "fail"
+                      ? "border-amber-300 bg-amber-50 text-amber-700"
+                      : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                }`}
+                aria-live="polite"
                 onClick={copyAll}
               >
-                {copied ? t("transcribe.copied") : t("transcribe.copy")}
+                {copied === "ok" && <Check className="h-3.5 w-3.5" />}
+                {copied === "ok"
+                  ? t("transcribe.copied")
+                  : copied === "fail"
+                    ? t("transcribe.copyFailed")
+                    : t("transcribe.copy")}
               </button>
               {/* 四种格式收进一个原生下拉：820px 窄窗不再四按钮并排挤压，键盘/读屏直接可用；选完即导出并回到占位项 */}
               <select

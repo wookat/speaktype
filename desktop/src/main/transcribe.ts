@@ -103,6 +103,9 @@ export function cancelTranscribe(): void {
   push({ running: false, cancelled: true });
 }
 
+/** 字幕时间轴收缩到有声区后两端各留的余量 */
+const CUE_PAD_S = 0.1;
+
 /** 每 100ms 的 RMS，用于找静音切点 */
 function rmsProfile(samples: Float32Array): Float32Array {
   const frames = Math.ceil(samples.length / HOP);
@@ -175,19 +178,45 @@ function capLongSegment(from: number, to: number, rms: Float32Array): Array<[num
   return out;
 }
 
+interface SegmentPlan {
+  ranges: Array<[number, number]>;
+  rms: Float32Array;
+  quiet: number;
+}
+
 /** 先按句间停顿切片（超长子段用次级阈值补切），再对仍超长的子段封顶 */
-function splitSegments(samples: Float32Array): Array<[number, number]> {
+function splitSegments(samples: Float32Array): SegmentPlan {
   const rms = rmsProfile(samples);
   let peak = 0;
   for (const v of rms) if (v > peak) peak = v;
   const quiet = peak * QUIET_RATIO;
-  const out: Array<[number, number]> = [];
+  const ranges: Array<[number, number]> = [];
   for (const [from, to] of splitByPauses(rms, quiet, PAUSE_S, 0, samples.length)) {
     const subs =
       to - from > SECONDARY_SEG_S * SR ? splitByPauses(rms, quiet, PAUSE_2_S, from, to) : [[from, to] as [number, number]];
-    for (const [f, t2] of subs) out.push(...capLongSegment(f, t2, rms));
+    for (const [f, t2] of subs) ranges.push(...capLongSegment(f, t2, rms));
   }
-  return out;
+  return { ranges, rms, quiet };
+}
+
+/**
+ * 字幕 cue 时间轴：切点落在静音谷心，直接用会把句间空白算进前后两句；
+ * 收缩到首尾有声帧并各留 CUE_PAD_S，全段无有声帧时保持原区间
+ */
+function voicedBounds(plan: SegmentPlan, from: number, to: number): [number, number] {
+  const fromFrame = Math.floor(from / HOP);
+  const toFrame = Math.min(plan.rms.length, Math.ceil(to / HOP));
+  let first = -1;
+  let last = -1;
+  for (let f = fromFrame; f < toFrame; f++) {
+    if (plan.rms[f]! >= plan.quiet) {
+      if (first < 0) first = f;
+      last = f;
+    }
+  }
+  if (first < 0) return [from, to];
+  const pad = Math.round(CUE_PAD_S * SR);
+  return [Math.max(from, first * HOP - pad), Math.min(to, (last + 1) * HOP + pad)];
 }
 
 function segmentPeak(samples: Float32Array, from: number, to: number): number {
@@ -259,7 +288,8 @@ export async function startTranscribe(
   });
   log.info(`file transcribe started (${(samples.length / SR).toFixed(1)}s, model=${model})`);
 
-  const ranges = splitSegments(samples);
+  const plan = splitSegments(samples);
+  const { ranges } = plan;
   const segments: TranscribeSegment[] = [];
   try {
     for (let i = 0; i < ranges.length; i++) {
@@ -269,7 +299,10 @@ export async function startTranscribe(
         const raw = await transcribeSlice(settings, model, samples, from, to);
         const text = correctHotwords(raw, settings.hotwords).trim();
         if (jobId !== job) return transcribeState();
-        if (text) segments.push({ start: from / SR, end: to / SR, text: endCjkSentence(text) });
+        if (text) {
+          const [vFrom, vTo] = voicedBounds(plan, from, to);
+          segments.push({ start: vFrom / SR, end: vTo / SR, text: endCjkSentence(text) });
+        }
       }
       push({ percent: Math.min(99, Math.round(((i + 1) / ranges.length) * 100)), segments: [...segments] });
     }

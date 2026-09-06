@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
-import { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
+import { LOCAL_MODELS, PARAKEET, PARAKEET_FP32, SENSEVOICE, isParakeetModel, isSherpaModel } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
 import { DownloadCancelled, downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
@@ -18,13 +18,17 @@ import { t } from "./i18n";
  * - SenseVoice（sherpa-onnx）：进程内推理，中文准确率和速度明显好于同体积 whisper。
  */
 
-export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel, whisperLanguage } from "../shared/localModels";
+export { LOCAL_MODELS, PARAKEET, PARAKEET_FP32, SENSEVOICE, isParakeetModel, isSherpaModel, whisperLanguage } from "../shared/localModels";
 
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
 
 const PARAKEET_BASE =
   "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve/main";
+
+// fp32 版 encoder.onnx 只是图结构，权重在同目录的 encoder.weights 外部数据文件（onnx external data，
+// 加载时按相对路径自动找），四个文件必须落在同一目录
+const PARAKEET_FP32_BASE = "csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3/resolve/main";
 
 /**
  * 本平台可用的本地模型：whisper-server 只随包带了 Windows 二进制（whisper.cpp 上游不发 macOS
@@ -57,6 +61,16 @@ function modelFiles(model: string): Array<[string, string, number?]> {
       [`${PARAKEET_BASE}/decoder.int8.onnx`, join(dir, "decoder.int8.onnx"), 11_845_275],
       [`${PARAKEET_BASE}/joiner.int8.onnx`, join(dir, "joiner.int8.onnx"), 6_355_277],
       [`${PARAKEET_BASE}/tokens.txt`, join(dir, "tokens.txt"), 93_939],
+    ];
+  }
+  if (model === PARAKEET_FP32) {
+    const dir = join(modelsDir(), PARAKEET_FP32);
+    return [
+      [`${PARAKEET_FP32_BASE}/encoder.onnx`, join(dir, "encoder.onnx"), 41_766_257],
+      [`${PARAKEET_FP32_BASE}/encoder.weights`, join(dir, "encoder.weights"), 2_435_420_160],
+      [`${PARAKEET_FP32_BASE}/decoder.onnx`, join(dir, "decoder.onnx"), 47_233_743],
+      [`${PARAKEET_FP32_BASE}/joiner.onnx`, join(dir, "joiner.onnx"), 25_286_330],
+      [`${PARAKEET_FP32_BASE}/tokens.txt`, join(dir, "tokens.txt"), 93_939],
     ];
   }
   return [[`ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model)]];
@@ -170,7 +184,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   if (modelReady(model)) return localModelStatus(model);
 
   lastError.delete(model);
-  push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, phase: "downloading", error: undefined });
+  push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, phase: "downloading", source: undefined, error: undefined });
   const files = modelFiles(model);
   downloadAbort = new AbortController();
   try {
@@ -178,16 +192,16 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
       files.map(([remote, dest, size]) => ({ sources: hfSources(remote), dest, size })),
       (percent) => push({ progress: percent }),
       downloadAbort.signal,
-      (phase) => {
-        if (phase !== status.phase) push({ phase });
+      (phase, source) => {
+        if (phase !== status.phase || source?.index !== status.source?.index) push({ phase, source });
       },
     );
-    push({ downloading: false, downloaded: true, progress: 100, partial: undefined, phase: undefined });
+    push({ downloading: false, downloaded: true, progress: 100, partial: undefined, phase: undefined, source: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
     if (error instanceof DownloadCancelled) {
       // 用户取消：残片保留，回到「继续下载（x%）」，不记为错误
-      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined, phase: undefined });
+      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined, phase: undefined, source: undefined });
       log.info(`local model ${model} download cancelled`);
     } else {
       const message = error instanceof Error ? error.message : String(error);
@@ -198,6 +212,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
         progress: 0,
         partial: modelPartialPercent(model) ?? undefined,
         phase: undefined,
+        source: undefined,
         error: message,
       });
       log.warn(`local model ${model} download failed`, error);
@@ -312,7 +327,8 @@ function collapseCjkSpaces(text: string): string {
 
 function ensureWorker(modelId: string): Worker {
   const files = modelFiles(modelId);
-  const paths = files.map(([, p]) => p);
+  // encoder.weights 是 encoder.onnx 的外部数据，不是独立模型文件，不进入 encoder/decoder/joiner 位置参数
+  const paths = files.map(([, p]) => p).filter((p) => !p.endsWith(".weights"));
   const tokens = paths[paths.length - 1]!;
   const key = paths.join("|");
   if (worker && workerKey !== key) {
@@ -332,7 +348,7 @@ function ensureWorker(modelId: string): Worker {
   workerKey = key;
   const require = createRequire(import.meta.url);
   const workerData =
-    modelId === PARAKEET
+    isParakeetModel(modelId)
       ? {
           modulePath: require.resolve("sherpa-onnx-node"),
           engine: "transducer",

@@ -5,6 +5,7 @@ import type { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { net } from "electron";
 import log from "electron-log";
+import type { DownloadSource } from "../shared/types";
 
 /**
  * 统一的按需下载：VAD 模型、本地 ASR 模型、增强标点模型共用。
@@ -28,6 +29,8 @@ const STALL_NOTICE_MS = 8_000;
  * retrying = 连接停滞或本源失败正切下一源；verifying = 字节已下满、正在算 sha256（大文件要几秒，不是卡住）
  */
 export type DownloadPhase = "downloading" | "retrying" | "verifying";
+/** 阶段回调附带当前源序号/主机，重试时 UI 能说清「正在换到第 N 个源」 */
+export type PhaseCallback = (phase: DownloadPhase, source?: DownloadSource) => void;
 
 /**
  * 空闲超时守卫：每收到一块数据重新计时，连续 STALL_TIMEOUT_MS 无数据则 abort 整个请求；
@@ -221,7 +224,7 @@ async function downloadFromUrl(
   dest: string,
   onProgress?: (got: number, total: number) => void,
   signal?: AbortSignal,
-  onPhase?: (phase: DownloadPhase) => void,
+  onPhase?: PhaseCallback,
 ): Promise<void> {
   if (signal?.aborted) throw new DownloadCancelled();
   mkdirSync(dirname(dest), { recursive: true });
@@ -345,13 +348,14 @@ export async function downloadFile(
   dest: string,
   onProgress?: (got: number, total: number) => void,
   signal?: AbortSignal,
-  onPhase?: (phase: DownloadPhase) => void,
+  onPhase?: PhaseCallback,
 ): Promise<void> {
   const errors: Error[] = [];
+  const sourceAt = (i: number): DownloadSource => ({ index: i + 1, total: sources.length, host: new URL(sources[i]!).host });
   for (const [index, url] of sources.entries()) {
     const startedAt = Date.now();
     try {
-      await downloadFromUrl(url, dest, onProgress, signal, onPhase);
+      await downloadFromUrl(url, dest, onProgress, signal, (phase) => onPhase?.(phase, sourceAt(index)));
       log.info(`download ok: ${new URL(url).host} -> ${basename(dest)} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
       return;
     } catch (error) {
@@ -361,7 +365,7 @@ export async function downloadFile(
       if (isStorageError(err)) throw err;
       errors.push(err);
       // 还有下一源：换源期间（建连、等响应头）告知 UI 在重试，而不是让进度条无声冻着
-      if (index < sources.length - 1) onPhase?.("retrying");
+      if (index < sources.length - 1) onPhase?.("retrying", sourceAt(index + 1));
     }
   }
   throw errors.filter((e) => !/HTTP 404/.test(e.message)).at(-1) ?? errors.at(-1) ?? new Error("no sources");
@@ -372,7 +376,7 @@ export async function downloadFiles(
   files: Array<{ sources: string[]; dest: string; size?: number }>,
   onProgress: (percent: number) => void,
   signal?: AbortSignal,
-  onPhase?: (phase: DownloadPhase) => void,
+  onPhase?: PhaseCallback,
 ): Promise<void> {
   const weighted = files.every((f) => f.size && f.size > 0);
   const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);

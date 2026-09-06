@@ -6,6 +6,8 @@ import log from "electron-log/main.js";
 import { LOCAL_MODEL_IDS } from "../shared/localModels";
 import { BUILTIN_PERSONAS } from "../shared/personas";
 import type { AppPersonaRule, HistoryItem, Persona, Settings, Stats } from "../shared/types";
+import { EMPTY_STATS, countWords, legacySavedMs, savedMsFor } from "../shared/stats";
+import { resolveLanguage } from "../shared/i18n";
 
 // 系统语言决定默认本地模型：中日韩粵用 SenseVoice；英语/欧洲语系用 Parakeet（这些语言准确率更高）。只影响全新用户默认值
 const SYS_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();
@@ -24,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   language: CJK_LOCALE ? (SYS_LOCALE.startsWith("yue") ? "yue" : SYS_LOCALE.slice(0, 2)) : "en",
   uiLanguage: "system",
   theme: "system",
+  panelPosition: "auto",
   personaId: "default",
   autoPaste: true,
   launchAtLogin: false,
@@ -97,7 +100,7 @@ const STORE_OPTIONS: ConstructorParameters<typeof Store<Schema>>[0] = {
     settings: DEFAULT_SETTINGS,
     personas: [],
     history: [],
-    stats: { words: 0, durationMs: 0, sessions: 0 },
+    stats: EMPTY_STATS,
     doubaoAppKeyCache: "",
     mainWindowBounds: null,
   },
@@ -108,7 +111,7 @@ const HISTORY_STORE_OPTIONS: ConstructorParameters<typeof Store<HistorySchema>>[
   clearInvalidConfig: true,
   defaults: {
     history: [],
-    stats: { words: 0, durationMs: 0, sessions: 0 },
+    stats: EMPTY_STATS,
   },
 };
 
@@ -186,7 +189,7 @@ function createHistoryStore(): Store<HistorySchema> {
     hs.set("stats", store.get("stats"));
   }
   if (store.get("stats").sessions > 0) {
-    store.set("stats", { words: 0, durationMs: 0, sessions: 0 });
+    store.set("stats", EMPTY_STATS);
   }
   return hs;
 }
@@ -386,7 +389,7 @@ export function addHistory(item: HistoryItem): void {
 export function clearHistory(): void {
   historyStore.set("history", []);
   // 清空历史同时归零统计：首页还显示已删会话的计数会让人以为数据没删干净
-  historyStore.set("stats", { words: 0, durationMs: 0, sessions: 0 });
+  historyStore.set("stats", EMPTY_STATS);
 }
 
 export function updateHistoryItem(id: string, patch: Partial<HistoryItem>): HistoryItem | null {
@@ -418,19 +421,16 @@ export function getStats(): Stats {
   return historyStore.get("stats");
 }
 
-/** 统计口径：CJK 每字计 1 词，拉丁/数字按连续串计 1 词（混排相加），避免英文按字符计虚高 */
-export function countWords(text: string): number {
-  const cjk = (text.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/g) ?? []).length;
-  const latin = (text.match(/[A-Za-z0-9][A-Za-z0-9'’-]*/g) ?? []).length;
-  return cjk + latin;
-}
-
-export function addStats(words: number, durationMs: number): void {
+export function addStats(text: string, durationMs: number): void {
   const current = getStats();
+  const savedSoFar =
+    current.savedMs ??
+    legacySavedMs(current.words, resolveLanguage(getSettings().uiLanguage, app.getLocale() || "zh-CN"));
   historyStore.set("stats", {
-    words: current.words + words,
+    words: current.words + countWords(text),
     durationMs: current.durationMs + durationMs,
     sessions: current.sessions + 1,
+    savedMs: savedSoFar + savedMsFor(text),
   });
 }
 

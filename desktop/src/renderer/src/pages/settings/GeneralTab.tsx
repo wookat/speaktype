@@ -316,6 +316,17 @@ function GeneralTab(props: {
             <option value="dark">{t("settings.themeDark")}</option>
           </select>
         </Row>
+        <Row label={t("settings.panelPosition")} hint={t("settings.panelPositionHint")}>
+          <select
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm"
+            value={s.panelPosition}
+            onChange={(e) => update({ panelPosition: e.target.value as Settings["panelPosition"] })}
+          >
+            <option value="auto">{t("settings.panelPositionAuto")}</option>
+            <option value="bottom">{t("settings.panelPositionBottom")}</option>
+            <option value="top">{t("settings.panelPositionTop")}</option>
+          </select>
+        </Row>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">

@@ -6,9 +6,16 @@ export const SENSEVOICE = "sensevoice-small";
 /** Parakeet TDT 0.6B v3（sherpa-onnx int8）：英语及 25 种欧洲语言，自动语种检测，不支持中文 */
 export const PARAKEET = "parakeet-tdt-0.6b-v3";
 
+/**
+ * 同一 Parakeet 的 fp32 原精度版：int8 量化在个别首词（如 "Please"→"Ple"）处于判定边界会吞字
+ *（离线 A/B：int8 15/99、fp32 0/99），fp32 消除该问题，代价是 2.5GB 下载、常驻内存约 2.7GB。
+ */
+export const PARAKEET_FP32 = "parakeet-tdt-0.6b-v3-fp32";
+
 export const LOCAL_MODELS = [
   { id: SENSEVOICE, size: "234MB" },
   { id: PARAKEET, size: "660MB" },
+  { id: PARAKEET_FP32, size: "2.5GB" },
   { id: "tiny-q5_1", size: "32MB" },
   { id: "base-q5_1", size: "60MB" },
   { id: "small-q5_1", size: "190MB" },
@@ -16,7 +23,12 @@ export const LOCAL_MODELS = [
 
 /** 走 sherpa-onnx 进程内推理的模型（否则走 whisper-server 子进程） */
 export function isSherpaModel(model: string): boolean {
-  return model === SENSEVOICE || model === PARAKEET;
+  return model === SENSEVOICE || isParakeetModel(model);
+}
+
+/** Parakeet 两个精度版本共享同一套语义：自带语种检测、不吃 language 设置、不识中文 */
+export function isParakeetModel(model: string): boolean {
+  return model === PARAKEET || model === PARAKEET_FP32;
 }
 
 /**

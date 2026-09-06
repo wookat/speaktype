@@ -22,7 +22,10 @@ export const CHATGPT_URL = "https://chatgpt.com/";
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 150;
 const TOAST_WIDTH = 520;
-const TOAST_HEIGHT = 92;
+/** 能容下标题 + 三行正文的堆叠布局；窗口透明，短提示居中呈现，多出的高度不可见 */
+const TOAST_HEIGHT = 120;
+/** toast 窗口竖直中心到工作区底边的距离：在悬浮条（底部 150+12）上方 */
+const TOAST_CENTER_FROM_BOTTOM = 222;
 /** 悬浮条与工作区边缘的间距 */
 const PANEL_MARGIN = 12;
 /** 光标四周留的空白：悬浮条紧贴光标下方同样会挡到正在输入的那一行 */
@@ -189,20 +192,25 @@ export function createChatgptWindow(): BrowserWindow {
 }
 
 /**
- * 把悬浮条放到鼠标所在屏幕的底部居中；前台文本光标恰好在这块区域（最大化的编辑器写到屏幕底部）时
- * 改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
+ * 把悬浮条放到鼠标所在屏幕的底部（或用户固定的顶部/底部）居中；auto 模式下前台文本光标恰好在这块区域
+ * （最大化的编辑器写到屏幕底部）时改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
  */
 export function dockPanel(win: BrowserWindow): void {
   const point = screen.getCursorScreenPoint();
   const area = screen.getDisplayNearestPoint(point).workArea;
+  const position = getSettings().panelPosition;
+  const top = area.y + PANEL_MARGIN;
+  const bottom = Math.round(area.y + area.height - PANEL_HEIGHT - PANEL_MARGIN);
   const bounds = {
     x: Math.round(area.x + (area.width - PANEL_WIDTH) / 2),
-    y: Math.round(area.y + area.height - PANEL_HEIGHT - PANEL_MARGIN),
+    y: position === "top" ? top : bottom,
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
   };
-  const caret = panelCaretZone();
-  if (caret && intersects(caret, bounds)) bounds.y = area.y + PANEL_MARGIN;
+  if (position === "auto") {
+    const caret = panelCaretZone();
+    if (caret && intersects(caret, bounds)) bounds.y = top;
+  }
   win.setBounds(bounds);
 }
 
@@ -224,7 +232,7 @@ export function dockToast(win: BrowserWindow): void {
   const area = screen.getDisplayNearestPoint(point).workArea;
   win.setBounds({
     x: Math.round(area.x + (area.width - TOAST_WIDTH) / 2),
-    y: Math.round(area.y + area.height - TOAST_HEIGHT - 176),
+    y: Math.round(area.y + area.height - TOAST_CENTER_FROM_BOTTOM - TOAST_HEIGHT / 2),
     width: TOAST_WIDTH,
     height: TOAST_HEIGHT,
   });

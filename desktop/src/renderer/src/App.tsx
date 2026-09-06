@@ -189,9 +189,7 @@ export default function App() {
             settings={settings}
             personas={localized}
             doubaoReady={doubaoReady}
-            statsWords={(stats ?? init.stats).words}
-            statsDuration={(stats ?? init.stats).durationMs}
-            statsSessions={(stats ?? init.stats).sessions}
+            stats={stats ?? init.stats}
             goSettings={() => setPage("settings")}
             goRemoteMic={() => {
               setSettingsJump("voice#remote-mic");
