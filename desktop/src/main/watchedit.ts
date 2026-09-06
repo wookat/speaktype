@@ -26,6 +26,14 @@ const MAX_LCS = 160;
 /** 单次轮询间隔内新增字符超过这个数视为粘贴/大段改写而非逐键纠错，这一轮不学 */
 const MAX_STEP_INSERT = 11;
 
+/**
+ * Monaco（VS Code/Cursor 等）默认不把编辑器内容暴露给 UIA：ValuePattern.Value 为空，
+ * 「The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Alt+F1」
+ * 这条无障碍提示放在 Name 里（各语言包文案不同，快捷键标签固定）。命中即无法学习，改为提示用户开启
+ */
+const MONACO_A11Y_MARK = "Shift+Alt+F1";
+const MONACO_A11Y_HINT = /Shift\+Alt\+F1|screen reader optimized mode/i;
+
 const PS_SCRIPT = `
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -34,7 +42,9 @@ $hardStop = (Get-Date).AddSeconds(${MAX_WATCH_SECONDS})
 function Read-ElText($el) {
   $p = $null
   if ($el.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) {
-    return $p.Current.Value
+    $v = $p.Current.Value
+    if ([string]::IsNullOrEmpty($v) -and $el.Current.Name -and $el.Current.Name.Contains('${MONACO_A11Y_MARK}')) { return $el.Current.Name }
+    return $v
   }
   $tp = $null
   if ($el.TryGetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern, [ref]$tp)) {
@@ -339,12 +349,6 @@ function stepInsertLength(prev: string, next: string): number {
 
 let current: ReturnType<typeof spawn> | null = null;
 
-/**
- * Monaco（VS Code/Cursor 等）默认不把编辑器内容暴露给 UIA，焦点控件读到的只是
- * 「The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Alt+F1」
- * 这条无障碍提示（各语言包文案不同，快捷键标签固定）。命中即无法学习，改为提示用户开启
- */
-const MONACO_A11Y_HINT = /Shift\+Alt\+F1|screen reader optimized mode/i;
 let a11yHintShown = false;
 
 /**
