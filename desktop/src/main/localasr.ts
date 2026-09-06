@@ -92,6 +92,8 @@ const STDERR_TAIL = 30;
 let stderrTail: string[] = [];
 // ggml 文件截断/损坏时 whisper.cpp 加载模型的报错特征
 const MODEL_CORRUPT_RE = /bad magic|invalid model|failed to load model|failed to initialize whisper context/i;
+// 当前这次拉起的子进程退出时 stderr 是否命中损坏特征：exit 事件通常先于 waitHealthy 察觉并落日志清尾
+let exitCorrupt = false;
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
@@ -402,16 +404,17 @@ export function stopLocalServer(): void {
   }
 }
 
-function flushStderrTail(reason: string): void {
-  if (stderrTail.length === 0) return;
-  log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
+/** stderr 尾部一次性落日志并清空，返回是否含模型损坏特征 */
+function flushStderrTail(reason: string): boolean {
+  const corrupt = stderrTail.some((line) => MODEL_CORRUPT_RE.test(line));
+  if (stderrTail.length > 0) log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
   stderrTail = [];
+  return corrupt;
 }
 
 /** 启动失败按 stderr 分类：模型文件损坏给出「删除重下」指引，其余归为引擎故障 */
 function startupError(reason: string): Error {
-  const corrupt = stderrTail.some((line) => MODEL_CORRUPT_RE.test(line));
-  flushStderrTail(reason);
+  const corrupt = flushStderrTail(reason) || exitCorrupt;
   return new Error(t(corrupt ? "error.localModelCorrupt" : "error.localServerFailed"));
 }
 
@@ -451,6 +454,7 @@ async function spawnServer(exe: string, model: string): Promise<void> {
   );
   proc = child;
   stderrTail = [];
+  exitCorrupt = false;
   child.stderr?.setEncoding("utf8");
   child.stderr?.on("data", (chunk: string) => {
     for (const line of chunk.split(/\r?\n/)) {
@@ -459,10 +463,11 @@ async function spawnServer(exe: string, model: string): Promise<void> {
       if (stderrTail.length > STDERR_TAIL) stderrTail.shift();
     }
   });
-  child.on("exit", (code) => {
+  // close 在 stderr 流收完后才触发，退出原因不会被截掉最后几行
+  child.on("close", (code) => {
     if (proc === child) {
       log.warn(`local whisper-server exited (${code})`);
-      flushStderrTail(`exit ${code}`);
+      exitCorrupt = flushStderrTail(`exit ${code}`);
       proc = null;
       ready = null;
     }
