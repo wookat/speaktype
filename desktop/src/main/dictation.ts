@@ -639,8 +639,10 @@ export class Dictation {
   /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
   toggleHandsFree(): void {
     if (this.busy || this.handsFree) {
-      if (!this.handsFree && this.finalizing) {
-        // 上一句收尾中：进不了免按，也不能替排队中仍按着的长按键「松手」，与改写键一样明确提示稍候
+      if (!this.handsFree && (this.finalizing || this.remoteSource)) {
+        // 上一句收尾中：进不了免按，也不能替排队中仍按着的长按键「松手」，与改写键一样明确提示稍候；
+        // 手机端正按住说话：本机热键与那句无关，不能替手机端结束
+        if (this.remoteSource) log.info("dictation toggle: ignored, phone session in progress");
         this.deps.showToast(t("toast.busy"), t("toast.busyBody"), undefined, 2500);
         return;
       }
@@ -849,7 +851,7 @@ export class Dictation {
 
   /** 历史页的失败条目重试：读回落盘音频重跑识别+润色，成功后原地更新并复制到剪贴板 */
   async retryHistory(id: string): Promise<{ ok: boolean; detail: string }> {
-    if (this.busy) return { ok: false, detail: "busy" };
+    if (this.busy) return { ok: false, detail: t("toast.busy") };
     const entry = getHistory().find((h) => h.id === id);
     if (!entry || entry.status !== "failed" || !entry.audioFile || !existsSync(entry.audioFile)) {
       return { ok: false, detail: t("history.retryGone") };

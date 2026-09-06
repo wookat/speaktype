@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Clock,
@@ -43,6 +43,11 @@ export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   // 主进程引导跳转（如改写缺润色模型时直达 设置→模型）
   const [settingsJump, setSettingsJump] = useState<string | null>(null);
+  // 六页共用一个滚动容器：切页时回到顶部，否则新页会继承上一页的滚动位置从中间打开
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [page]);
 
   useEffect(() => {
     void api.init().then((data) => {
@@ -177,7 +182,7 @@ export default function App() {
       </aside>
 
       {/* 滚动容器从拖拽条下方开始，内容滚不进 drag 区，按钮不会被吞点击 */}
-      <main className="mt-10 flex-1 overflow-y-auto px-8 pb-10 pt-2">
+      <main ref={mainRef} className="mt-10 flex-1 overflow-y-auto px-8 pb-10 pt-2">
         {page === "home" && (
           <Home
             t={t}

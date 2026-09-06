@@ -94,6 +94,9 @@ let stderrTail: string[] = [];
 const MODEL_CORRUPT_RE = /bad magic|invalid model|failed to load model|failed to initialize whisper context/i;
 // 当前这次拉起的子进程退出时 stderr 是否命中损坏特征：exit 事件通常先于 waitHealthy 察觉并落日志清尾
 let exitCorrupt = false;
+// 就绪等待上限（大模型冷加载在慢盘也在这之内）与单次探测上限：探测连上了但不应答（服务卡死）时不能无限等
+const HEALTH_TIMEOUT_MS = 60_000;
+const HEALTH_PROBE_MS = 2_000;
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
@@ -431,16 +434,21 @@ function freePort(): Promise<number> {
 }
 
 async function waitHealthy(child: ChildProcess): Promise<void> {
-  for (let i = 0; i < 120; i++) {
+  const deadline = Date.now() + HEALTH_TIMEOUT_MS;
+  while (Date.now() < deadline) {
     if (proc !== child) throw startupError("exited before ready");
     try {
-      await fetch(`http://127.0.0.1:${port}/`, { method: "GET" });
+      const res = await fetch(`http://127.0.0.1:${port}/`, {
+        method: "GET",
+        signal: AbortSignal.timeout(HEALTH_PROBE_MS),
+      });
+      await res.body?.cancel();
       return;
     } catch {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
-  throw startupError("not ready after 60s");
+  throw startupError(`not ready after ${HEALTH_TIMEOUT_MS / 1000}s`);
 }
 
 async function spawnServer(exe: string, model: string): Promise<void> {

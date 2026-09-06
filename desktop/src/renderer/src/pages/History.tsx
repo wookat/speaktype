@@ -274,22 +274,24 @@ function History(props: {
                     </span>
                   </div>
                   {item.status === "failed" ? (
-                    <div className="mt-2 flex items-center gap-3">
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
                       {/* 错误原文可能是整段堆栈：正文限两行，全文放 title，不让 Retry 被挤成竖排 */}
-                      <span className="line-clamp-2 min-w-0 text-xs text-red-500" title={item.error}>
+                      <span className="line-clamp-2 min-w-0 flex-1 text-xs text-red-500" title={item.error}>
                         {t("history.failedEntry")}: {item.error}
                       </span>
                       {item.audioFile && (
                         <button
                           className="shrink-0 whitespace-nowrap rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
                           disabled={retrying === item.id}
+                          title={t("history.retry")}
                           onClick={() => retry(item.id)}
                         >
                           {retrying === item.id ? t("history.retrying") : t("history.retry")}
                         </button>
                       )}
-                      {retryError?.id === item.id && (
-                        <span className="line-clamp-2 min-w-0 text-xs text-red-400" title={retryError.msg}>
+                      {/* 重试的新错误独占一行；与条目原错误相同则不重复渲染 */}
+                      {retryError?.id === item.id && retryError.msg !== item.error && (
+                        <span className="basis-full line-clamp-2 text-xs text-red-400" title={retryError.msg}>
                           {retryError.msg}
                         </span>
                       )}
