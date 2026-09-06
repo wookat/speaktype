@@ -107,6 +107,35 @@ interface Span {
   j1: number;
 }
 
+let zhSegmenter: Intl.Segmenter | null | undefined;
+
+/**
+ * 单字改夹在两侧中文之间（答→回 夹在 他_复 之间）时相邻字判不出词边界：
+ * 用 ICU 中文分词在改后文本里找出包含改动的那个词作 right，wrong 取改前文本同位置，
+ * 要求向两侧扩出的字改前改后一致。分词仍是单字（公|圆）或含非中文时返回 null，宁可不学
+ */
+function expandToCjkWord(a: string[], b: string[], ai0: number, ai1: number, bj0: number, bj1: number): Diff | null {
+  if (zhSegmenter === undefined) {
+    try {
+      zhSegmenter = new Intl.Segmenter("zh", { granularity: "word" });
+    } catch {
+      zhSegmenter = null;
+    }
+  }
+  if (!zhSegmenter) return null;
+  const text = b.join("");
+  const seg = zhSegmenter.segment(text).containing(b.slice(0, bj0).join("").length);
+  if (!seg || !seg.isWordLike || !/^[\u4e00-\u9fff]{2,}$/.test(seg.segment)) return null;
+  const s0 = Array.from(text.slice(0, seg.index)).length;
+  const s1 = s0 + seg.segment.length;
+  const left = bj0 - s0;
+  const right = s1 - bj1;
+  if (right < 0 || ai0 - left < 0 || ai1 + right > a.length) return null;
+  for (let k = 1; k <= left; k++) if (a[ai0 - k] !== b[bj0 - k]) return null;
+  for (let k = 0; k < right; k++) if (a[ai1 + k] !== b[bj1 + k]) return null;
+  return { wrong: a.slice(ai0 - left, ai1 + right).join(""), right: b.slice(s0, s1).join("") };
+}
+
 /** 去共同前后缀，取中间变化段；中段过大时再用 LCS 拆成多个独立小改动 */
 export function extractCorrections(before: string, after: string): Diff[] {
   if (before === after) return [];
@@ -131,9 +160,13 @@ export function extractCorrections(before: string, after: string): Diff[] {
   if (singleCjk(a) || singleCjk(b)) {
     const canRight = end > 0 && CJK_CH.test(a[a.length - end] ?? "");
     const canLeft = start > 0 && CJK_CH.test(a[start - 1] ?? "");
-    // 两侧都是中文时词边界不可判（园→圆 夹在 公_散 之间），回扩会学到跨词条目并腐蚀后续听写：宁可不学
+    // 两侧都是中文时相邻字判不出词边界（园→圆 夹在 公_散 之间），盲目回扩会学到跨词条目腐蚀后续听写：交给分词器定词
     if (canRight && !canLeft) end--;
     else if (canLeft && !canRight) start--;
+    else if (canLeft && canRight) {
+      const word = expandToCjkWord(a, b, start, a.length - end, start, b.length - end);
+      if (word) return [word];
+    }
   }
   const ma = a.slice(start, a.length - end);
   const mb = b.slice(start, b.length - end);
@@ -254,6 +287,12 @@ export function extractCorrections(before: string, after: string): Diff[] {
       } else if (canLeft && !canRight) {
         wrong = leftCh + wrong;
         right = leftCh + right;
+      } else if (canLeft && canRight) {
+        const word = expandToCjkWord(a, b, start + s.i0, start + s.i1, start + s.j0, start + s.j1);
+        if (word) {
+          wrong = word.wrong;
+          right = word.right;
+        }
       }
     }
     out.push({ wrong, right });
