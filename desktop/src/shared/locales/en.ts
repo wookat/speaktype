@@ -430,6 +430,8 @@ export const en: LocaleDict = {
   "toast.learnedBody": "\"{{word}}\" added to dictionary; future misrecognitions auto-corrected",
   "toast.learnedManyBody": "\"{{words}}\" added to dictionary",
   "toast.learnedNoFixBody": "\"{{word}}\" added to dictionary (not a homophone of \"{{wrong}}\", so it will not be auto-replaced)",
+  "toast.learnInaccessible": "Auto-learn unavailable in this editor",
+  "toast.learnInaccessibleBody": "In VS Code and similar editors, press Shift+Alt+F1 to enable screen reader mode so SpeakType can see your edits",
   "toast.undo": "Undo",
   "toast.undone": "Undone",
   "toast.undoneBody": "\"{{word}}\" removed from dictionary",

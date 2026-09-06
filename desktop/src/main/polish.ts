@@ -433,6 +433,11 @@ export async function rewriteSelection(
   }
 }
 
+/** 是否真的会调 LLM 润色：开关开且配了端点；否则只做本地清理 */
+export function usesLlmPolish(settings: Settings): boolean {
+  return settings.polishEnabled && Boolean(settings.polishBaseUrl);
+}
+
 /**
  * 人设润色。识别与润色解耦：任何 OpenAI 兼容端点都能接
  * （DeepSeek / Kimi / 通义 / 智谱 / 本地 Ollama），没配就只做本地清理。
@@ -444,7 +449,7 @@ export async function polishText(
   onLlmFallback?: () => void,
   keepCjkPeriod = false,
 ): Promise<string> {
-  const useLlm = settings.polishEnabled && Boolean(settings.polishBaseUrl);
+  const useLlm = usesLlmPolish(settings);
   let base = localCleanup(transcript, !useLlm, !settings.enhancedPunct, keepCjkPeriod);
   if (!useLlm && settings.enhancedPunct) base = await applyModelPunctuation(base, keepCjkPeriod);
   if (settings.itn) base = applyItn(base);

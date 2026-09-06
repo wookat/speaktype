@@ -430,6 +430,8 @@ export const ko: LocaleDict = {
   "toast.learnedBody": "‘{{word}}’을(를) 사전에 추가했습니다. 다음부터 자동 교정됩니다",
   "toast.learnedManyBody": "‘{{words}}’을(를) 사전에 추가했습니다",
   "toast.learnedNoFixBody": "‘{{word}}’을(를) 사전에 추가했습니다 (‘{{wrong}}’과 동음이 아니라 자동 치환되지 않음)",
+  "toast.learnInaccessible": "이 편집기에서는 자동 학습이 불가합니다",
+  "toast.learnInaccessibleBody": "VS Code 등에서는 Shift+Alt+F1로 스크린 리더 모드를 켜야 SpeakType이 수정을 감지할 수 있습니다",
   "toast.undo": "실행 취소",
   "toast.undone": "취소했습니다",
   "toast.undoneBody": "‘{{word}}’을(를) 사전에서 제거했습니다",

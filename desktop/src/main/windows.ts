@@ -2,6 +2,7 @@ import { BrowserWindow, nativeTheme, screen, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSettings, getWindowBounds, setWindowBounds } from "./store";
+import { foregroundCaretRect } from "./activeapp";
 
 function isDarkTheme(): boolean {
   const theme = getSettings().theme;
@@ -22,6 +23,10 @@ const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 150;
 const TOAST_WIDTH = 520;
 const TOAST_HEIGHT = 92;
+/** 悬浮条与工作区边缘的间距 */
+const PANEL_MARGIN = 12;
+/** 光标四周留的空白：悬浮条紧贴光标下方同样会挡到正在输入的那一行 */
+const CARET_CLEARANCE = 24;
 
 function intersects(a: Electron.Rectangle, b: Electron.Rectangle): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
@@ -183,16 +188,35 @@ export function createChatgptWindow(): BrowserWindow {
   return win;
 }
 
-/** 把悬浮条放到鼠标所在屏幕的底部居中 */
+/**
+ * 把悬浮条放到鼠标所在屏幕的底部居中；前台文本光标恰好在这块区域（最大化的编辑器写到屏幕底部）时
+ * 改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
+ */
 export function dockPanel(win: BrowserWindow): void {
   const point = screen.getCursorScreenPoint();
   const area = screen.getDisplayNearestPoint(point).workArea;
-  win.setBounds({
+  const bounds = {
     x: Math.round(area.x + (area.width - PANEL_WIDTH) / 2),
-    y: Math.round(area.y + area.height - PANEL_HEIGHT - 12),
+    y: Math.round(area.y + area.height - PANEL_HEIGHT - PANEL_MARGIN),
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
-  });
+  };
+  const caret = panelCaretZone();
+  if (caret && intersects(caret, bounds)) bounds.y = area.y + PANEL_MARGIN;
+  win.setBounds(bounds);
+}
+
+/** 前台光标矩形换成 DIP 并向四周扩出留白；无光标或转换失败返回 null */
+function panelCaretZone(): Electron.Rectangle | null {
+  const physical = foregroundCaretRect();
+  if (!physical) return null;
+  const dip = process.platform === "win32" ? screen.screenToDipRect(null, physical) : physical;
+  return {
+    x: dip.x - CARET_CLEARANCE,
+    y: dip.y - CARET_CLEARANCE,
+    width: dip.width + CARET_CLEARANCE * 2,
+    height: dip.height + CARET_CLEARANCE * 2,
+  };
 }
 
 export function dockToast(win: BrowserWindow): void {
