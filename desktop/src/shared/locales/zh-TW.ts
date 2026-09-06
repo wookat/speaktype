@@ -435,6 +435,7 @@ export const zhTW: LocaleDict = {
   "history.expand": "展開全文",
   "history.collapse": "收起",
   "error.localServerFailed": "本地識別引擎啟動失敗：請從「關於 → 開啟日誌目錄」檢視 main.log 並反饋",
+  "error.localModelCorrupt": "本地模型檔案損壞（多為下載不完整）：請在設定 → 語音識別中刪除該模型後重新下載",
   "error.micDenied": "麥克風許可權被拒絕：請在 Windows 設定 → 隱私 → 麥克風中允許桌面應用使用麥克風",
   "error.micNotFound": "沒有找到麥克風裝置",
   "error.whisperUnsupported": "whisper.cpp 模型目前僅 Windows 版可用：請在 設定 → 語音辨識 中改選 SenseVoice 或 Parakeet",

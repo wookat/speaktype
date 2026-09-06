@@ -703,6 +703,11 @@ export class Dictation {
       return;
     }
     if (!this.busy) return;
+    if (owner && this.remoteSource) {
+      // 手机端正按住说话：本机热键松手与它无关，这句只由手机端 stop/cancel 结束
+      log.info(`dictation stop: ${owner} release ignored, phone session in progress`);
+      return;
+    }
     if (owner && (owner === "rewrite") !== this.rewriting) return;
     if (!this.session) {
       this.pendingEnd = "stop";

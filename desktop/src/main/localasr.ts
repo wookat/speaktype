@@ -2,6 +2,7 @@ import { app } from "electron";
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
@@ -16,8 +17,6 @@ import { t } from "./i18n";
  * - whisper.cpp：whisper-server 子进程 + ggml 模型，多语种通用。
  * - SenseVoice（sherpa-onnx）：进程内推理，中文准确率和速度明显好于同体积 whisper。
  */
-
-const PORT = 18717;
 
 export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel, whisperLanguage } from "../shared/localModels";
 
@@ -83,10 +82,18 @@ function serverExe(): string {
 // 输入法全天高频短用：server 首次拉起后常驻到 App 退出，避免反复 ~2s 模型冷启动
 let proc: ChildProcess | null = null;
 let procModel = "";
+// 首次拉起时取一个空闲端口并沿用：固定端口会被别的程序或并存的另一份 SpeakType 占住
+let port = 0;
 let ready: Promise<void> | null = null;
+// 取端口是异步的，期间若被 stop/换模型，这次拉起作废
+let launchGen = 0;
 // whisper-server 每次推理都往 stderr 刷十几行计时信息，只留最近一段，异常退出时一次性落日志
 const STDERR_TAIL = 30;
 let stderrTail: string[] = [];
+// ggml 文件截断/损坏时 whisper.cpp 加载模型的报错特征
+const MODEL_CORRUPT_RE = /bad magic|invalid model|failed to load model|failed to initialize whisper context/i;
+// 当前这次拉起的子进程退出时 stderr 是否命中损坏特征：exit 事件通常先于 waitHealthy 察觉并落日志清尾
+let exitCorrupt = false;
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
@@ -387,78 +394,117 @@ export async function transcribeSherpa(
 }
 
 export function stopLocalServer(): void {
+  launchGen++;
+  ready = null;
   if (proc) {
     proc.kill();
     proc = null;
-    ready = null;
     stderrTail = [];
     log.info("local whisper-server stopped");
   }
 }
 
-function flushStderrTail(reason: string): void {
-  if (stderrTail.length === 0) return;
-  log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
+/** stderr 尾部一次性落日志并清空，返回是否含模型损坏特征 */
+function flushStderrTail(reason: string): boolean {
+  const corrupt = stderrTail.some((line) => MODEL_CORRUPT_RE.test(line));
+  if (stderrTail.length > 0) log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
   stderrTail = [];
+  return corrupt;
 }
 
-async function waitHealthy(): Promise<void> {
+/** 启动失败按 stderr 分类：模型文件损坏给出「删除重下」指引，其余归为引擎故障 */
+function startupError(reason: string): Error {
+  const corrupt = flushStderrTail(reason) || exitCorrupt;
+  return new Error(t(corrupt ? "error.localModelCorrupt" : "error.localServerFailed"));
+}
+
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      const found = address && typeof address === "object" ? address.port : 0;
+      probe.close(() => resolve(found));
+    });
+  });
+}
+
+async function waitHealthy(child: ChildProcess): Promise<void> {
   for (let i = 0; i < 120; i++) {
-    if (!proc) {
-      flushStderrTail("exited before ready");
-      throw new Error(t("error.localServerFailed"));
-    }
+    if (proc !== child) throw startupError("exited before ready");
     try {
-      await fetch(`http://127.0.0.1:${PORT}/`, { method: "GET" });
+      await fetch(`http://127.0.0.1:${port}/`, { method: "GET" });
       return;
     } catch {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
-  flushStderrTail("not ready after 60s");
-  throw new Error("whisper-server did not become ready");
+  throw startupError("not ready after 60s");
+}
+
+async function spawnServer(exe: string, model: string): Promise<void> {
+  const gen = ++launchGen;
+  if (!port) port = await freePort();
+  if (gen !== launchGen) throw new Error(t("error.localServerFailed"));
+  const child = spawn(
+    exe,
+    ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(port), "--language", "auto", "--prompt", "以下是普通话的句子。"],
+    { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
+  );
+  proc = child;
+  stderrTail = [];
+  exitCorrupt = false;
+  child.stderr?.setEncoding("utf8");
+  child.stderr?.on("data", (chunk: string) => {
+    for (const line of chunk.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      stderrTail.push(line);
+      if (stderrTail.length > STDERR_TAIL) stderrTail.shift();
+    }
+  });
+  // close 在 stderr 流收完后才触发，退出原因不会被截掉最后几行
+  child.on("close", (code) => {
+    if (proc === child) {
+      log.warn(`local whisper-server exited (${code})`);
+      exitCorrupt = flushStderrTail(`exit ${code}`);
+      proc = null;
+      ready = null;
+    }
+  });
+  log.info(`local whisper-server starting (model=${model}, port=${port})`);
+  try {
+    await waitHealthy(child);
+  } catch (error) {
+    // 启动失败不留僵死子进程和已拒绝的 ready，下次听写换端口重新拉起
+    if (proc === child) {
+      child.kill();
+      proc = null;
+    }
+    if (gen === launchGen) {
+      ready = null;
+      port = 0;
+    }
+    throw error;
+  }
 }
 
 /** 懒启动 whisper-server（换模型自动重启），返回 /inference 端点 */
 export async function ensureLocalServer(model: string): Promise<string> {
   if (!modelReady(model)) throw new Error(t("error.localModelMissing"));
-  if (proc && procModel !== model) stopLocalServer();
+  if (ready && procModel !== model) stopLocalServer();
 
-  if (!proc || !ready) {
+  if (!ready) {
     const exe = serverExe();
     if (!existsSync(exe)) {
       if (process.platform !== "win32") throw new Error(t("error.whisperUnsupported"));
       throw new Error(`whisper-server.exe not found: ${exe}`);
     }
-    const child = spawn(
-      exe,
-      ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto", "--prompt", "以下是普通话的句子。"],
-      { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
-    );
-    proc = child;
     procModel = model;
-    stderrTail = [];
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      for (const line of chunk.split(/\r?\n/)) {
-        if (!line.trim()) continue;
-        stderrTail.push(line);
-        if (stderrTail.length > STDERR_TAIL) stderrTail.shift();
-      }
-    });
-    child.on("exit", (code) => {
-      if (proc === child) {
-        log.warn(`local whisper-server exited (${code})`);
-        flushStderrTail(`exit ${code}`);
-        proc = null;
-        ready = null;
-      }
-    });
-    log.info(`local whisper-server starting (model=${model}, port=${PORT})`);
-    ready = waitHealthy();
+    ready = spawnServer(exe, model);
   }
 
   const readyP = ready;
   await readyP;
-  return `http://127.0.0.1:${PORT}/inference`;
+  return `http://127.0.0.1:${port}/inference`;
 }

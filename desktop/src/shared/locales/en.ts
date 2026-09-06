@@ -464,6 +464,7 @@ export const en: LocaleDict = {
   "history.expand": "Show all",
   "history.collapse": "Show less",
   "error.localServerFailed": "Local recognition engine failed to start: check main.log via About → Open log folder and report the issue",
+  "error.localModelCorrupt": "Local model file is damaged (likely an incomplete download): delete it in Settings → Speech recognition and download again",
   "error.micDenied": "Microphone access denied: allow desktop apps to use the microphone in Windows Settings → Privacy",
   "error.micNotFound": "No microphone found",
   "error.whisperUnsupported": "whisper.cpp models are currently Windows-only: pick SenseVoice or Parakeet under Settings → Speech",
