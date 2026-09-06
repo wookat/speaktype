@@ -430,6 +430,8 @@ export const ja: LocaleDict = {
   "toast.learnedBody": "「{{word}}」を辞書に追加しました。次回から自動訂正されます",
   "toast.learnedManyBody": "「{{words}}」を辞書に追加しました",
   "toast.learnedNoFixBody": "「{{word}}」を辞書に追加しました（「{{wrong}}」と同音ではないため自動置換はされません）",
+  "toast.learnInaccessible": "このエディタでは自動学習できません",
+  "toast.learnInaccessibleBody": "VS Code などでは Shift+Alt+F1 でスクリーンリーダー最適化モードを有効にすると、SpeakType が編集を検知できます",
   "toast.undo": "元に戻す",
   "toast.undone": "元に戻しました",
   "toast.undoneBody": "「{{word}}」を辞書から削除しました",

@@ -10,11 +10,19 @@ import log from "electron-log";
 
 const isMac = process.platform === "darwin";
 
+export interface ScreenRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface Win32Api {
   activeApp(): { app: string; title: string } | null;
   foregroundWindowKey(): string | null;
   foregroundPid(): number | null;
   hasPasteTarget(): boolean;
+  caretRect(): ScreenRect | null;
 }
 
 function loadWin32(): Win32Api | null {
@@ -41,6 +49,19 @@ function loadWin32(): Win32Api | null {
     const GetGUIThreadInfo = user32.func(
       "bool GetGUIThreadInfo(uint32 idThread, _Inout_ GUITHREADINFO *info)",
     );
+    koffi.struct("POINT", { x: "int32", y: "int32" });
+    const ClientToScreen = user32.func("bool ClientToScreen(uintptr hWnd, _Inout_ POINT *pt)");
+    const emptyThreadInfo = () => ({
+      cbSize: koffi.sizeof(GUITHREADINFO),
+      flags: 0,
+      hwndActive: 0,
+      hwndFocus: 0,
+      hwndCapture: 0,
+      hwndMenuOwner: 0,
+      hwndMoveSize: 0,
+      hwndCaret: 0,
+      rcCaret: [0, 0, 0, 0],
+    });
     const OpenProcess = kernel32.func("void *OpenProcess(uint32 access, bool inherit, uint32 pid)");
     const CloseHandle = kernel32.func("bool CloseHandle(void *h)");
     const QueryFullProcessImageNameW = kernel32.func(
@@ -93,20 +114,25 @@ function loadWin32(): Win32Api | null {
         // 窗口在但没有键盘焦点控件（如点在空白区）时粘贴同样不会生效
         const tid = GetWindowThreadProcessId(hwnd, [0]);
         if (tid) {
-          const info = {
-            cbSize: koffi.sizeof(GUITHREADINFO),
-            flags: 0,
-            hwndActive: 0,
-            hwndFocus: 0,
-            hwndCapture: 0,
-            hwndMenuOwner: 0,
-            hwndMoveSize: 0,
-            hwndCaret: 0,
-            rcCaret: [0, 0, 0, 0],
-          };
+          const info = emptyThreadInfo();
           if (GetGUIThreadInfo(tid, info) && !info.hwndFocus) return false;
         }
         return true;
+      },
+      caretRect() {
+        const hwnd = GetForegroundWindow();
+        if (!hwnd) return null;
+        const tid = GetWindowThreadProcessId(hwnd, [0]);
+        if (!tid) return null;
+        const info = emptyThreadInfo();
+        if (!GetGUIThreadInfo(tid, info) || !info.hwndCaret) return null;
+        const [l = 0, t = 0, r = 0, b = 0] = info.rcCaret;
+        if (r <= l || b <= t) return null;
+        // rcCaret 是光标所在控件的客户区坐标，换成屏幕物理像素
+        const tl = { x: l, y: t };
+        const br = { x: r, y: b };
+        if (!ClientToScreen(info.hwndCaret, tl) || !ClientToScreen(info.hwndCaret, br)) return null;
+        return { x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y };
       },
     };
   } catch (error) {
@@ -201,6 +227,19 @@ export function hasPasteTarget(): boolean {
 export function foregroundPid(): number | null {
   if (isMac) return null;
   return win32?.foregroundPid() ?? null;
+}
+
+/**
+ * 前台窗口的文本光标矩形（屏幕物理像素）。只有用系统光标的控件（Win32 Edit/RichEdit 等）能取到，
+ * 自绘光标的应用或没有光标时返回 null
+ */
+export function foregroundCaretRect(): ScreenRect | null {
+  if (isMac) return null;
+  try {
+    return win32?.caretRect() ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** 终端类前台进程：落字后一回车就执行，句级格式（尾句号/句首大写）会让命令出错 */

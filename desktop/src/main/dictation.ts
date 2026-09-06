@@ -21,7 +21,7 @@ import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { muteForRecording, unmuteAfterRecording } from "./mute";
 import { copySelection, pasteText, sendBackspaces } from "./paste";
-import { deformatForTerminal, polishText, rewriteSelection } from "./polish";
+import { deformatForTerminal, polishText, rewriteSelection, usesLlmPolish } from "./polish";
 import { SILERO_HANGOVER_MS, SileroVad } from "./vad";
 import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
@@ -1061,7 +1061,8 @@ export class Dictation {
       return;
     }
 
-    this.report("polishing");
+    // 没有 LLM 参与时只是本地清理，保持「识别中」，不让纯离线用户看到「润色中」
+    if (rewriteTarget || usesLlmPolish(settings)) this.report("polishing");
     let text: string;
     if (rewriteTarget) {
       this.rewriteAbort = new AbortController();
@@ -1206,7 +1207,11 @@ export class Dictation {
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
     if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && pastedOk && !noTarget && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
-      watchPastedText(text, (items) => this.learnCorrections(historyId, items));
+      watchPastedText(
+        text,
+        (items) => this.learnCorrections(historyId, items),
+        () => this.deps.showToast(t("toast.learnInaccessible"), t("toast.learnInaccessibleBody"), undefined, 8000),
+      );
     }
 
     this.busy = false;

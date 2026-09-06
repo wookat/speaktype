@@ -404,6 +404,8 @@ export const zhTW: LocaleDict = {
   "toast.learnedBody": "「{{word}}」已加入詞典，下次自動糾正",
   "toast.learnedManyBody": "「{{words}}」已加入詞典",
   "toast.learnedNoFixBody": "「{{word}}」已加入詞典（與「{{wrong}}」不同音，不會自動替換）",
+  "toast.learnInaccessible": "此編輯器暫不支援自動學習",
+  "toast.learnInaccessibleBody": "VS Code 等編輯器需按 Shift+Alt+F1 開啟螢幕閱讀器最佳化模式，SpeakType 才能看到你的修改",
   "toast.undo": "復原",
   "toast.undone": "已復原",
   "toast.undoneBody": "「{{word}}」已從詞典移除",

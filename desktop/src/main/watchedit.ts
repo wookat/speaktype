@@ -340,6 +340,14 @@ function stepInsertLength(prev: string, next: string): number {
 let current: ReturnType<typeof spawn> | null = null;
 
 /**
+ * Monaco（VS Code/Cursor 等）默认不把编辑器内容暴露给 UIA，焦点控件读到的只是
+ * 「The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Alt+F1」
+ * 这条无障碍提示（各语言包文案不同，快捷键标签固定）。命中即无法学习，改为提示用户开启
+ */
+const MONACO_A11Y_HINT = /Shift\+Alt\+F1|screen reader optimized mode/i;
+let a11yHintShown = false;
+
+/**
  * 落字成功后调用：持续观察目标输入框，用户每改完一处（停顿约 1.5 秒）就把
  * 插入文本里被改掉的词整批回调（同一轮停顿改多个词只弹一次学习提示），
  * 基线滚动更新，可连续学多处。
@@ -348,6 +356,7 @@ let current: ReturnType<typeof spawn> | null = null;
 export function watchPastedText(
   inserted: string,
   onLearn: (corrections: Diff[]) => void,
+  onInaccessible?: () => void,
 ): void {
   if (process.platform !== "win32") return;
   if (current) {
@@ -417,6 +426,13 @@ export function watchPastedText(
         if (text.includes(inserted)) {
           baseline = text;
           baselineId = id;
+        } else if (MONACO_A11Y_HINT.test(text)) {
+          log.info("auto-learn: editor not accessible (Monaco a11y hint), watch stopped");
+          if (!a11yHintShown) {
+            a11yHintShown = true;
+            onInaccessible?.();
+          }
+          child.kill();
         }
         continue;
       }

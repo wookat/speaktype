@@ -422,6 +422,8 @@ export const zhCN = {
   "toast.learnedBody": "「{{word}}」已加入词典，下次自动纠正",
   "toast.learnedManyBody": "「{{words}}」已加入词典",
   "toast.learnedNoFixBody": "「{{word}}」已加入词典（与「{{wrong}}」不同音，不会自动替换）",
+  "toast.learnInaccessible": "此编辑器暂不支持自动学习",
+  "toast.learnInaccessibleBody": "VS Code 等编辑器需按 Shift+Alt+F1 开启屏幕阅读器优化模式，SpeakType 才能看到你的修改",
   "toast.undo": "撤销",
   "toast.undone": "已撤销",
   "toast.undoneBody": "「{{word}}」已从词典移除",
