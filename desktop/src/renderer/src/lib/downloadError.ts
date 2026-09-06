@@ -7,7 +7,8 @@ export function humanDownloadError(message: string, t: Translator): string {
     return t("download.errStorage");
   if (/HTTP 404/.test(message)) return t("download.errNotFound");
   if (/HTTP 5\d\d/.test(message)) return t("download.errServer");
-  if (/fetch failed|HTTP \d{3}|too many redirects|stalled|incomplete: \d|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|network|abort/i.test(message))
+  // net::ERR_* 是 Electron net.request（Chromium 网络栈）的连接类错误串
+  if (/fetch failed|HTTP \d{3}|too many redirects|stalled|incomplete: \d|ENOTFOUND|ETIMEDOUT|ECONN|EAI_AGAIN|net::ERR_|network|abort/i.test(message))
     return t("download.errNetwork");
   return message;
 }
