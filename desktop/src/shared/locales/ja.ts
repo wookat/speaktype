@@ -219,8 +219,8 @@ export const ja: LocaleDict = {
   "settings.themeDark": "ダーク",
   "settings.panelPositionTop": "常に上部",
   "settings.panelPositionBottom": "常に下部",
-  "settings.panelPositionAuto": "自動（下部。テキストカーソルに重なる場合は上部へ）",
-  "settings.panelPositionHint": "録音バーとライブ字幕を画面のどこに表示するか",
+  "settings.panelPositionAuto": "自動（カーソルを避ける）",
+  "settings.panelPositionHint": "録音バーとライブ字幕を画面のどこに表示するか。自動では下部に表示し、テキストカーソルに重なる場合は上部へ移動します。",
   "settings.panelPosition": "フローティングバーの位置",
   "settings.followSystem": "システムに従う",
 

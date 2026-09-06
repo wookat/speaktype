@@ -219,8 +219,8 @@ export const ko: LocaleDict = {
   "settings.themeDark": "다크",
   "settings.panelPositionTop": "항상 상단",
   "settings.panelPositionBottom": "항상 하단",
-  "settings.panelPositionAuto": "자동(하단, 텍스트 커서를 가리면 상단으로)",
-  "settings.panelPositionHint": "녹음 바와 실시간 자막이 화면의 어디에 표시되는지",
+  "settings.panelPositionAuto": "자동(텍스트 커서 피함)",
+  "settings.panelPositionHint": "녹음 바와 실시간 자막이 화면의 어디에 표시되는지. 자동은 하단에 표시하고 텍스트 커서를 가리면 상단으로 이동합니다.",
   "settings.panelPosition": "플로팅 바 위치",
   "settings.followSystem": "시스템 따르기",
 

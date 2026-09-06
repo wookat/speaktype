@@ -219,8 +219,8 @@ export const en: LocaleDict = {
   "settings.themeDark": "Dark",
   "settings.panelPositionTop": "Always at top",
   "settings.panelPositionBottom": "Always at bottom",
-  "settings.panelPositionAuto": "Automatic (bottom; moves to top when it would cover the text cursor)",
-  "settings.panelPositionHint": "Where the recording bar and live captions appear on screen",
+  "settings.panelPositionAuto": "Automatic (avoids the text cursor)",
+  "settings.panelPositionHint": "Where the recording bar and live captions appear. Automatic keeps them at the bottom and moves them to the top when they would cover the text cursor.",
   "settings.panelPosition": "Floating bar position",
   "settings.followSystem": "Follow system",
 
