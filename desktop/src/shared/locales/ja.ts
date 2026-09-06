@@ -464,6 +464,7 @@ export const ja: LocaleDict = {
   "history.expand": "すべて表示",
   "history.collapse": "折りたたむ",
   "error.localServerFailed": "ローカル認識エンジンの起動に失敗：情報 → ログフォルダを開く から main.log を確認し、問題を報告してください",
+  "error.localModelCorrupt": "ローカルモデルのファイルが破損しています（ダウンロード不完全の可能性）：設定 → 音声認識 で削除して再ダウンロードしてください",
   "error.micDenied": "マイクへのアクセスが拒否されました：Windows 設定 → プライバシー でデスクトップアプリのマイク使用を許可してください",
   "error.micNotFound": "マイクが見つかりません",
   "error.whisperUnsupported": "whisper.cpp モデルは現在 Windows 版のみ対応です：設定 → 音声認識 で SenseVoice または Parakeet を選んでください",

@@ -464,6 +464,7 @@ export const ko: LocaleDict = {
   "history.expand": "전체 보기",
   "history.collapse": "접기",
   "error.localServerFailed": "로컬 인식 엔진 시작 실패: 정보 → 로그 폴더 열기 에서 main.log 를 확인하고 문제를 신고하세요",
+  "error.localModelCorrupt": "로컬 모델 파일이 손상되었습니다(다운로드가 불완전했을 수 있음): 설정 → 음성 인식 에서 삭제 후 다시 다운로드하세요",
   "error.micDenied": "마이크 접근이 거부되었습니다: Windows 설정 → 개인정보 에서 데스크톱 앱의 마이크 사용을 허용하세요",
   "error.micNotFound": "마이크를 찾을 수 없습니다",
   "error.whisperUnsupported": "whisper.cpp 모델은 현재 Windows 버전에서만 사용할 수 있습니다: 설정 → 음성 인식 에서 SenseVoice 또는 Parakeet 을 선택하세요",
