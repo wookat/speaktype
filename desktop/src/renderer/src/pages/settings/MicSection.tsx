@@ -151,18 +151,31 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
         <div className="ml-4 mt-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
           <div className="flex items-center justify-between gap-3">
             <span>{t("settings.remoteMicNoModel")}</span>
-            <button
-              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
-              disabled={Boolean(local?.downloading)}
-              onClick={() => void api.localModelDownload(localModel).then(setLocal)}
-            >
-              {local?.downloading
-                ? t("settings.localModelDownloading", { progress: String(local.progress) })
-                : local?.partial != null
-                  ? t("settings.localModelResume", { progress: String(local.partial) })
-                  : t("settings.localModelDownload")}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white disabled:opacity-40"
+                disabled={Boolean(local?.downloading) || Boolean(local?.busyModel)}
+                onClick={() => void api.localModelDownload(localModel).then(setLocal)}
+              >
+                {local?.downloading
+                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  : local?.partial != null
+                    ? t("settings.localModelResume", { progress: String(local.partial) })
+                    : t("settings.localModelDownload")}
+              </button>
+              {local?.downloading && (
+                <button
+                  className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100"
+                  onClick={() => void api.localModelCancelDownload()}
+                >
+                  {t("common.cancel")}
+                </button>
+              )}
+            </div>
           </div>
+          {local?.busyModel && (
+            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+          )}
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
               <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />

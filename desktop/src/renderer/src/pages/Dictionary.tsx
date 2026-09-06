@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
@@ -6,6 +6,7 @@ import type { Settings } from "../../../shared/types";
 import { toSimplified } from "../../../shared/zhNorm";
 import { Toggle } from "../components/Toggle";
 import { MAX_HOTWORDS, MAX_HOTWORD_LEN } from "../constants";
+import { useConfirm } from "../lib/useConfirm";
 
 /** 日文假名 / 韩文谚文：读音不是拼音，hotwords.ts 的同音纠错覆盖不到 */
 const NOT_CORRECTABLE = /[\u3041-\u30ff\uac00-\ud7af]/;
@@ -17,13 +18,9 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
   const [dropped, setDropped] = useState(0);
   // 本次新加入、但自动纠错覆盖不到的词（假名/谚文）：提示只在这些词仍在词表中时展示
   const [notedWords, setNotedWords] = useState<string[]>([]);
-  // 清空是本页唯一批量不可逆操作：两步确认，几秒不点自动复位
-  const [confirmClear, setConfirmClear] = useState(false);
-  useEffect(() => {
-    if (!confirmClear) return;
-    const timer = setTimeout(() => setConfirmClear(false), 4000);
-    return () => clearTimeout(timer);
-  }, [confirmClear]);
+  // 清空是本页唯一批量不可逆操作：两步确认
+  const clear = useConfirm();
+  const confirmClear = clear.armed === true;
   const words = props.settings.hotwords;
 
   const addFromText = () => {
@@ -44,16 +41,14 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
 
   const remove = (word: string) => props.update({ hotwords: words.filter((w) => w !== word) });
   // 导出一行一词的 .txt，与粘贴导入天然 round-trip
-  const exportWords = () => {
-    // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码；导入侧 trim() 会剥掉 \ufeff，round-trip 不受影响
-    const blob = new Blob(["\ufeff", `${words.join("\n")}\n`], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `speaktype-dictionary-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // 主进程写入时带 UTF-8 BOM；导入侧 trim() 会剥掉 \ufeff，round-trip 不受影响
+  const exportWords = () =>
+    void api.saveTextFile({
+      title: t("common.exportTitle"),
+      fileName: `speaktype-dictionary-${new Date().toISOString().slice(0, 10)}.txt`,
+      filterName: "Text",
+      content: `${words.join("\n")}\n`,
+    });
   // 与 History 搜索同口径：搜索键与热词都做简繁归一，繁体关键词可命中简体热词，反之亦然
   const q = toSimplified(query.trim().toLowerCase());
   const filtered = q ? words.filter((w) => toSimplified(w.toLowerCase()).includes(q)) : words;
@@ -98,12 +93,7 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
               : "border-slate-200 text-slate-500 hover:bg-slate-50"
           }`}
           disabled={words.length === 0}
-          onClick={() => {
-            if (confirmClear) {
-              props.update({ hotwords: [] });
-              setConfirmClear(false);
-            } else setConfirmClear(true);
-          }}
+          onClick={() => clear.press(true, () => props.update({ hotwords: [] }))}
         >
           {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
           <span className="relative inline-block">

@@ -8,7 +8,7 @@ import { Worker } from "node:worker_threads";
 import log from "electron-log/main.js";
 import { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
 import type { LocalModelStatus } from "../shared/types";
-import { downloadFiles, hfSources, partialProgress } from "./download";
+import { DownloadCancelled, downloadFiles, hfSources, partialProgress } from "./download";
 import { t } from "./i18n";
 
 /**
@@ -19,7 +19,7 @@ import { t } from "./i18n";
 
 const PORT = 18717;
 
-export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel } from "../shared/localModels";
+export { LOCAL_MODELS, PARAKEET, SENSEVOICE, isSherpaModel, whisperLanguage } from "../shared/localModels";
 
 const SENSEVOICE_BASE =
   "csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/main";
@@ -84,11 +84,15 @@ function serverExe(): string {
 let proc: ChildProcess | null = null;
 let procModel = "";
 let ready: Promise<void> | null = null;
+// whisper-server 每次推理都往 stderr 刷十几行计时信息，只留最近一段，异常退出时一次性落日志
+const STDERR_TAIL = 30;
+let stderrTail: string[] = [];
 
 const status: LocalModelStatus = { model: "", downloaded: false, downloading: false, progress: 0 };
 // 最近一次下载失败的原因，按模型记；切页后重新读状态时错误仍可见
 const lastError = new Map<string, string>();
 let notify: ((s: LocalModelStatus) => void) | null = null;
+let downloadAbort: AbortController | null = null;
 
 export function onLocalModelStatus(cb: (s: LocalModelStatus) => void): void {
   notify = cb;
@@ -98,6 +102,7 @@ export function localModelStatus(model: string): LocalModelStatus {
   if (status.downloading && status.model === model) return { ...status };
   const downloaded = modelReady(model);
   const s: LocalModelStatus = { model, downloaded, downloading: false, progress: 0 };
+  if (status.downloading) s.busyModel = status.model;
   if (!downloaded) {
     const partial = modelPartialPercent(model);
     if (partial !== null) s.partial = partial;
@@ -157,26 +162,41 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   lastError.delete(model);
   push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, error: undefined });
   const files = modelFiles(model);
+  downloadAbort = new AbortController();
   try {
     await downloadFiles(
       files.map(([remote, dest, size]) => ({ sources: hfSources(remote), dest, size })),
       (percent) => push({ progress: percent }),
+      downloadAbort.signal,
     );
     push({ downloading: false, downloaded: true, progress: 100, partial: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    lastError.set(model, message);
-    push({
-      downloading: false,
-      downloaded: false,
-      progress: 0,
-      partial: modelPartialPercent(model) ?? undefined,
-      error: message,
-    });
-    log.warn(`local model ${model} download failed`, error);
+    if (error instanceof DownloadCancelled) {
+      // 用户取消：残片保留，回到「继续下载（x%）」，不记为错误
+      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined });
+      log.info(`local model ${model} download cancelled`);
+    } else {
+      const message = error instanceof Error ? error.message : String(error);
+      lastError.set(model, message);
+      push({
+        downloading: false,
+        downloaded: false,
+        progress: 0,
+        partial: modelPartialPercent(model) ?? undefined,
+        error: message,
+      });
+      log.warn(`local model ${model} download failed`, error);
+    }
+  } finally {
+    downloadAbort = null;
   }
   return { ...status };
+}
+
+/** 取消进行中的模型下载；已落盘的 .part 保留供下次续传 */
+export function cancelLocalModelDownload(): void {
+  downloadAbort?.abort(new DownloadCancelled());
 }
 
 /** 删除模型的全部落盘文件（含可续传残片）；调用方需先停掉占用模型的 worker/server */
@@ -371,13 +391,23 @@ export function stopLocalServer(): void {
     proc.kill();
     proc = null;
     ready = null;
+    stderrTail = [];
     log.info("local whisper-server stopped");
   }
 }
 
+function flushStderrTail(reason: string): void {
+  if (stderrTail.length === 0) return;
+  log.warn(`whisper-server stderr (${reason}):\n${stderrTail.join("\n")}`);
+  stderrTail = [];
+}
+
 async function waitHealthy(): Promise<void> {
   for (let i = 0; i < 120; i++) {
-    if (!proc) throw new Error(t("error.localServerFailed"));
+    if (!proc) {
+      flushStderrTail("exited before ready");
+      throw new Error(t("error.localServerFailed"));
+    }
     try {
       await fetch(`http://127.0.0.1:${PORT}/`, { method: "GET" });
       return;
@@ -385,6 +415,7 @@ async function waitHealthy(): Promise<void> {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
+  flushStderrTail("not ready after 60s");
   throw new Error("whisper-server did not become ready");
 }
 
@@ -402,13 +433,23 @@ export async function ensureLocalServer(model: string): Promise<string> {
     const child = spawn(
       exe,
       ["--model", modelPath(model), "--host", "127.0.0.1", "--port", String(PORT), "--language", "auto", "--prompt", "以下是普通话的句子。"],
-      { stdio: "ignore", windowsHide: true },
+      { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
     );
     proc = child;
     procModel = model;
+    stderrTail = [];
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk: string) => {
+      for (const line of chunk.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        stderrTail.push(line);
+        if (stderrTail.length > STDERR_TAIL) stderrTail.shift();
+      }
+    });
     child.on("exit", (code) => {
       if (proc === child) {
         log.warn(`local whisper-server exited (${code})`);
+        flushStderrTail(`exit ${code}`);
         proc = null;
         ready = null;
       }

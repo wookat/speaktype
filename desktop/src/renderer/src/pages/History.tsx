@@ -6,6 +6,7 @@ import { personaDisplayName } from "../../../shared/personas";
 import { toSimplified } from "../../../shared/zhNorm";
 import { ReviewDiff } from "../components/ReviewDiff";
 import { dayLabel, fmtClock, fmtDuration, suggestHotword } from "../lib/format";
+import { useConfirm } from "../lib/useConfirm";
 
 const PAGE_SIZE = 50;
 
@@ -27,8 +28,20 @@ function History(props: {
   const [retrying, setRetrying] = useState("");
   const [retryError, setRetryError] = useState<{ id: string; msg: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [copiedId, setCopiedId] = useState("");
+  useEffect(() => {
+    if (!copiedId) return;
+    const timer = setTimeout(() => setCopiedId(""), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
+  // 清空全部不可逆：两步确认，确认态焦点落到安全的“取消”上，Esc 退回
+  const clear = useConfirm();
+  const confirmClear = clear.armed === true;
+  const clearCancelBtn = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmClear) clearCancelBtn.current?.focus();
+  }, [confirmClear]);
   // 本地断句/标点后几乎每条 raw≠text，常显 diff 是满屏红字噪音；收进“查看原文”按需展开
   const [diffOpen, setDiffOpen] = useState<string | null>(null);
   // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
@@ -100,22 +113,18 @@ function History(props: {
       props.setHistory(await api.history());
     });
   };
-  // 导出当前筛选结果为 Markdown（失败条目除外），浏览器下载通道落到本地文件
+  // 导出当前筛选结果为 Markdown（失败条目除外），原生「另存为」落到本地文件
   const exportHistory = (items: HistoryItem[]): void => {
     const lines = items
       .filter((h) => h.status !== "failed")
       // 多行文本续行补两空格缩进，保持在同一列表项内，不会被解析成新的顶级条目
       .map((h) => `- ${new Date(h.at).toLocaleString(props.settings.uiLanguage)} · ${personaDisplayName(h.personaId, h.personaName, t)}\n\n  ${h.text.replace(/\n/g, "\n  ")}`);
-    // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
-    const blob = new Blob(["\ufeff", `# SpeakType History\n\n${lines.join("\n\n")}\n`], {
-      type: "text/markdown;charset=utf-8",
+    void api.saveTextFile({
+      title: t("common.exportTitle"),
+      fileName: `speaktype-history-${new Date().toISOString().slice(0, 10)}.md`,
+      filterName: "Markdown",
+      content: `# SpeakType History\n\n${lines.join("\n\n")}\n`,
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `speaktype-history-${new Date().toISOString().slice(0, 10)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
   // 搜索键与被搜文本都做简繁归一：繁体关键词可命中简体条目，反之亦然
   const q = toSimplified(query.trim().toLowerCase());
@@ -168,21 +177,28 @@ function History(props: {
             />
           )}
           {props.history.length > 0 && confirmClear && (
-            <>
+            <div
+              role="group"
+              className="flex items-center gap-3"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") clear.disarm();
+              }}
+            >
               <span className="whitespace-nowrap text-sm text-slate-500">{t("history.clearConfirm")}</span>
               <button
                 className="shrink-0 whitespace-nowrap text-sm font-medium text-red-500 hover:text-red-600"
-                onClick={() => {
-                  setConfirmClear(false);
-                  void api.clearHistory().then(props.setHistory);
-                }}
+                onClick={() => clear.confirm(true, () => void api.clearHistory().then(props.setHistory))}
               >
                 {t("history.clearYes")}
               </button>
-              <button className="shrink-0 whitespace-nowrap text-sm text-slate-400" onClick={() => setConfirmClear(false)}>
+              <button
+                ref={clearCancelBtn}
+                className="shrink-0 whitespace-nowrap text-sm text-slate-400"
+                onClick={clear.disarm}
+              >
                 {t("common.cancel")}
               </button>
-            </>
+            </div>
           )}
           {filtered.length > 0 && !confirmClear && (
             <button
@@ -195,7 +211,7 @@ function History(props: {
           {props.history.length > 0 && !confirmClear && (
             <button
               className="shrink-0 whitespace-nowrap text-sm text-slate-400 hover:text-red-500"
-              onClick={() => setConfirmClear(true)}
+              onClick={() => clear.arm(true)}
             >
               {t("history.clear")}
             </button>
@@ -232,8 +248,11 @@ function History(props: {
                     </span>
                     {/* 不用 hover 门控：远程桌面/触屏 (hover:none) 下 group-hover 永不触发 */}
                     <span className="flex shrink-0 gap-3 whitespace-nowrap">
-                      <button className="hover:text-slate-600" onClick={() => void navigator.clipboard.writeText(item.text)}>
-                        {t("history.copy")}
+                      <button
+                        className={copiedId === item.id ? "text-emerald-600" : "hover:text-slate-600"}
+                        onClick={() => void navigator.clipboard.writeText(item.text).then(() => setCopiedId(item.id))}
+                      >
+                        {copiedId === item.id ? t("history.copied") : t("history.copy")}
                       </button>
                       {item.status !== "failed" && (
                         <button
@@ -256,19 +275,24 @@ function History(props: {
                   </div>
                   {item.status === "failed" ? (
                     <div className="mt-2 flex items-center gap-3">
-                      <span className="text-xs text-red-500">
+                      {/* 错误原文可能是整段堆栈：正文限两行，全文放 title，不让 Retry 被挤成竖排 */}
+                      <span className="line-clamp-2 min-w-0 text-xs text-red-500" title={item.error}>
                         {t("history.failedEntry")}: {item.error}
                       </span>
                       {item.audioFile && (
                         <button
-                          className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
+                          className="shrink-0 whitespace-nowrap rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
                           disabled={retrying === item.id}
                           onClick={() => retry(item.id)}
                         >
                           {retrying === item.id ? t("history.retrying") : t("history.retry")}
                         </button>
                       )}
-                      {retryError?.id === item.id && <span className="text-xs text-red-400">{retryError.msg}</span>}
+                      {retryError?.id === item.id && (
+                        <span className="line-clamp-2 min-w-0 text-xs text-red-400" title={retryError.msg}>
+                          {retryError.msg}
+                        </span>
+                      )}
                     </div>
                   ) : editing?.id === item.id ? (
                     <div className="mt-2">

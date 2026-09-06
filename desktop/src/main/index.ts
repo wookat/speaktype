@@ -15,7 +15,7 @@ import pkg from "../../package.json";
 // 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
 declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
-import type { HistoryItem, Persona, Settings, StatusPayload } from "../shared/types";
+import type { HistoryItem, Persona, SaveTextRequest, Settings, StatusPayload } from "../shared/types";
 import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, closeChatgptBridge, showChatgptLogin, testChatgpt } from "./chatgpt";
@@ -23,7 +23,7 @@ import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, tes
 import { HOLD_KEY_CHOICES, REWRITE_KEY_CHOICES, TOGGLE_KEY_CHOICES, HotkeyManager } from "./hotkey";
 import { t, translator } from "./i18n";
 import { testAsr } from "./asr";
-import { AVAILABLE_LOCAL_MODELS, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
+import { AVAILABLE_LOCAL_MODELS, cancelLocalModelDownload, deleteLocalModel, downloadLocalModel, isSherpaModel, localModelStatus, onLocalModelStatus, prewarmSherpa, releaseSherpaWorker, stopLocalServer } from "./localasr";
 import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
@@ -165,6 +165,15 @@ function showToast(
   toastTimer = setTimeout(() => toastWin?.hide(), durationMs ?? (action ? 6000 : 4000));
 }
 
+/** 文件写入失败按 errno 归类成可行动提示；未知错误原样透出便于排障 */
+function humanSaveError(error: unknown): string {
+  const code = error instanceof Error && "code" in error ? String((error as NodeJS.ErrnoException).code) : "";
+  if (code === "ENOSPC") return t("toast.exportNoSpace");
+  if (code === "EACCES" || code === "EPERM" || code === "EROFS") return t("toast.exportNoAccess");
+  if (code === "EBUSY") return t("toast.exportInUse");
+  return error instanceof Error ? error.message : String(error);
+}
+
 // 悬停暂停自动隐藏，移开后短暂宽限再收起
 ipcMain.on("toast:hover", (_e, hovering: boolean) => {
   if (toastTimer) clearTimeout(toastTimer);
@@ -226,7 +235,7 @@ async function syncRemoteMic(enabled: boolean): Promise<void> {
 const hotkeys = new HotkeyManager({
   onWarmUp: () => dictation.warmUp(),
   onHoldStart: (rewrite) => void (rewrite ? dictation.startRewrite() : dictation.start("hold")),
-  onHoldEnd: () => void dictation.stop(),
+  onHoldEnd: (rewrite) => void dictation.stop(rewrite ? "rewrite" : "hold"),
   onToggle: () => dictation.toggleHandsFree(),
   onEscape: () => dictation.cancelByKey(),
   onDoubleTap: () => dictation.toggleHandsFree(),
@@ -299,10 +308,11 @@ function startHotkeys(): void {
   }
 }
 
-function pushSettings(): void {
+/** 广播设置；发起修改的窗口已乐观更新，跳过它以免旧值回推覆盖正在输入的受控字段 */
+function pushSettings(exclude?: Electron.WebContents): void {
   const payload = { settings: getSettings(), personas: getPersonas() };
   for (const win of [mainWin, panelWin]) {
-    if (win && !win.isDestroyed()) win.webContents.send("settings", payload);
+    if (win && !win.isDestroyed() && win.webContents !== exclude) win.webContents.send("settings", payload);
   }
   broadcast(dictation.status());
 }
@@ -420,7 +430,7 @@ function registerIpc(): void {
     systemLocale: app.getLocale() || "zh-CN",
   }));
   // 设置变更的副作用（热键/自启/托盘/手机麦）集中在这里：设置页更新与配置导入共用同一条路径
-  const applySettingsPatch = async (patch: Partial<Settings>): Promise<Settings> => {
+  const applySettingsPatch = async (patch: Partial<Settings>, sender?: Electron.WebContents): Promise<Settings> => {
     const prevModel = getSettings().localModel;
     const next = setSettings(patch);
     applyHotkeys(next);
@@ -449,10 +459,10 @@ function registerIpc(): void {
       // 中转二维码携带界面语言：切语言时原地重算 URL/QR，无需关开开关
       await refreshRemoteMicQr();
     }
-    pushSettings();
+    pushSettings(sender);
     return next;
   };
-  ipcMain.handle("settings:update", (_e, patch: Partial<Settings>) => applySettingsPatch(patch));
+  ipcMain.handle("settings:update", (e, patch: Partial<Settings>) => applySettingsPatch(patch, e.sender));
   ipcMain.handle("config:export", async () => {
     const res = await dialog.showSaveDialog({
       defaultPath: join(app.getPath("documents"), `speaktype-config-${new Date().toISOString().slice(0, 10)}.json`),
@@ -464,7 +474,26 @@ function registerIpc(): void {
       return { ok: true };
     } catch (error) {
       log.error("config export failed", error);
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      return { ok: false, error: humanSaveError(error) };
+    }
+  });
+  // 历史/词典/转录导出统一走原生「另存为」：浏览器 a[download] 通道的保存框标题会露出 blob:file:///…UUID
+  ipcMain.handle("file:saveText", async (_e, req: SaveTextRequest): Promise<boolean> => {
+    const ext = req.fileName.split(".").pop() ?? "txt";
+    const res = await dialog.showSaveDialog({
+      title: req.title,
+      defaultPath: join(app.getPath("documents"), req.fileName),
+      filters: [{ name: req.filterName, extensions: [ext] }],
+    });
+    if (res.canceled || !res.filePath) return false;
+    try {
+      // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
+      writeFileSync(res.filePath, `\ufeff${req.content}`, "utf8");
+      return true;
+    } catch (error) {
+      log.error(`save text failed (${res.filePath})`, error);
+      showToast(t("toast.exportFailed"), humanSaveError(error));
+      return false;
     }
   });
   ipcMain.handle("config:import", async () => {
@@ -568,6 +597,7 @@ function registerIpc(): void {
     }
     return result;
   });
+  ipcMain.handle("local:cancelDownload", () => cancelLocalModelDownload());
   ipcMain.handle("local:delete", (_e, model: string) => {
     // 先停掉可能占用模型文件的推理进程/线程，Windows 下否则删不掉
     releaseSherpaWorker();

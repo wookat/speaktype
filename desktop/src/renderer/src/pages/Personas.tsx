@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { Persona, Settings } from "../../../shared/types";
 import { PERSONA_ICONS, PersonaIcon } from "../components/PersonaIcon";
+import { useConfirm } from "../lib/useConfirm";
 
 function Personas(props: {
   t: Translator;
@@ -18,13 +19,18 @@ function Personas(props: {
   const polishReady =
     props.settings.polishEnabled && Boolean(props.settings.polishBaseUrl);
   const [editing, setEditing] = useState<Persona | null>(null);
-  // 删除是全应用唯一不可逆操作：两步确认，几秒不点自动复位
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // 原生 <dialog>.showModal()：背景 inert、Tab 不出弹窗、Esc 关闭都由浏览器保证，不自建焦点陷阱
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (!confirmDelete) return;
-    const timer = setTimeout(() => setConfirmDelete(null), 4000);
-    return () => clearTimeout(timer);
-  }, [confirmDelete]);
+    const dialog = dialogRef.current;
+    if (!editing || !dialog || dialog.open) return;
+    dialog.showModal();
+    nameRef.current?.focus();
+  }, [editing]);
+  // 删除不可逆：两步确认，按人设 id 区分确认目标
+  const del = useConfirm<string>();
+  const confirmDelete = del.armed;
   // 正在运行的应用列表：规则输入框提供下拉建议，免得用户不知道进程名怎么写
   const [apps, setApps] = useState<string[]>([]);
   useEffect(() => {
@@ -51,7 +57,6 @@ function Personas(props: {
     if (rules.length !== props.settings.appPersonas.length) patch.appPersonas = rules;
     if (props.settings.personaId === persona.id) patch.personaId = "default";
     if (Object.keys(patch).length > 0) props.update(patch);
-    setConfirmDelete(null);
   };
 
   const duplicate = (persona: Persona) => {
@@ -226,8 +231,7 @@ function Personas(props: {
                     className={confirmDelete === persona.id ? "font-medium text-red-500" : "hover:text-red-500"}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirmDelete === persona.id) remove(persona);
-                      else setConfirmDelete(persona.id);
+                      del.press(persona.id, () => remove(persona));
                     }}
                   >
                     {confirmDelete === persona.id ? t("personas.deleteConfirm") : t("personas.delete")}
@@ -240,51 +244,61 @@ function Personas(props: {
       </ul>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-[520px] rounded-2xl bg-white p-6 shadow-xl">
-            <div className="font-medium">{t("personas.detail")}</div>
-            <label className="mt-4 block text-xs text-slate-500">{t("personas.name")}</label>
-            <input
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder={t("personas.namePlaceholder")}
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            />
-            <label className="mt-3 block text-xs text-slate-500">{t("personas.icon")}</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {Object.keys(PERSONA_ICONS).map((name) => (
-                <button
-                  key={name}
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
-                    editing.icon === name ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
-                  }`}
-                  onClick={() => setEditing({ ...editing, icon: name })}
-                >
-                  <PersonaIcon name={name} className={`h-4 w-4 ${editing.icon === name ? "text-indigo-500" : "text-slate-500"}`} />
-                </button>
-              ))}
-            </div>
-            <label className="mt-3 block text-xs text-slate-500">{t("personas.prompt")}</label>
-            <textarea
-              className="mt-1 h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder={t("personas.promptPlaceholder")}
-              value={editing.prompt}
-              onChange={(e) => setEditing({ ...editing, prompt: e.target.value })}
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="rounded-xl px-4 py-2 text-sm text-slate-500" onClick={() => setEditing(null)}>
-                {t("common.cancel")}
-              </button>
-              <button
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
-                disabled={!editing.name || !editing.prompt}
-                onClick={() => save(editing)}
-              >
-                {t("common.save")}
-              </button>
-            </div>
+        <dialog
+          ref={dialogRef}
+          aria-labelledby="persona-dialog-title"
+          className="m-auto w-[520px] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-6 text-inherit shadow-xl backdrop:bg-black/30"
+          onClose={() => setEditing(null)}
+        >
+          <div id="persona-dialog-title" className="font-medium">
+            {t("personas.detail")}
           </div>
-        </div>
+          <label className="mt-4 block text-xs text-slate-500">{t("personas.name")}</label>
+          <input
+            ref={nameRef}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={t("personas.namePlaceholder")}
+            value={editing.name}
+            onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+          />
+          <label className="mt-3 block text-xs text-slate-500">{t("personas.icon")}</label>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {Object.keys(PERSONA_ICONS).map((name) => (
+              <button
+                key={name}
+                type="button"
+                aria-label={name}
+                aria-pressed={editing.icon === name}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
+                  editing.icon === name ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
+                }`}
+                onClick={() => setEditing({ ...editing, icon: name })}
+              >
+                <PersonaIcon name={name} className={`h-4 w-4 ${editing.icon === name ? "text-indigo-500" : "text-slate-500"}`} />
+              </button>
+            ))}
+          </div>
+          <label className="mt-3 block text-xs text-slate-500">{t("personas.prompt")}</label>
+          <textarea
+            className="mt-1 h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            placeholder={t("personas.promptPlaceholder")}
+            value={editing.prompt}
+            onChange={(e) => setEditing({ ...editing, prompt: e.target.value })}
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className="rounded-xl px-4 py-2 text-sm text-slate-500" onClick={() => setEditing(null)}>
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-40"
+              disabled={!editing.name || !editing.prompt}
+              onClick={() => save(editing)}
+            >
+              {t("common.save")}
+            </button>
+          </div>
+        </dialog>
       )}
     </div>
   );

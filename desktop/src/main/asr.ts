@@ -4,7 +4,7 @@ import { simplifyWhisperOutput } from "../shared/zhNorm";
 import type { DoubaoSession } from "./doubao";
 import { t } from "./i18n";
 import { transcribeViaChatgpt } from "./chatgpt";
-import { ensureLocalServer, isSherpaModel, transcribeSherpa } from "./localasr";
+import { ensureLocalServer, isSherpaModel, transcribeSherpa, whisperLanguage } from "./localasr";
 
 const SAMPLE_RATE = 16000;
 // 离线流式字幕：每 1s 重解一次已录音频，1s 起步；超过 20s 后改解最后 20s 滑窗，成本恒定、字幕不断供
@@ -252,7 +252,7 @@ export function startLocalAsrSession(
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
       form.append("response_format", "json");
-      if (settings.language && settings.language !== "auto") form.append("language", settings.language);
+      if (settings.language && settings.language !== "auto") form.append("language", whisperLanguage(settings.language));
       const res = await fetch(url, { method: "POST", body: form });
       if (!res.ok) {
         const body = (await res.text()).slice(0, 160);

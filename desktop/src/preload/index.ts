@@ -4,6 +4,7 @@ import type {
   LocalModelStatus,
   Persona,
   RemoteMicInfo,
+  SaveTextRequest,
   Settings,
   Stats,
   StatusPayload,
@@ -77,10 +78,13 @@ const api = {
   localModels: (): Promise<Array<{ id: string; size: string }>> => ipcRenderer.invoke("local:models"),
   localModelStatus: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:status", model),
   localModelDownload: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:download", model),
+  localModelCancelDownload: (): Promise<void> => ipcRenderer.invoke("local:cancelDownload"),
   localModelDelete: (model: string): Promise<LocalModelStatus> => ipcRenderer.invoke("local:delete", model),
   resetSettings: (): Promise<Settings> => ipcRenderer.invoke("settings:reset"),
   exportConfig: (): Promise<ConfigTransferResult> => ipcRenderer.invoke("config:export"),
   importConfig: (): Promise<ConfigTransferResult> => ipcRenderer.invoke("config:import"),
+  /** 原生「另存为」写文本文件；用户取消或写入失败（主进程已弹提示）返回 false */
+  saveTextFile: (req: SaveTextRequest): Promise<boolean> => ipcRenderer.invoke("file:saveText", req),
   factoryReset: (): Promise<void> => ipcRenderer.invoke("app:factoryReset"),
   onLocalModel: (fn: (s: LocalModelStatus) => void) => {
     const listener = (_e: unknown, s: LocalModelStatus) => fn(s);
