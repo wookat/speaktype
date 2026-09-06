@@ -5,7 +5,7 @@ import type { Persona, Settings } from "../../../shared/types";
 import { PARAKEET, SENSEVOICE } from "../../../shared/localModels";
 import { PersonaIcon } from "../components/PersonaIcon";
 import { StatCard } from "../components/StatCard";
-import { humanDownloadError } from "../lib/downloadError";
+import { downloadPhaseText, humanDownloadError } from "../lib/downloadError";
 import { fmtDuration } from "../lib/format";
 import { useLocalModelStatus } from "../lib/useLocalModelStatus";
 
@@ -24,8 +24,11 @@ function Home(props: {
 }) {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
-  // 手打按 40 词/分估算；不先取整到分钟，少量词数也能给出非零节省
-  const saved = Math.max(0, Math.round((props.statsWords / 40) * 60000) - props.statsDuration);
+  // 节省时间只看词数（手打 vs 口述速率差），不减实际录音时长：录音含按键空白与停顿，短句会被算成 0
+  // CJK 界面按「字/分」口径（手打 60 / 口述 200），其余按英文口径（40 / 150 WPM）
+  const cjkUi = /^(zh|ja|ko)/.test(props.settings.uiLanguage);
+  const [typeRate, speakRate] = cjkUi ? [60, 200] : [40, 150];
+  const saved = Math.round(props.statsWords * (1 / typeRate - 1 / speakRate) * 60000);
 
   // 熟手默认收起引导卡，新用户默认展开
   const [stepsOpen, setStepsOpen] = useState(props.statsSessions < 10);
@@ -91,6 +94,11 @@ function Home(props: {
             )}
             {local?.busyModel && (
               <div className="mt-2 text-xs text-indigo-500">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+            )}
+            {downloadPhaseText(local, t) && (
+              <div className="mt-2 text-xs text-indigo-500" role="status">
+                {downloadPhaseText(local, t)}
+              </div>
             )}
             {local?.error && <div className="mt-1 text-sm text-red-500">{humanDownloadError(local.error, t)}</div>}
           </div>

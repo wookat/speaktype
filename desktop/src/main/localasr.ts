@@ -170,7 +170,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
   if (modelReady(model)) return localModelStatus(model);
 
   lastError.delete(model);
-  push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, error: undefined });
+  push({ model, downloading: true, downloaded: false, progress: 0, partial: undefined, phase: "downloading", error: undefined });
   const files = modelFiles(model);
   downloadAbort = new AbortController();
   try {
@@ -178,13 +178,16 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
       files.map(([remote, dest, size]) => ({ sources: hfSources(remote), dest, size })),
       (percent) => push({ progress: percent }),
       downloadAbort.signal,
+      (phase) => {
+        if (phase !== status.phase) push({ phase });
+      },
     );
-    push({ downloading: false, downloaded: true, progress: 100, partial: undefined });
+    push({ downloading: false, downloaded: true, progress: 100, partial: undefined, phase: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
     if (error instanceof DownloadCancelled) {
       // 用户取消：残片保留，回到「继续下载（x%）」，不记为错误
-      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined });
+      push({ downloading: false, downloaded: false, progress: 0, partial: modelPartialPercent(model) ?? undefined, phase: undefined });
       log.info(`local model ${model} download cancelled`);
     } else {
       const message = error instanceof Error ? error.message : String(error);
@@ -194,6 +197,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
         downloaded: false,
         progress: 0,
         partial: modelPartialPercent(model) ?? undefined,
+        phase: undefined,
         error: message,
       });
       log.warn(`local model ${model} download failed`, error);

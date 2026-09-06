@@ -1,25 +1,39 @@
 import { useEffect, useRef, useState } from "react";
 import { FileAudio, Loader2 } from "lucide-react";
 import { api } from "../api";
-import { humanDownloadError } from "../lib/downloadError";
+import { downloadPhaseText, humanDownloadError } from "../lib/downloadError";
 import { useLocalModelStatus } from "../lib/useLocalModelStatus";
 import type { Translator } from "../i18n";
+import type { LocaleKey } from "../../../shared/i18n";
 import type { Settings, TranscribeState } from "../../../shared/types";
 
 const SR = 16000;
 /** 上限 3 小时：16k 浮点采样约 660MB，超过容易把主进程拖爆 */
 const MAX_SECONDS = 3 * 60 * 60;
 
-/** 秒 → SRT 时间戳 HH:MM:SS,mmm */
-function srtTime(sec: number): string {
+/** 秒 → 字幕时间戳 HH:MM:SS<sep>mmm（SRT 用逗号、WebVTT 用句点） */
+function cueTime(sec: number, sep: "," | "."): string {
   const ms = Math.max(0, Math.round(sec * 1000));
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   const rest = ms % 1000;
   const pad = (n: number, w = 2) => String(n).padStart(w, "0");
-  return `${pad(h)}:${pad(m)}:${pad(s)},${pad(rest, 3)}`;
+  return `${pad(h)}:${pad(m)}:${pad(s)}${sep}${pad(rest, 3)}`;
 }
+
+/** 秒 → 带时间戳文本的行前缀 HH:MM:SS（固定三段，便于对齐与工具解析） */
+function stampTime(sec: number): string {
+  return cueTime(sec, ".").slice(0, 8);
+}
+
+type ExportFormat = "txt" | "txtTs" | "srt" | "vtt";
+const EXPORT_FORMATS: Array<{ id: ExportFormat; label: LocaleKey }> = [
+  { id: "txt", label: "transcribe.export.txt" },
+  { id: "txtTs", label: "transcribe.export.txtTs" },
+  { id: "srt", label: "transcribe.export.srt" },
+  { id: "vtt", label: "transcribe.export.vtt" },
+];
 
 function clockTime(sec: number): string {
   const s = Math.floor(sec);
@@ -122,12 +136,26 @@ function Transcribe(props: {
   const exportBase = shownFileName.replace(/\.[^.]+$/, "") || "transcript";
   const saveText = (content: string, fileName: string, filterName: string) =>
     void api.saveTextFile({ title: t("common.exportTitle"), fileName, filterName, content });
-  const exportTxt = () => saveText(`${allText}\n`, `${exportBase}.txt`, "Text");
-  const exportSrt = () => {
-    const srt = state.segments
-      .map((s, i) => `${i + 1}\n${srtTime(s.start)} --> ${srtTime(s.end)}\n${s.text}\n`)
-      .join("\n");
-    saveText(srt, `${exportBase}.srt`, "SubRip");
+  const exportAs = (format: ExportFormat) => {
+    const segs = state.segments;
+    switch (format) {
+      case "txt":
+        return saveText(`${allText}\n`, `${exportBase}.txt`, "Text");
+      case "txtTs":
+        return saveText(segs.map((s) => `[${stampTime(s.start)}] ${s.text}`).join("\n") + "\n", `${exportBase}.txt`, "Text");
+      case "srt":
+        return saveText(
+          segs.map((s, i) => `${i + 1}\n${cueTime(s.start, ",")} --> ${cueTime(s.end, ",")}\n${s.text}\n`).join("\n"),
+          `${exportBase}.srt`,
+          "SubRip",
+        );
+      case "vtt":
+        return saveText(
+          `WEBVTT\n\n${segs.map((s) => `${cueTime(s.start, ".")} --> ${cueTime(s.end, ".")}\n${s.text}\n`).join("\n")}`,
+          `${exportBase}.vtt`,
+          "WebVTT",
+        );
+    }
   };
   const copyAll = () => {
     void navigator.clipboard.writeText(allText).then(() => {
@@ -178,6 +206,11 @@ function Transcribe(props: {
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
               <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />
+            </div>
+          )}
+          {downloadPhaseText(local, t) && (
+            <div className="mt-2 text-xs text-amber-600" role="status">
+              {downloadPhaseText(local, t)}
             </div>
           )}
           {local?.error && !local.downloading && (
@@ -299,18 +332,23 @@ function Transcribe(props: {
               >
                 {copied ? t("transcribe.copied") : t("transcribe.copy")}
               </button>
-              <button
+              {/* 四种格式收进一个原生下拉：820px 窄窗不再四按钮并排挤压，键盘/读屏直接可用；选完即导出并回到占位项 */}
+              <select
                 className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
-                onClick={exportTxt}
+                value=""
+                aria-label={t("transcribe.export")}
+                onChange={(e) => {
+                  const picked = EXPORT_FORMATS.find((f) => f.id === e.target.value);
+                  if (picked) exportAs(picked.id);
+                }}
               >
-                TXT
-              </button>
-              <button
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
-                onClick={exportSrt}
-              >
-                SRT
-              </button>
+                <option value="">{t("transcribe.export")}</option>
+                {EXPORT_FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {t(f.label)}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="mt-3 space-y-2">

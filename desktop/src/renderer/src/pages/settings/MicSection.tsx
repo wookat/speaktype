@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type MicDevice } from "../../api";
 import type { Translator } from "../../i18n";
 import type { RemoteMicInfo, Settings } from "../../../../shared/types";
-import { humanDownloadError } from "../../lib/downloadError";
+import { downloadPhaseText, humanDownloadError } from "../../lib/downloadError";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
@@ -179,6 +179,11 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
               <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${local.progress}%` }} />
+            </div>
+          )}
+          {downloadPhaseText(local, t) && (
+            <div className="mt-2 text-xs text-amber-600" role="status">
+              {downloadPhaseText(local, t)}
             </div>
           )}
           {local?.error && !local.downloading && (

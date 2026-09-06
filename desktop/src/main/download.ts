@@ -20,25 +20,45 @@ const GH_RELEASE_BASE = "https://github.com/wookat/speaktype/releases/download/m
 
 /** 响应头或正文连续无数据的上限：半开连接（服务端接了 TCP 不应答）不会自己报错，要靠它落下一源 */
 const STALL_TIMEOUT_MS = 30_000;
+/** 连续无数据超过这么久就告知 UI「连接中断，正在重试」：进度条冻着不说话，用户会以为卡死 */
+const STALL_NOTICE_MS = 8_000;
+
+/**
+ * 下载阶段，供 UI 在百分比之外给出可行动状态：
+ * retrying = 连接停滞或本源失败正切下一源；verifying = 字节已下满、正在算 sha256（大文件要几秒，不是卡住）
+ */
+export type DownloadPhase = "downloading" | "retrying" | "verifying";
 
 /**
  * 空闲超时守卫：每收到一块数据重新计时，连续 STALL_TIMEOUT_MS 无数据则 abort 整个请求；
- * 外部 signal（用户取消）触发时同样中止当前请求
+ * 外部 signal（用户取消）触发时同样中止当前请求。数据恢复时通过 onStall(false) 通知 UI 回到下载态。
  */
 function stallGuard(
   host: string,
   external?: AbortSignal,
+  onStall?: (stalled: boolean) => void,
 ): { signal: AbortSignal; touch: () => void; clear: () => void } {
   const controller = new AbortController();
   let timer: NodeJS.Timeout | null = null;
+  let notice: NodeJS.Timeout | null = null;
+  let stalled = false;
   const onExternalAbort = (): void => controller.abort(external?.reason);
   external?.addEventListener("abort", onExternalAbort, { once: true });
   const touch = (): void => {
     if (timer) clearTimeout(timer);
+    if (notice) clearTimeout(notice);
+    if (stalled) {
+      stalled = false;
+      onStall?.(false);
+    }
     timer = setTimeout(
       () => controller.abort(new Error(`stalled: no data for ${STALL_TIMEOUT_MS / 1000}s (${host})`)),
       STALL_TIMEOUT_MS,
     );
+    notice = setTimeout(() => {
+      stalled = true;
+      onStall?.(true);
+    }, STALL_NOTICE_MS);
   };
   touch();
   return {
@@ -46,6 +66,7 @@ function stallGuard(
     touch,
     clear: () => {
       if (timer) clearTimeout(timer);
+      if (notice) clearTimeout(notice);
       external?.removeEventListener("abort", onExternalAbort);
     },
   };
@@ -200,6 +221,7 @@ async function downloadFromUrl(
   dest: string,
   onProgress?: (got: number, total: number) => void,
   signal?: AbortSignal,
+  onPhase?: (phase: DownloadPhase) => void,
 ): Promise<void> {
   if (signal?.aborted) throw new DownloadCancelled();
   mkdirSync(dirname(dest), { recursive: true });
@@ -214,6 +236,7 @@ async function downloadFromUrl(
     // 已下满但在校验/改名前被杀：直接本地收尾，不发 Range（服务端会回 416 被误判源失败）
     if (meta.total > 0 && offset >= meta.total) {
       const want = meta.etag || knownSha256(url);
+      if (want) onPhase?.("verifying");
       if (offset === meta.total && (!want || (await hashFile(part)) === want)) {
         rmSync(metaPath, { force: true });
         renameSync(part, dest);
@@ -227,7 +250,8 @@ async function downloadFromUrl(
     }
   }
 
-  const guard = stallGuard(new URL(url).host, signal);
+  onPhase?.("downloading");
+  const guard = stallGuard(new URL(url).host, signal, (stalled) => onPhase?.(stalled ? "retrying" : "downloading"));
   // 中止后底层只报「流提前关闭」，真正原因（用户取消 / 停滞超时）在 signal 上
   const abortReason = (error: unknown): unknown => {
     if (signal?.aborted) return new DownloadCancelled();
@@ -256,7 +280,7 @@ async function downloadFromUrl(
     res.discard();
     rmSync(part, { force: true });
     rmSync(metaPath, { force: true });
-    return downloadFromUrl(url, dest, onProgress, signal);
+    return downloadFromUrl(url, dest, onProgress, signal, onPhase);
   }
   const remaining = Number(res.headers["content-length"]) || 0;
   const total = resumed ? offset + remaining : remaining;
@@ -282,6 +306,7 @@ async function downloadFromUrl(
 
   if (total && got !== total) throw new Error(`incomplete: ${got}/${total} bytes (${new URL(url).host})`);
   if (expected) {
+    onPhase?.("verifying");
     const actual = await hashFile(part);
     if (actual !== expected) {
       rmSync(part, { force: true });
@@ -320,12 +345,13 @@ export async function downloadFile(
   dest: string,
   onProgress?: (got: number, total: number) => void,
   signal?: AbortSignal,
+  onPhase?: (phase: DownloadPhase) => void,
 ): Promise<void> {
   const errors: Error[] = [];
-  for (const url of sources) {
+  for (const [index, url] of sources.entries()) {
     const startedAt = Date.now();
     try {
-      await downloadFromUrl(url, dest, onProgress, signal);
+      await downloadFromUrl(url, dest, onProgress, signal, onPhase);
       log.info(`download ok: ${new URL(url).host} -> ${basename(dest)} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
       return;
     } catch (error) {
@@ -334,6 +360,8 @@ export async function downloadFile(
       const err = error instanceof Error ? error : new Error(String(error));
       if (isStorageError(err)) throw err;
       errors.push(err);
+      // 还有下一源：换源期间（建连、等响应头）告知 UI 在重试，而不是让进度条无声冻着
+      if (index < sources.length - 1) onPhase?.("retrying");
     }
   }
   throw errors.filter((e) => !/HTTP 404/.test(e.message)).at(-1) ?? errors.at(-1) ?? new Error("no sources");
@@ -344,6 +372,7 @@ export async function downloadFiles(
   files: Array<{ sources: string[]; dest: string; size?: number }>,
   onProgress: (percent: number) => void,
   signal?: AbortSignal,
+  onPhase?: (phase: DownloadPhase) => void,
 ): Promise<void> {
   const weighted = files.every((f) => f.size && f.size > 0);
   const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
@@ -369,6 +398,7 @@ export async function downloadFiles(
         onProgress(Math.floor(percent));
       },
       signal,
+      onPhase,
     );
     doneBytes += file.size || 0;
   }
