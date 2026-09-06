@@ -19,4 +19,19 @@ export function isSherpaModel(model: string): boolean {
   return model === SENSEVOICE || model === PARAKEET;
 }
 
+/**
+ * whisper 非 large-v3 模型（本清单里的 tiny/base/small 全是）n_langs=99，词表不含 yue；
+ * whisper.cpp 仍接受 language=yue 并把 yue(id 99) 编成 sot+100，即 translate 任务 token，
+ * 实测 base-q5_1 同一段中文音频 language=zh 出中文、language=yue 出英文译文。
+ * 这里把 yue 降到 zh：粤语音频按中文解码，虽不能保留粤语用词，至少不会被翻成英文。
+ */
+export function whisperLanguage(language: string): string {
+  return language === "yue" ? "zh" : language;
+}
+
+/** 该本地模型能否原生识别粤语（SenseVoice 支持，whisper 小模型不支持，Parakeet 不识中文） */
+export function supportsCantonese(model: string): boolean {
+  return model === SENSEVOICE;
+}
+
 export const LOCAL_MODEL_IDS: ReadonlyArray<string> = LOCAL_MODELS.map((m) => m.id);

@@ -6,6 +6,7 @@ import { personaDisplayName } from "../../../shared/personas";
 import { toSimplified } from "../../../shared/zhNorm";
 import { ReviewDiff } from "../components/ReviewDiff";
 import { dayLabel, fmtClock, fmtDuration, suggestHotword } from "../lib/format";
+import { useConfirm } from "../lib/useConfirm";
 
 const PAGE_SIZE = 50;
 
@@ -34,7 +35,13 @@ function History(props: {
     return () => clearTimeout(timer);
   }, [copiedId]);
   const [suggest, setSuggest] = useState<{ id: string; word: string } | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
+  // 清空全部不可逆：两步确认，确认态焦点落到安全的“取消”上，Esc 退回
+  const clear = useConfirm();
+  const confirmClear = clear.armed === true;
+  const clearCancelBtn = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (confirmClear) clearCancelBtn.current?.focus();
+  }, [confirmClear]);
   // 本地断句/标点后几乎每条 raw≠text，常显 diff 是满屏红字噪音；收进“查看原文”按需展开
   const [diffOpen, setDiffOpen] = useState<string | null>(null);
   // 历史上限 500 条全量渲染会卡：分页展示，按需加载更多
@@ -170,21 +177,28 @@ function History(props: {
             />
           )}
           {props.history.length > 0 && confirmClear && (
-            <>
+            <div
+              role="group"
+              className="flex items-center gap-3"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") clear.disarm();
+              }}
+            >
               <span className="whitespace-nowrap text-sm text-slate-500">{t("history.clearConfirm")}</span>
               <button
                 className="shrink-0 whitespace-nowrap text-sm font-medium text-red-500 hover:text-red-600"
-                onClick={() => {
-                  setConfirmClear(false);
-                  void api.clearHistory().then(props.setHistory);
-                }}
+                onClick={() => clear.confirm(true, () => void api.clearHistory().then(props.setHistory))}
               >
                 {t("history.clearYes")}
               </button>
-              <button className="shrink-0 whitespace-nowrap text-sm text-slate-400" onClick={() => setConfirmClear(false)}>
+              <button
+                ref={clearCancelBtn}
+                className="shrink-0 whitespace-nowrap text-sm text-slate-400"
+                onClick={clear.disarm}
+              >
                 {t("common.cancel")}
               </button>
-            </>
+            </div>
           )}
           {filtered.length > 0 && !confirmClear && (
             <button
@@ -197,7 +211,7 @@ function History(props: {
           {props.history.length > 0 && !confirmClear && (
             <button
               className="shrink-0 whitespace-nowrap text-sm text-slate-400 hover:text-red-500"
-              onClick={() => setConfirmClear(true)}
+              onClick={() => clear.arm(true)}
             >
               {t("history.clear")}
             </button>
@@ -261,19 +275,24 @@ function History(props: {
                   </div>
                   {item.status === "failed" ? (
                     <div className="mt-2 flex items-center gap-3">
-                      <span className="text-xs text-red-500">
+                      {/* 错误原文可能是整段堆栈：正文限两行，全文放 title，不让 Retry 被挤成竖排 */}
+                      <span className="line-clamp-2 min-w-0 text-xs text-red-500" title={item.error}>
                         {t("history.failedEntry")}: {item.error}
                       </span>
                       {item.audioFile && (
                         <button
-                          className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
+                          className="shrink-0 whitespace-nowrap rounded-lg bg-violet-50 px-2.5 py-1 text-xs text-violet-600 hover:bg-violet-100 disabled:opacity-50"
                           disabled={retrying === item.id}
                           onClick={() => retry(item.id)}
                         >
                           {retrying === item.id ? t("history.retrying") : t("history.retry")}
                         </button>
                       )}
-                      {retryError?.id === item.id && <span className="text-xs text-red-400">{retryError.msg}</span>}
+                      {retryError?.id === item.id && (
+                        <span className="line-clamp-2 min-w-0 text-xs text-red-400" title={retryError.msg}>
+                          {retryError.msg}
+                        </span>
+                      )}
                     </div>
                   ) : editing?.id === item.id ? (
                     <div className="mt-2">

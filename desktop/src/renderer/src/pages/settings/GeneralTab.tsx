@@ -6,6 +6,7 @@ import type { Settings } from "../../../../shared/types";
 import { EnhancedVad } from "../../components/EnhancedVad";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
+import { useConfirm } from "../../lib/useConfirm";
 
 function GeneralTab(props: {
   t: Translator;
@@ -16,13 +17,9 @@ function GeneralTab(props: {
   toggleKeyChoices: string[];
 }) {
   const { t, s, update } = props;
-  // 两个重置均不可逆：两步确认，几秒不点自动复位
-  const [confirmReset, setConfirmReset] = useState<"" | "settings" | "all">("");
-  useEffect(() => {
-    if (!confirmReset) return;
-    const timer = setTimeout(() => setConfirmReset(""), 4000);
-    return () => clearTimeout(timer);
-  }, [confirmReset]);
+  // 两个重置均不可逆：两步确认
+  const reset = useConfirm<"settings" | "all">();
+  const confirmReset = reset.armed;
   // 导出/导入结果提示，几秒后自动消失
   // 存 key/参数而非成品字符串：导入切换界面语言时，提示跟随当前语言重新翻译
   const [backupMsg, setBackupMsg] = useState<{
@@ -356,12 +353,7 @@ function GeneralTab(props: {
                 ? "border-red-200 bg-red-50 font-medium text-red-500 hover:bg-red-100"
                 : "border-slate-200 text-slate-500 hover:bg-slate-50"
             }`}
-            onClick={() => {
-              if (confirmReset === "settings") {
-                setConfirmReset("");
-                void api.resetSettings();
-              } else setConfirmReset("settings");
-            }}
+            onClick={() => reset.press("settings", () => void api.resetSettings())}
           >
             {/* 始终按更长的确认文案占位，超时回弹时按钮不横向跳动 */}
             <span className="relative inline-block">
@@ -379,12 +371,7 @@ function GeneralTab(props: {
                 ? "border-red-300 bg-red-500 font-medium text-white hover:bg-red-600"
                 : "border-red-200 text-red-500 hover:bg-red-50"
             }`}
-            onClick={() => {
-              if (confirmReset === "all") {
-                setConfirmReset("");
-                void api.factoryReset();
-              } else setConfirmReset("all");
-            }}
+            onClick={() => reset.press("all", () => void api.factoryReset())}
           >
             <span className="relative inline-block">
               <span className="invisible">{t("settings.factoryResetConfirm")}</span>

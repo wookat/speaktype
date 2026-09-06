@@ -3,6 +3,7 @@ import { api } from "../api";
 import type { Translator } from "../i18n";
 import type { Persona, Settings } from "../../../shared/types";
 import { PERSONA_ICONS, PersonaIcon } from "../components/PersonaIcon";
+import { useConfirm } from "../lib/useConfirm";
 
 function Personas(props: {
   t: Translator;
@@ -27,13 +28,9 @@ function Personas(props: {
     dialog.showModal();
     nameRef.current?.focus();
   }, [editing]);
-  // 删除是全应用唯一不可逆操作：两步确认，几秒不点自动复位
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  useEffect(() => {
-    if (!confirmDelete) return;
-    const timer = setTimeout(() => setConfirmDelete(null), 4000);
-    return () => clearTimeout(timer);
-  }, [confirmDelete]);
+  // 删除不可逆：两步确认，按人设 id 区分确认目标
+  const del = useConfirm<string>();
+  const confirmDelete = del.armed;
   // 正在运行的应用列表：规则输入框提供下拉建议，免得用户不知道进程名怎么写
   const [apps, setApps] = useState<string[]>([]);
   useEffect(() => {
@@ -60,7 +57,6 @@ function Personas(props: {
     if (rules.length !== props.settings.appPersonas.length) patch.appPersonas = rules;
     if (props.settings.personaId === persona.id) patch.personaId = "default";
     if (Object.keys(patch).length > 0) props.update(patch);
-    setConfirmDelete(null);
   };
 
   const duplicate = (persona: Persona) => {
@@ -235,8 +231,7 @@ function Personas(props: {
                     className={confirmDelete === persona.id ? "font-medium text-red-500" : "hover:text-red-500"}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirmDelete === persona.id) remove(persona);
-                      else setConfirmDelete(persona.id);
+                      del.press(persona.id, () => remove(persona));
                     }}
                   >
                     {confirmDelete === persona.id ? t("personas.deleteConfirm") : t("personas.delete")}

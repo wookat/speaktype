@@ -209,6 +209,10 @@ export class Dictation {
   /** 转写阶段（finish 进行中）的会话：Esc 取消时由此中断上传/丢弃结果 */
   private finishing: DoubaoSession | null = null;
   private finishCancelled = false;
+  /** 润色/落字阶段被 Esc 取消：识别结果已定无法中断，粘贴前检查此旗标丢弃结果 */
+  private pasteCancelled = false;
+  /** 上一句已落字后才按的 Esc 只作废了排队句：finalize 收尾时仍要给可见反馈 */
+  private queueDropped = false;
   private buffered: Int16Array[] = [];
   private busy = false;
   private pendingEnd: "stop" | "cancel" | null = null;
@@ -584,7 +588,10 @@ export class Dictation {
    * 改写键不排队：改写要在按下瞬间抓选区，延后再抓已不是用户当时的意图，改为明确提示稍候。
    */
   private queueStart(mode: "hold" | "toggle", remote: boolean): void {
-    if (this.pendingStart) return;
+    if (this.pendingStart) {
+      log.info("dictation start: queue already occupied, press ignored");
+      return;
+    }
     if (this.handsFree || mode !== "hold" || !this.finalizing) return;
     this.pendingStart = { mode, remote, released: false, at: Date.now() };
     this.pendingFrames = [];
@@ -632,6 +639,11 @@ export class Dictation {
   /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
   toggleHandsFree(): void {
     if (this.busy || this.handsFree) {
+      if (!this.handsFree && this.finalizing) {
+        // 上一句收尾中：进不了免按，也不能替排队中仍按着的长按键「松手」，与改写键一样明确提示稍候
+        this.deps.showToast(t("toast.busy"), t("toast.busyBody"), undefined, 2500);
+        return;
+      }
       const wasHandsFree = this.handsFree;
       this.handsFree = false;
       this.handsFreeEndedByKey = true; // 用户主动退出：本轮静音不再弹「没听清」
@@ -668,7 +680,11 @@ export class Dictation {
     await this.finalize();
   }
 
-  async stop(): Promise<void> {
+  /**
+   * @param owner 松手来自哪个热键：改写键松手只结束改写会话、长按键松手只结束普通会话，
+   * 上一句收尾期被拒的改写键松手不能替仍按着的长按键松手；null 表示不限（Alt+Q、手机端、悬浮条）
+   */
+  async stop(owner: "hold" | "rewrite" | null = null): Promise<void> {
     if (this.handsFree) {
       // 免按聆听中按了长按/改写热键：明确告知已退出，避免用户以为还在听
       this.handsFree = false;
@@ -682,11 +698,12 @@ export class Dictation {
       }
     }
     if (this.pendingStart) {
-      // 排队中的按住已松手：等上一句收尾、新会话建立后立即转写这段
-      this.pendingStart.released = true;
+      // 排队中的按住已松手：等上一句收尾、新会话建立后立即转写这段（排队的只会是长按键）
+      if (owner !== "rewrite") this.pendingStart.released = true;
       return;
     }
     if (!this.busy) return;
+    if (owner && (owner === "rewrite") !== this.rewriting) return;
     if (!this.session) {
       this.pendingEnd = "stop";
       return;
@@ -714,11 +731,14 @@ export class Dictation {
     }
     this.rewriteTarget = null;
     this.rewriteWin = null;
+    let droppedQueue = false;
     if (this.pendingStart) {
       // 取消连排队的下一句一起作废；排队时提前开的麦克风一并关掉
       const queued = this.pendingStart;
       this.pendingStart = null;
       this.pendingFrames = [];
+      droppedQueue = true;
+      log.info("dictation cancel: queued hold dropped");
       if (!queued.remote) this.deps.recorder()?.webContents.send("recorder:stop");
     }
     if (!this.busy) {
@@ -737,6 +757,10 @@ export class Dictation {
       } else if (this.rewriteAbort) {
         // 改写等待期（polishing）取消：中断 LLM 请求，原文保持不动
         this.rewriteAbort.abort();
+      } else if (this.finalizing) {
+        // 润色/落字阶段取消：结果已定，粘贴前丢弃；提示由 finalize 消费旗标时统一给出
+        this.pasteCancelled = true;
+        this.queueDropped = droppedQueue;
       } else {
         this.pendingEnd = "cancel";
       }
@@ -909,6 +933,14 @@ export class Dictation {
       await this.finalizeSession();
     } finally {
       this.finalizing = false;
+      if (this.pasteCancelled) {
+        // Esc 落在本句已落字之后：本句不受影响，但排队句已被作废，不能静默
+        this.pasteCancelled = false;
+        if (this.queueDropped) {
+          this.deps.showToast(t("toast.canceled"), t("toast.canceledQueuedBody"), undefined, 2500);
+        }
+      }
+      this.queueDropped = false;
       this.resumeQueued();
     }
   }
@@ -918,6 +950,8 @@ export class Dictation {
     if (!session) return;
     this.session = null;
     this.finalizing = true;
+    this.pasteCancelled = false;
+    this.queueDropped = false;
     // 本次会话一开始就消费掉改写意图：空结果/异常提前退出时不能残留到下一次普通听写
     const rewriteTarget = this.rewriteTarget;
     this.rewriteTarget = null;
@@ -1060,6 +1094,13 @@ export class Dictation {
         () => this.deps.showToast(t("toast.polishFallback"), t("toast.polishFallbackBody")),
         this.mode === "toggle",
       );
+    }
+
+    if (this.pasteCancelled) {
+      // 润色期间按了 Esc：结果不落字不入历史，连同排队的下一句一起作废（cancel 已清队）
+      this.pasteCancelled = false;
+      this.abortFinish();
+      return;
     }
 
     // 免按语音命令：整条精确命中命令词表时不落字，改执行编辑动作；终端前台不执行（换行即回车）
