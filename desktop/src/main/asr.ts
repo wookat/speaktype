@@ -45,6 +45,19 @@ interface TranscriptionResponse {
   text?: string;
 }
 
+/** 等一个不接受 signal 的 Promise，但 signal 中止时立即放弃等待（原 Promise 照常跑完，结果丢弃） */
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(signal.reason instanceof Error ? signal.reason : new Error("aborted"));
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
 /** 错误响应优先取 JSON 里的 error.message/message，取不到再退回原始正文片段 */
 export function httpErrorDetail(status: number, body: string): string {
   let msg = "";
@@ -190,6 +203,8 @@ export function startLocalAsrSession(
 ): DoubaoSession {
   const frames: Int16Array[] = [];
   let cancelled = false;
+  // whisper 路径：取消时中断对 server 就绪的等待与推理请求，不让 Esc 后还卡在「识别中」直到服务超时
+  const finishAbort = new AbortController();
   const model = settings.localModel || "base-q5_1";
 
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
@@ -239,6 +254,7 @@ export function startLocalAsrSession(
       cancelled = true;
       stopTimer();
       frames.length = 0;
+      finishAbort.abort();
     },
     async finish(): Promise<string> {
       stopTimer();
@@ -247,13 +263,13 @@ export function startLocalAsrSession(
         // sherpa 系直接出最终文本，不再过繁→简以免误伤专名
         return transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
       }
-      const url = await ensureLocalServer(model);
+      const url = await abortable(ensureLocalServer(model), finishAbort.signal);
       const wav = pcmToWav(frames);
       const form = new FormData();
       form.append("file", new Blob([new Uint8Array(wav)], { type: "audio/wav" }), "speech.wav");
       form.append("response_format", "json");
       if (settings.language && settings.language !== "auto") form.append("language", whisperLanguage(settings.language));
-      const res = await fetch(url, { method: "POST", body: form });
+      const res = await fetch(url, { method: "POST", body: form, signal: finishAbort.signal });
       if (!res.ok) {
         const body = (await res.text()).slice(0, 160);
         throw new Error(`Local ASR HTTP ${res.status} ${body}`);

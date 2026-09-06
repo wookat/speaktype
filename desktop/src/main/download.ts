@@ -1,12 +1,19 @@
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
+import type { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { net } from "electron";
 import log from "electron-log";
 
 /**
  * 统一的按需下载：VAD 模型、本地 ASR 模型、增强标点模型共用。
  * 多源顺序回退（直连失败落镜像再落 GitHub Releases 自托管）、先落 .part 再改名、
  * 断点续传（Range + .part.json 元数据）、sha256 完整性校验（取 302 的 X-Linked-ETag）。
+ *
+ * 传输层走 Electron net（Chromium 网络栈）而不是 Node fetch：Electron 43 内置 undici 7.29 的
+ * HTTP/1 解析器在「写盘背压暂停期间对端关闭连接」时会以 assert(!this.paused) 断言直接崩掉主进程
+ *（nodejs/undici#5360），Connection: close 的代理/CDN 下载大文件必现，应用层 try/catch 接不住。
  */
 
 const GH_RELEASE_BASE = "https://github.com/wookat/speaktype/releases/download/models-v1/";
@@ -108,33 +115,65 @@ function readMeta(metaPath: string): PartMeta | null {
  * 的 oid 一致）；跟随跳转后 CDN 终端响应的 etag 可能恰好是 64 位 hex 却不是文件 sha256
  *（xet 桥对象 etag），绝不能当期望值。因此只认 X-Linked-ETag。
  */
-function sha256FromHeaders(headers: Headers): string {
-  const raw = (headers.get("x-linked-etag") || "").replaceAll('"', "").replace(/^W\//, "");
+function sha256FromHeaders(headers: Record<string, string | string[]>): string {
+  const value = headers["x-linked-etag"];
+  const raw = (Array.isArray(value) ? value[0] || "" : value || "").replaceAll('"', "").replace(/^W\//, "");
   return /^[0-9a-f]{64}$/i.test(raw) ? raw.toLowerCase() : "";
 }
 
-/** 手动跟随重定向，沿途捕获 X-Linked-ETag（fetch 自动跟随会吞掉 302 响应头） */
-async function fetchFollow(
+interface OpenedResponse {
+  status: number;
+  headers: Record<string, string | string[]>;
+  body: Readable;
+  linkedSha256: string;
+  /** 不再读正文时中止请求（非 2xx、需从头重下等提前退出路径） */
+  discard: () => void;
+}
+
+/**
+ * 发起 GET 并等到响应头：手动跟随重定向，沿途捕获 X-Linked-ETag（自动跟随会吞掉 302 响应头）；
+ * signal 中止时无论处于连接、等响应头还是读正文阶段都取消请求，正文流随之提前关闭
+ */
+function openRequest(
   url: string,
   headers: Record<string, string>,
   signal: AbortSignal,
-): Promise<{ res: Response; linkedSha256: string }> {
-  let current = url;
-  let linkedSha256 = "";
-  for (let hop = 0; hop < 8; hop++) {
-    const res = await fetch(current, { headers, redirect: "manual", signal });
-    if (res.status >= 300 && res.status < 400) {
-      linkedSha256 ||= sha256FromHeaders(res.headers);
-      const location = res.headers.get("location");
-      await res.body?.cancel();
-      if (!location) return { res, linkedSha256 };
-      current = new URL(location, current).toString();
-      continue;
-    }
-    linkedSha256 ||= sha256FromHeaders(res.headers);
-    return { res, linkedSha256 };
-  }
-  throw new Error(`too many redirects (${new URL(url).host})`);
+): Promise<OpenedResponse> {
+  return new Promise((resolve, reject) => {
+    const req = net.request({ url, method: "GET", redirect: "manual", cache: "no-store", useSessionCookies: false });
+    for (const [name, value] of Object.entries(headers)) req.setHeader(name, value);
+    let linkedSha256 = "";
+    const onAbort = (): void => req.abort();
+    const unlink = (): void => signal.removeEventListener("abort", onAbort);
+    signal.addEventListener("abort", onAbort, { once: true });
+    // 注意 ClientRequest 的 close 在请求体发完就触发（早于 response），不能拿它当事务结束；
+    // 正文读完/中断以 response 的 close 为准
+    req.on("redirect", (_status, _method, _redirectUrl, responseHeaders) => {
+      linkedSha256 ||= sha256FromHeaders(responseHeaders);
+      req.followRedirect();
+    });
+    req.on("response", (res) => {
+      // Electron IncomingMessage 实现了 Readable 接口，类型声明里只标了 EventEmitter
+      const body = res as unknown as Readable;
+      body.on("close", unlink);
+      resolve({
+        status: res.statusCode,
+        headers: res.headers,
+        body,
+        linkedSha256: linkedSha256 || sha256FromHeaders(res.headers),
+        discard: () => req.abort(),
+      });
+    });
+    req.on("error", (error) => {
+      unlink();
+      reject(error);
+    });
+    req.on("abort", () => {
+      unlink();
+      reject(signal.reason instanceof Error ? signal.reason : new Error("request aborted"));
+    });
+    req.end();
+  });
 }
 
 async function hashFile(path: string): Promise<string> {
@@ -189,66 +228,56 @@ async function downloadFromUrl(
   }
 
   const guard = stallGuard(new URL(url).host, signal);
-  let res: Response;
-  let linkedSha256: string;
+  // 中止后底层只报「流提前关闭」，真正原因（用户取消 / 停滞超时）在 signal 上
+  const abortReason = (error: unknown): unknown => {
+    if (signal?.aborted) return new DownloadCancelled();
+    return guard.signal.aborted ? guard.signal.reason : error;
+  };
+  let res: OpenedResponse;
   try {
-    ({ res, linkedSha256 } = await fetchFollow(url, headers, guard.signal));
+    res = await openRequest(url, headers, guard.signal);
   } catch (error) {
     guard.clear();
-    throw signal?.aborted ? new DownloadCancelled() : error;
+    throw abortReason(error);
   }
-  if (!res.ok || !res.body) {
+  if (res.status < 200 || res.status >= 300) {
     guard.clear();
-    await res.body?.cancel().catch(() => {});
+    res.discard();
     throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
   }
 
   const resumed = res.status === 206 && offset > 0;
   if (!resumed) offset = 0;
   // 换源续传时新源可能不带校验值，沿用首源记在元数据里的期望值，续传结果仍能整体校验
-  const expected = linkedSha256 || knownSha256(url) || (resumed ? meta?.etag || "" : "");
+  const expected = res.linkedSha256 || knownSha256(url) || (resumed ? meta?.etag || "" : "");
   if (resumed && meta && expected && meta.etag && meta.etag !== expected) {
     // 服务端文件已变化，续传无意义：从头重下
     guard.clear();
-    await res.body.cancel().catch(() => {});
+    res.discard();
     rmSync(part, { force: true });
     rmSync(metaPath, { force: true });
     return downloadFromUrl(url, dest, onProgress, signal);
   }
-  const remaining = Number(res.headers.get("content-length")) || 0;
+  const remaining = Number(res.headers["content-length"]) || 0;
   const total = resumed ? offset + remaining : remaining;
   writeFileSync(metaPath, JSON.stringify({ url, etag: expected, total } satisfies PartMeta));
 
   let got = offset;
   const out = createWriteStream(part, resumed ? { flags: "a" } : {});
-  // 写盘错误（ENOSPC 等）由 fs 异步回调以 error 事件抛出，不经 write()/end() 的返回值；
-  // 不接住会变成进程级 uncaughtException，且等 drain 的 await 会永久悬挂
-  const writeFailed = new Promise<never>((_, reject) => out.on("error", reject));
-  writeFailed.catch(() => {});
-  const reader = res.body.getReader();
+  res.body.on("data", (chunk: Buffer) => {
+    guard.touch();
+    got += chunk.length;
+    onProgress?.(got, total);
+  });
+  // pipeline 负责背压与两端收尾：写盘错误（ENOSPC 等）、对端断开、中止都以 reject 返回，
+  // 不会变成进程级 uncaughtException，也不会在等 drain 时永久悬挂
   try {
-    for (;;) {
-      const { done, value } = await Promise.race([reader.read(), writeFailed]);
-      if (done) break;
-      guard.touch();
-      const buf = Buffer.from(value);
-      got += buf.length;
-      if (!out.write(buf)) {
-        await Promise.race([new Promise<void>((r) => out.once("drain", () => r())), writeFailed]);
-      }
-      onProgress?.(got, total);
-    }
+    await pipeline(res.body, out);
     guard.clear();
-    await Promise.race([
-      new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve()))),
-      writeFailed,
-    ]);
   } catch (error) {
     // 网络中断 / 停滞超时 / 磁盘写满 / 用户取消：保留 .part 与元数据（已落盘前缀仍有效），下次续传
     guard.clear();
-    out.destroy();
-    reader.cancel().catch(() => {});
-    throw signal?.aborted ? new DownloadCancelled() : error;
+    throw abortReason(error);
   }
 
   if (total && got !== total) throw new Error(`incomplete: ${got}/${total} bytes (${new URL(url).host})`);
@@ -294,8 +323,10 @@ export async function downloadFile(
 ): Promise<void> {
   const errors: Error[] = [];
   for (const url of sources) {
+    const startedAt = Date.now();
     try {
       await downloadFromUrl(url, dest, onProgress, signal);
+      log.info(`download ok: ${new URL(url).host} -> ${basename(dest)} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
       return;
     } catch (error) {
       if (error instanceof DownloadCancelled) throw error;
