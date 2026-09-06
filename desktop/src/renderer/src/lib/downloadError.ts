@@ -1,4 +1,13 @@
 import type { Translator } from "../i18n";
+import type { LocalModelStatus } from "../../../shared/types";
+
+/** 下载进行中百分比之外的可行动状态文案（连接中断重试 / 校验完整性）；平稳下载返回 null */
+export function downloadPhaseText(local: LocalModelStatus | null, t: Translator): string | null {
+  if (!local?.downloading) return null;
+  if (local.phase === "retrying") return t("download.retrying");
+  if (local.phase === "verifying") return t("download.verifying");
+  return null;
+}
 
 /** 把下载底层异常串归类成面向用户的提示（无法归类时原样透出便于排障） */
 export function humanDownloadError(message: string, t: Translator): string {

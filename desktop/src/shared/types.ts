@@ -131,6 +131,8 @@ export interface LocalModelStatus {
   progress: number;
   /** 磁盘上已有可续传的半途数据时的完成百分比（0-99），无残片时不设 */
   partial?: number;
+  /** downloading 期间的细分阶段：连接停滞/换源重试、下完后校验 sha256；平稳下载时为 downloading 或不设 */
+  phase?: "downloading" | "retrying" | "verifying";
   error?: string;
   /** 另一个模型正在下载时设为其 id：下载串行，此模型的下载按钮应禁用并说明原因 */
   busyModel?: string;

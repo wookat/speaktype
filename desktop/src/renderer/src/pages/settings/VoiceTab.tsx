@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { humanDownloadError } from "../../lib/downloadError";
+import { downloadPhaseText, humanDownloadError } from "../../lib/downloadError";
 import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
@@ -159,6 +159,11 @@ function VoiceTab(props: {
                 >
                   {t("common.cancel")}
                 </button>
+                {downloadPhaseText(local, t) && (
+                  <span className="text-sm text-slate-400" role="status">
+                    {downloadPhaseText(local, t)}
+                  </span>
+                )}
               </>
             )}
             {local?.busyModel && !local.downloaded && (
