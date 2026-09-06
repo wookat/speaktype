@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { downloadPhaseText, humanDownloadError } from "../../lib/downloadError";
+import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../../lib/downloadError";
 import { humanTestError } from "../../lib/testError";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { Settings } from "../../../../shared/types";
-import { isSherpaModel, supportsCantonese } from "../../../../shared/localModels";
+import { PARAKEET_FP32, isParakeetModel, isSherpaModel, supportsCantonese } from "../../../../shared/localModels";
 import { simplifyApplies } from "../../../../shared/zhNorm";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { useConfirm } from "../../lib/useConfirm";
@@ -27,7 +27,7 @@ function VoiceTab(props: {
   const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "fail">("idle");
   const [localModels, setLocalModels] = useState<Array<{ id: string; size: string }>>([]);
   const localModel = s.localModel || "base-q5_1";
-  const parakeetActive = s.asrProvider === "local" && localModel === "parakeet-tdt-0.6b-v3";
+  const parakeetActive = s.asrProvider === "local" && isParakeetModel(localModel);
   // whisper 小模型选粤语会被主进程降为普通话解码：选项禁止新选，已选中的旧值给提示
   const yueUnsupported = s.asrProvider === "local" && !parakeetActive && !supportsCantonese(localModel);
   const [local, setLocal] = useLocalModelStatus(localModel);
@@ -117,9 +117,11 @@ function VoiceTab(props: {
           <Row
             label={t("settings.localModel")}
             hint={
-              localModels.some((m) => !isSherpaModel(m.id))
-                ? `${t("settings.localModelHint")}${t("settings.localModelHintWhisper")}`
-                : t("settings.localModelHint")
+              localModel === PARAKEET_FP32
+                ? t("settings.localModelHintParakeetFp32")
+                : localModels.some((m) => !isSherpaModel(m.id))
+                  ? `${t("settings.localModelHint")}${t("settings.localModelHintWhisper")}`
+                  : t("settings.localModelHint")
             }
           >
             <select
@@ -143,7 +145,7 @@ function VoiceTab(props: {
               {local?.downloaded
                 ? t("settings.localModelReady")
                 : local?.downloading
-                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  ? downloadingLabel(local, t)
                   : local?.partial != null
                     ? t("settings.localModelResume", { progress: String(local.partial) })
                     : t("settings.localModelDownload")}

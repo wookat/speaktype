@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type MicDevice } from "../../api";
 import type { Translator } from "../../i18n";
 import type { RemoteMicInfo, Settings } from "../../../../shared/types";
-import { downloadPhaseText, humanDownloadError } from "../../lib/downloadError";
+import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../../lib/downloadError";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
@@ -158,7 +158,7 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
                 onClick={() => void api.localModelDownload(localModel).then(setLocal)}
               >
                 {local?.downloading
-                  ? t("settings.localModelDownloading", { progress: String(local.progress) })
+                  ? downloadingLabel(local, t)
                   : local?.partial != null
                     ? t("settings.localModelResume", { progress: String(local.partial) })
                     : t("settings.localModelDownload")}

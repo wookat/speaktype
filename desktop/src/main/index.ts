@@ -489,6 +489,11 @@ function registerIpc(): void {
     try {
       // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
       writeFileSync(res.filePath, `\ufeff${req.content}`, "utf8");
+      const savedPath = res.filePath;
+      showToast(t("toast.exportSaved"), savedPath, {
+        label: t("toast.exportReveal"),
+        run: () => shell.showItemInFolder(savedPath),
+      });
       return true;
     } catch (error) {
       log.error(`save text failed (${res.filePath})`, error);

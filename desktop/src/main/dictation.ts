@@ -23,7 +23,7 @@ import { muteForRecording, unmuteAfterRecording } from "./mute";
 import { copySelection, pasteText, sendBackspaces } from "./paste";
 import { deformatForTerminal, polishText, rewriteSelection, usesLlmPolish } from "./polish";
 import { SILERO_HANGOVER_MS, SileroVad } from "./vad";
-import { addHistory, addStats, countWords, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
+import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
@@ -865,7 +865,7 @@ export class Dictation {
       if (!raw) return { ok: false, detail: t("toast.noSpeech") };
       const text = await polishText(settings, persona, raw);
       this.resolveFailedEntry(id, text, raw);
-      addStats(countWords(text), entry.durationMs);
+      addStats(text, entry.durationMs);
       clipboard.writeText(text);
       this.deps.broadcast(this.status());
       this.deps.showToast(t("history.retryDone"), text.slice(0, 60));
@@ -1203,7 +1203,7 @@ export class Dictation {
         provider: settings.asrProvider,
         source: this.remoteSource ? "phone" : undefined,
       });
-    addStats(countWords(text), durationMs);
+    addStats(text, durationMs);
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
     if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && pastedOk && !noTarget && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {

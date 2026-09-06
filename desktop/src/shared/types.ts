@@ -34,6 +34,8 @@ export interface Settings {
   uiLanguage: UiLanguage;
   /** 界面主题：跟随系统 / 浅色 / 深色 */
   theme: "system" | "light" | "dark";
+  /** 悬浮条位置：auto = 底部居中、挡到文本光标时自动改停顶部；top/bottom = 固定 */
+  panelPosition: "auto" | "top" | "bottom";
   personaId: string;
   autoPaste: boolean;
   launchAtLogin: boolean;
@@ -122,6 +124,12 @@ export interface VadStatus {
   error?: string;
 }
 
+export interface DownloadSource {
+  index: number;
+  total: number;
+  host: string;
+}
+
 /** 离线模型下载/就绪状态，主进程推给设置页 */
 export interface LocalModelStatus {
   model: string;
@@ -133,6 +141,8 @@ export interface LocalModelStatus {
   partial?: number;
   /** downloading 期间的细分阶段：连接停滞/换源重试、下完后校验 sha256；平稳下载时为 downloading 或不设 */
   phase?: "downloading" | "retrying" | "verifying";
+  /** 当前正在尝试的下载源（从 1 计），重试时让用户知道在换哪个源 */
+  source?: DownloadSource;
   error?: string;
   /** 另一个模型正在下载时设为其 id：下载串行，此模型的下载按钮应禁用并说明原因 */
   busyModel?: string;
@@ -162,6 +172,8 @@ export interface Stats {
   words: number;
   durationMs: number;
   sessions: number;
+  /** 按每句内容的文字种类计速累加的节省时长；旧版统计没有该字段 */
+  savedMs?: number;
 }
 
 /** 文件转录的一个分段（秒） */

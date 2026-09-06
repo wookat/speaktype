@@ -4,9 +4,20 @@ import type { LocalModelStatus } from "../../../shared/types";
 /** 下载进行中百分比之外的可行动状态文案（连接中断重试 / 校验完整性）；平稳下载返回 null */
 export function downloadPhaseText(local: LocalModelStatus | null, t: Translator): string | null {
   if (!local?.downloading) return null;
-  if (local.phase === "retrying") return t("download.retrying");
+  if (local.phase === "retrying") {
+    const s = local.source;
+    return s && s.total > 1
+      ? t("download.retryingSource", { index: s.index, total: s.total, host: s.host })
+      : t("download.retrying");
+  }
   if (local.phase === "verifying") return t("download.verifying");
   return null;
+}
+
+/** 下载按钮文案：字节下满后在算 sha256 时显示「校验中」，不再停在「下载中 100%」 */
+export function downloadingLabel(local: LocalModelStatus, t: Translator): string {
+  if (local.phase === "verifying") return t("settings.localModelVerifying");
+  return t("settings.localModelDownloading", { progress: String(local.progress) });
 }
 
 /** 把下载底层异常串归类成面向用户的提示（无法归类时原样透出便于排障） */

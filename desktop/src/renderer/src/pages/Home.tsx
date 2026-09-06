@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Translator } from "../i18n";
-import type { Persona, Settings } from "../../../shared/types";
+import type { Persona, Settings, Stats } from "../../../shared/types";
 import { PARAKEET, SENSEVOICE } from "../../../shared/localModels";
+import { legacySavedMs } from "../../../shared/stats";
 import { PersonaIcon } from "../components/PersonaIcon";
 import { StatCard } from "../components/StatCard";
 import { downloadPhaseText, humanDownloadError } from "../lib/downloadError";
@@ -14,9 +15,7 @@ function Home(props: {
   settings: Settings;
   personas: Persona[];
   doubaoReady: boolean;
-  statsWords: number;
-  statsDuration: number;
-  statsSessions: number;
+  stats: Stats;
   goSettings: () => void;
   goRemoteMic: () => void;
   goModelSettings: () => void;
@@ -24,14 +23,12 @@ function Home(props: {
 }) {
   const { t } = props;
   const persona = props.personas.find((p) => p.id === props.settings.personaId) ?? props.personas[0];
-  // 节省时间只看词数（手打 vs 口述速率差），不减实际录音时长：录音含按键空白与停顿，短句会被算成 0
-  // CJK 界面按「字/分」口径（手打 60 / 口述 200），其余按英文口径（40 / 150 WPM）
-  const cjkUi = /^(zh|ja|ko)/.test(props.settings.uiLanguage);
-  const [typeRate, speakRate] = cjkUi ? [60, 200] : [40, 150];
-  const saved = Math.round(props.statsWords * (1 / typeRate - 1 / speakRate) * 60000);
+  const { stats } = props;
+  // 节省时间按每句内容的文字种类在主进程累加；旧版统计没有该字段时按累计词数一次性折算
+  const saved = Math.round(stats.savedMs ?? legacySavedMs(stats.words, props.settings.uiLanguage));
 
   // 熟手默认收起引导卡，新用户默认展开
-  const [stepsOpen, setStepsOpen] = useState(props.statsSessions < 10);
+  const [stepsOpen, setStepsOpen] = useState(stats.sessions < 10);
   // 离线通道是默认通道，模型没下好就说话必然失败，首页直接给一键下载入口
   const [modelSize, setModelSize] = useState("");
   const localModel = props.settings.localModel || "sensevoice-small";
@@ -109,7 +106,9 @@ function Home(props: {
               onClick={() => void api.localModelDownload(localModel)}
             >
               {local?.downloading
-                ? `${Math.round(local.progress)}%`
+                ? local.phase === "verifying"
+                  ? t("settings.localModelVerifying")
+                  : `${Math.round(local.progress)}%`
                 : local?.partial != null
                   ? t("settings.localModelResume", { progress: String(local.partial) })
                   : t("home.model.button")}
@@ -147,9 +146,9 @@ function Home(props: {
 
       {/* 窄窗（<1024）下每卡仅 ~90px，带单位的时长会折行，改 2×2 */}
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard title={t("home.stat.sessions")} value={`${props.statsSessions}`} />
-        <StatCard title={t("home.stat.words")} value={`${props.statsWords}`} />
-        <StatCard title={t("home.stat.duration")} value={fmtDuration(props.statsDuration, t)} />
+        <StatCard title={t("home.stat.sessions")} value={`${stats.sessions}`} />
+        <StatCard title={t("home.stat.words")} value={`${stats.words}`} />
+        <StatCard title={t("home.stat.duration")} value={fmtDuration(stats.durationMs, t)} />
         <StatCard title={t("home.stat.saved")} value={fmtDuration(saved, t)} hint={t("home.stat.savedHint")} />
       </div>
 
@@ -157,7 +156,7 @@ function Home(props: {
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div className="font-medium">{t("home.steps.title")}</div>
-          {props.statsSessions >= 10 && (
+          {stats.sessions >= 10 && (
             <button
               className="text-sm text-slate-400 hover:text-slate-600"
               onClick={() => setStepsOpen((v) => !v)}
