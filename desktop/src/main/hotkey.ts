@@ -249,6 +249,7 @@ export class HotkeyManager {
   }
 
   private releaseHold(time: number): void {
+    if (!this.holdPressed) return; // 没按下过的松键（合成输入残留的孤儿 keyup）
     this.holdPressed = false;
     const heldMs = time - this.holdDownTime;
     log.info(`hotkey hold: up (timer=${!!this.holdTimer} active=${this.holdActive} held=${heldMs}ms)`);
