@@ -16,7 +16,7 @@ import pkg from "../../package.json";
 // 构建时由 electron.vite.config.ts 的 define 注入的 git 短 commit
 declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
-import type { HistoryItem, Persona, SaveTextRequest, Settings, StatusPayload } from "../shared/types";
+import type { HistoryItem, Persona, SaveTextRequest, Settings, StatusPayload, UpdateInfo } from "../shared/types";
 import { Dictation, clearFailedAudio } from "./dictation";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, closeChatgptBridge, showChatgptLogin, testChatgpt } from "./chatgpt";
@@ -29,6 +29,7 @@ import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
+import { cancelUpdateDownload, checkUpdate, downloadUpdate, installUpdate, onUpdateState, updateState, versionNewer } from "./updater";
 import { testPolish } from "./polish";
 import {
   broadcastToPhones,
@@ -561,8 +562,33 @@ function registerIpc(): void {
     if (!latestTag && latestRetriesLeft-- > 0) setTimeout(() => void fetchLatestTag(), 30 * 60_000);
     return latestTag;
   };
-  setTimeout(() => void fetchLatestTag(), 5000);
+  // 启动后空闲时预取一次最新版本号；有新版给一条可点击直达关于页的提示——
+  // 更新入口藏在设置深处，不来一发用户永远看不见。检查放在缓存命中之后也成立：
+  // fetchLatestTag 24h 内直接吃缓存返回，提示逻辑与「怎么拿到的」无关
+  setTimeout(() => {
+    void fetchLatestTag().then((tag) => {
+      if (!tag || !versionNewer(tag, app.isPackaged ? app.getVersion() : pkg.version)) return;
+      showToast(
+        t("toast.updateAvailable"),
+        t("toast.updateAvailableBody", { version: tag.replace(/^v/, "") }),
+        {
+          label: t("toast.updateGoDownload"),
+          run: () => {
+            showMain();
+            mainWin?.webContents.send("goto", { page: "settings", tab: "about" });
+          },
+        },
+        10000,
+      );
+    });
+  }, 5000);
   ipcMain.handle("app:latestVersion", () => fetchLatestTag());
+  // 应用内更新：仅 Windows；mac 检查恒返回 null，关于页退回「前往 Releases」提示
+  ipcMain.handle("update:check", () => checkUpdate());
+  ipcMain.handle("update:state", () => updateState());
+  ipcMain.handle("update:download", (_e, info: UpdateInfo) => void downloadUpdate(info));
+  ipcMain.handle("update:cancel", () => cancelUpdateDownload());
+  ipcMain.handle("update:install", () => installUpdate());
   ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("apps:running", () => runningApps());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
@@ -750,6 +776,9 @@ void app.whenReady().then(() => {
   });
   onVadStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
+  });
+  onUpdateState((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("update:state", s);
   });
   cleanupLegacyVad();
   onPunctStatus((s) => {
