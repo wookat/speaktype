@@ -130,6 +130,28 @@ export interface DownloadSource {
   host: string;
 }
 
+/** 应用内更新检查结果（仅 Windows；macOS 未签名不支持，保持只提示） */
+export interface UpdateInfo {
+  tag: string;
+  /** 安装包字节数 */
+  size: number;
+  fileName: string;
+  /** 便携版：没有安装器语义，下载后只定位文件，由用户手动升级 */
+  portable: boolean;
+}
+
+/** 应用内更新状态，主进程推给关于页；无进行中更新时为 null */
+export interface UpdateState {
+  phase: "downloading" | "retrying" | "verifying" | "ready" | "error";
+  /** 0-100 */
+  progress: number;
+  /** 进度来自磁盘上可续传的残片（取消后或重启恢复）：此刻没有在下载，应显示「继续下载」而非「取消」 */
+  partial?: boolean;
+  /** retrying 时当前正在尝试的下载源 */
+  source?: DownloadSource;
+  error?: string;
+}
+
 /** 离线模型下载/就绪状态，主进程推给设置页 */
 export interface LocalModelStatus {
   model: string;

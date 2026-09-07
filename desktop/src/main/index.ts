@@ -29,6 +29,7 @@ import { initMuteRecovery } from "./mute";
 import { downloadPunct, onPunctStatus, punctStatus } from "./punct";
 import { cancelTranscribe, onTranscribeState, startTranscribe, transcribeState } from "./transcribe";
 import { cleanupLegacyVad, downloadVad, onVadStatus, vadStatus } from "./vad";
+import { cancelUpdateDownload, checkUpdate, downloadUpdate, installUpdate, onUpdateState, updateState, versionNewer } from "./updater";
 import { testPolish } from "./polish";
 import {
   broadcastToPhones,
@@ -558,11 +559,39 @@ function registerIpc(): void {
     } catch {
       // 离线：下面统一走重试
     }
-    if (!latestTag && latestRetriesLeft-- > 0) setTimeout(() => void fetchLatestTag(), 30 * 60_000);
+    // 离线重试成功同样要走一次新版提示（首发失败的那次 .then 拿到的是空串）
+    if (!latestTag && latestRetriesLeft-- > 0)
+      setTimeout(() => void fetchLatestTag().then(announceUpdateToast), 30 * 60_000);
     return latestTag;
   };
-  setTimeout(() => void fetchLatestTag(), 5000);
+  // 有新版给一条可点击直达关于页的提示——更新入口藏在设置深处，不来一发用户永远看不见。
+  // 挂在 fetchLatestTag 的结果回调而非 fetch 成功分支：24h 缓存命中、30 分钟离线重试成功都要提示；
+  // 仅 Windows（mac 无应用内更新，点了也到不了下载按钮，保持关于页提示即可）
+  function announceUpdateToast(tag: string): void {
+    if (process.platform !== "win32") return;
+    if (!tag || !versionNewer(tag, app.isPackaged ? app.getVersion() : pkg.version)) return;
+    showToast(
+      t("toast.updateAvailable"),
+      t("toast.updateAvailableBody", { version: tag.replace(/^v/, "") }),
+      {
+        label: t("toast.updateGoDownload"),
+        run: () => {
+          showMain();
+          mainWin?.webContents.send("goto", { page: "settings", tab: "about" });
+        },
+      },
+      10000,
+    );
+  }
+  setTimeout(() => void fetchLatestTag().then(announceUpdateToast), 5000);
   ipcMain.handle("app:latestVersion", () => fetchLatestTag());
+  // 应用内更新：仅 Windows；mac 检查恒返回 null，关于页退回「前往 Releases」提示。
+  // download 不收渲染层入参：目标一律取主进程 checkUpdate 的结果（fileName 会进 join/URL，不可信）
+  ipcMain.handle("update:check", () => checkUpdate());
+  ipcMain.handle("update:state", () => updateState());
+  ipcMain.handle("update:download", () => void downloadUpdate());
+  ipcMain.handle("update:cancel", () => cancelUpdateDownload());
+  ipcMain.handle("update:install", () => installUpdate());
   ipcMain.handle("hotkey:capture", () => hotkeys.captureNext());
   ipcMain.handle("apps:running", () => runningApps());
   ipcMain.handle("personas:save", (_e, list: Persona[]) => {
@@ -750,6 +779,9 @@ void app.whenReady().then(() => {
   });
   onVadStatus((s) => {
     if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("vad:status", s);
+  });
+  onUpdateState((s) => {
+    if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send("update:state", s);
   });
   cleanupLegacyVad();
   onPunctStatus((s) => {
