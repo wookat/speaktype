@@ -181,8 +181,8 @@
       <table>
         <thead><tr><th scope="col">模型</th><th scope="col">大小</th><th scope="col">适合</th><th scope="col">说明</th></tr></thead>
         <tbody>
-          <tr><td class="model"><b>SenseVoice Small</b><small>默认</small></td><td>234 MB</td><td>中文、粤语、日语、韩语、英语</td><td>实测每句约 0.27 秒，自带标点</td></tr>
-          <tr><td class="model"><b>Parakeet TDT 0.6B v3</b><small>int8</small></td><td>660 MB</td><td>英语 + 25 种欧洲语言</td><td>英文准确率最高；int8 偶尔会吞掉句首第一个词</td></tr>
+          <tr><td class="model"><b>SenseVoice Small</b><small>默认</small></td><td>240 MB</td><td>中文、粤语、日语、韩语、英语</td><td>实测每句纯识别约 0.27 秒（端到端约 0.6 秒），自带标点</td></tr>
+          <tr><td class="model"><b>Parakeet TDT 0.6B v3</b><small>int8</small></td><td>670 MB</td><td>英语 + 25 种欧洲语言</td><td>英文准确率最高；int8 偶尔会吞掉句首第一个词</td></tr>
           <tr><td class="model"><b>Parakeet 全精度</b><small>fp32 · 可选</small></td><td>2.5 GB</td><td>与 Parakeet 相同</td><td>修复句首吞词；加载后约占 2.7 GB 内存，实测速度与 int8 相同</td></tr>
           <tr><td class="model"><b>Whisper tiny / base / small</b><small>whisper.cpp · 仅 Windows</small></td><td>32 / 60 / 190 MB</td><td>语言覆盖最广</td><td>tiny 最快但易错；small 最慢也最准</td></tr>
         </tbody>

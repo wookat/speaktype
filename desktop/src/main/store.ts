@@ -66,6 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
   remoteRelayRoom: "",
   appPersonas: [],
   autoLearn: true,
+  learnInaccessibleDismissed: false,
 };
 
 export interface WindowBounds {

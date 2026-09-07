@@ -182,8 +182,8 @@
       <table>
         <thead><tr><th scope="col">Model</th><th scope="col">Size</th><th scope="col">Best for</th><th scope="col">Notes</th></tr></thead>
         <tbody>
-          <tr><td class="model"><b>SenseVoice Small</b><small>default</small></td><td>234 MB</td><td>Chinese, Cantonese, Japanese, Korean, English</td><td>~0.27 s per utterance in our tests, punctuation built in</td></tr>
-          <tr><td class="model"><b>Parakeet TDT 0.6B v3</b><small>int8</small></td><td>660 MB</td><td>English + 25 European languages</td><td>Highest English accuracy; int8 occasionally clips the first word of a sentence</td></tr>
+          <tr><td class="model"><b>SenseVoice Small</b><small>default</small></td><td>240 MB</td><td>Chinese, Cantonese, Japanese, Korean, English</td><td>~0.27 s model inference per utterance (≈0.6 s end-to-end) in our tests, punctuation built in</td></tr>
+          <tr><td class="model"><b>Parakeet TDT 0.6B v3</b><small>int8</small></td><td>670 MB</td><td>English + 25 European languages</td><td>Highest English accuracy; int8 occasionally clips the first word of a sentence</td></tr>
           <tr><td class="model"><b>Parakeet full precision</b><small>fp32 · optional</small></td><td>2.5 GB</td><td>Same languages as Parakeet</td><td>Fixes the clipped first word; ~2.7 GB RAM while loaded, same speed as int8 in our measurements</td></tr>
           <tr><td class="model"><b>Whisper tiny / base / small</b><small>whisper.cpp · Windows only</small></td><td>32 / 60 / 190 MB</td><td>Broadest language coverage</td><td>tiny is fastest but error-prone; small is slowest and most accurate</td></tr>
         </tbody>

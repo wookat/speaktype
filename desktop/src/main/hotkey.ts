@@ -1,4 +1,5 @@
 import { globalShortcut } from "electron";
+import log from "electron-log/main.js";
 import { UiohookKey, uIOhook, type UiohookKeyboardEvent, type UiohookMouseEvent } from "uiohook-napi";
 
 /**
@@ -25,6 +26,8 @@ export interface HotkeyHandlers {
   onPersona(index: number): void;
   /** 按下瞬间就回调（判定时长之前），用于抢跑建联 */
   onWarmUp(): void;
+  /** 物理上按满了判定时长，但主线程卡顿导致按下/松开事件一起迟到、录音从未开始 */
+  onHoldStarved(): void;
   /** 录音中按 Esc 取消；返回是否真的取消了会话（否则 Esc 保持系统默认行为） */
   onEscape(): boolean;
 }
@@ -82,6 +85,9 @@ export const TOGGLE_KEY_CHOICES = ["Alt+Q", "Alt+W", "Alt+Z", "Alt+X", "F9", "F1
 /** 两次短敲的最大间隔（按第一次松开到第二次松开） */
 const DOUBLE_TAP_MS = 400;
 
+/** 定时器没跑成但按键时长超出判定值这么多，才算主线程卡顿饿掉了一次长按（排除卡着阈值的短敲 + 定时器抖动） */
+const STARVED_MARGIN_MS = 200;
+
 const DIGIT_KEYCODES: number[] = [
   UiohookKey[1],
   UiohookKey[2],
@@ -108,6 +114,8 @@ export class HotkeyManager {
   private holdTimer: NodeJS.Timeout | null = null;
   private holdActive = false;
   private holdPressed = false;
+  /** 长按键按下时刻（uiohook 事件自带的系统时间戳，不受主线程卡顿影响） */
+  private holdDownTime = 0;
   private rewriteTimer: NodeJS.Timeout | null = null;
   private rewriteActive = false;
   private rewritePressed = false;
@@ -216,33 +224,45 @@ export class HotkeyManager {
       if (name) this.capture(name);
       return;
     }
-    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.pressHold();
+    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.pressHold(ev.time);
     else if (this.rewriteMouseButton && ev.button === this.rewriteMouseButton) this.pressRewrite();
   }
 
   private onMouseUp(ev: UiohookMouseEvent): void {
-    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.releaseHold();
+    if (this.holdMouseButton && ev.button === this.holdMouseButton) this.releaseHold(ev.time);
     else if (this.rewriteMouseButton && ev.button === this.rewriteMouseButton) this.releaseRewrite();
   }
 
-  private pressHold(): void {
+  private pressHold(time: number): void {
     if (this.holdPressed) return; // 系统 key repeat
     this.holdPressed = true;
+    this.holdDownTime = time;
+    log.info("hotkey hold: down");
     this.handlers.onWarmUp();
     this.holdTimer = setTimeout(() => {
       this.holdTimer = null;
       this.holdActive = true;
       this.lastTapAt = 0;
+      log.info("hotkey hold: start");
       this.handlers.onHoldStart(false);
     }, this.holdDelayMs);
   }
 
-  private releaseHold(): void {
+  private releaseHold(time: number): void {
     this.holdPressed = false;
+    const heldMs = time - this.holdDownTime;
+    log.info(`hotkey hold: up (timer=${!!this.holdTimer} active=${this.holdActive} held=${heldMs}ms)`);
     if (this.holdTimer) {
-      // 按住不满判定时长：单次算误触撤销；连续两次短敲算双击，进免按连续听写
       clearTimeout(this.holdTimer);
       this.holdTimer = null;
+      if (heldMs >= this.holdDelayMs + STARVED_MARGIN_MS) {
+        // 按键时间戳显示用户确实按满了，只是主线程卡住让定时器没跑成、按下松开一起到：
+        // 录音根本没开始，不能当误触静默吞掉，也不算双击
+        log.warn(`hotkey hold: starved (held ${heldMs}ms, timer never fired)`);
+        this.handlers.onHoldStarved();
+        return;
+      }
+      // 按住不满判定时长：单次算误触撤销；连续两次短敲算双击，进免按连续听写
       const now = Date.now();
       if (this.doubleTapEnabled && now - this.lastTapAt <= DOUBLE_TAP_MS) {
         this.lastTapAt = 0;
@@ -314,7 +334,7 @@ export class HotkeyManager {
       return;
     }
     if (ev.keycode === this.holdKeycode) {
-      this.pressHold();
+      this.pressHold(ev.time);
       return;
     }
     // 其他键按下说明是组合键（如 Ctrl+C 连按两次），取消双击判定
@@ -343,7 +363,7 @@ export class HotkeyManager {
       return;
     }
     if (ev.keycode === this.toggleKeycode) this.togglePressed = false;
-    if (ev.keycode === this.holdKeycode) this.releaseHold();
+    if (ev.keycode === this.holdKeycode) this.releaseHold(ev.time);
     else if (ev.keycode === this.rewriteKeycode) this.releaseRewrite();
   }
 }

@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { rename } from "node:fs/promises";
 import { basename, dirname } from "node:path";
 import type { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { Worker } from "node:worker_threads";
 import { net } from "electron";
 import log from "electron-log";
 import type { DownloadSource } from "../shared/types";
@@ -200,15 +201,35 @@ function openRequest(
   });
 }
 
-async function hashFile(path: string): Promise<string> {
-  const hash = createHash("sha256");
-  await new Promise<void>((resolve, reject) => {
-    createReadStream(path)
-      .on("data", (chunk) => hash.update(chunk))
-      .on("end", resolve)
-      .on("error", reject);
+// 几百 MB 的模型在主线程流式算 sha256，读缓冲分配与随之而来的 GC 会占住事件循环，
+// 恰好压在「已就绪」提示弹出、用户立刻按住说话的窗口上；放到 worker 线程算
+const HASH_WORKER = `
+const { parentPort, workerData } = require("node:worker_threads");
+const { createHash } = require("node:crypto");
+const { createReadStream } = require("node:fs");
+const hash = createHash("sha256");
+createReadStream(workerData.path)
+  .on("data", (chunk) => hash.update(chunk))
+  .on("end", () => parentPort.postMessage(hash.digest("hex")))
+  .on("error", (error) => { throw error; });
+`;
+
+function hashFile(path: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const worker = new Worker(HASH_WORKER, { eval: true, workerData: { path } });
+    let done = false;
+    worker.on("message", (digest: string) => {
+      done = true;
+      resolve(digest);
+    });
+    worker.on("error", (error) => {
+      done = true;
+      reject(error);
+    });
+    worker.on("exit", (code) => {
+      if (!done) reject(new Error(`hash worker exited with code ${code}`));
+    });
   });
-  return hash.digest("hex");
 }
 
 /**
@@ -242,7 +263,7 @@ async function downloadFromUrl(
       if (want) onPhase?.("verifying");
       if (offset === meta.total && (!want || (await hashFile(part)) === want)) {
         rmSync(metaPath, { force: true });
-        renameSync(part, dest);
+        await rename(part, dest);
         return;
       }
       rmSync(part, { force: true });
@@ -253,7 +274,7 @@ async function downloadFromUrl(
     }
   }
 
-  onPhase?.("downloading");
+  // 建连/等响应头期间不报「下载中」：换源重试的提示要保持到新源真正应答，否则刚显示就被覆盖
   const guard = stallGuard(new URL(url).host, signal, (stalled) => onPhase?.(stalled ? "retrying" : "downloading"));
   // 中止后底层只报「流提前关闭」，真正原因（用户取消 / 停滞超时）在 signal 上
   const abortReason = (error: unknown): unknown => {
@@ -272,6 +293,7 @@ async function downloadFromUrl(
     res.discard();
     throw new Error(`HTTP ${res.status} (${new URL(url).host})`);
   }
+  onPhase?.("downloading");
 
   const resumed = res.status === 206 && offset > 0;
   if (!resumed) offset = 0;
@@ -318,7 +340,8 @@ async function downloadFromUrl(
     }
   }
   rmSync(metaPath, { force: true });
-  renameSync(part, dest);
+  // 刚写完的大文件改名可能被实时防护扫描拖慢，不在主线程同步做
+  await rename(part, dest);
 }
 
 /** dest 对应的可续传残片进度（字节）；没有残片或元数据不可信时返回 null */
@@ -354,8 +377,14 @@ export async function downloadFile(
   const sourceAt = (i: number): DownloadSource => ({ index: i + 1, total: sources.length, host: new URL(sources[i]!).host });
   for (const [index, url] of sources.entries()) {
     const startedAt = Date.now();
+    // 新文件从首源起步：上一文件收尾的「校验中」不能挂到这里的建连期
+    if (index === 0) onPhase?.("downloading", sourceAt(0));
     try {
-      await downloadFromUrl(url, dest, onProgress, signal, (phase) => onPhase?.(phase, sourceAt(index)));
+      // 本源停滞重试：首源只报「连接中断正在重试」，不说「通过第 1/N 个源重试」（并未换源）；
+      // 已在后备源上时保留序号，用户知道当前在哪个源上等
+      await downloadFromUrl(url, dest, onProgress, signal, (phase) =>
+        onPhase?.(phase, phase === "retrying" && index === 0 ? undefined : sourceAt(index)),
+      );
       log.info(`download ok: ${new URL(url).host} -> ${basename(dest)} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`);
       return;
     } catch (error) {

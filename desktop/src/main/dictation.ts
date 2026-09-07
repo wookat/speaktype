@@ -18,7 +18,7 @@ import {
 import { warmChatgpt } from "./chatgpt";
 import { ensureBridge, hasAppKey, startDoubaoSession, type DoubaoSession } from "./doubao";
 import { correctHotwords } from "./hotwords";
-import { isSherpaModel, localModelStatus, prewarmSherpa } from "./localasr";
+import { isSherpaModel, isSherpaModelLoading, localModelStatus, onSherpaModelLoaded, prewarmSherpa } from "./localasr";
 import { t, translator } from "./i18n";
 import { muteForRecording, unmuteAfterRecording } from "./mute";
 import { copySelection, pasteText, sendBackspaces } from "./paste";
@@ -284,7 +284,12 @@ export class Dictation {
     historyId?: string;
   } | null = null;
 
-  constructor(private deps: DictationDeps) {}
+  constructor(private deps: DictationDeps) {
+    // 冷加载完成时转写仍在进行：悬浮条从「加载模型」切回「转写中」
+    onSherpaModelLoaded(() => {
+      if (this.state === "transcribing") this.deps.broadcast(this.status());
+    });
+  }
 
   status(): StatusPayload {
     const settings = getSettings();
@@ -292,6 +297,12 @@ export class Dictation {
       state: this.state,
       message: this.message,
       partial: this.partial,
+      loadingModel:
+        (this.state === "transcribing" &&
+          settings.asrProvider === "local" &&
+          isSherpaModel(settings.localModel) &&
+          isSherpaModelLoading()) ||
+        undefined,
       personaName: localizePersona(findPersona(settings.personaId), translator()).name,
       appPersonaName: this.appPersonaId
         ? localizePersona(findPersona(this.appPersonaId), translator()).name
@@ -405,6 +416,9 @@ export class Dictation {
         }
       }
       return;
+    }
+    if (this.allFrames.length === 0) {
+      log.info(`dictation pcm: first frame after ${Date.now() - this.startedAt}ms (session=${!!this.session})`);
     }
     if (this.session) this.session.pushPcm(frame);
     else if (this.buffered.length < MAX_BUFFERED_FRAMES) this.buffered.push(frame);
@@ -558,7 +572,13 @@ export class Dictation {
       opening.catch(() => undefined); // 录音就绪前失败时避免 unhandledrejection
 
       // 麦克风先开、连接后建：握手期的话音先缓冲，连上补发
-      if (!remote) this.deps.recorder()?.webContents.send("recorder:start", { deviceId: settings.micDeviceId });
+      if (!remote) {
+        const recorder = this.deps.recorder();
+        log.info(
+          `dictation start: recorder:start (win=${recorder ? (recorder.isDestroyed() ? "destroyed" : recorder.webContents.isLoading() ? "loading" : "ready") : "none"})`,
+        );
+        recorder?.webContents.send("recorder:start", { deviceId: settings.micDeviceId });
+      }
       this.report("recording");
 
       this.session = await opening;
@@ -738,7 +758,10 @@ export class Dictation {
       if (owner !== "rewrite") this.pendingStart.released = true;
       return;
     }
-    if (!this.busy) return;
+    if (!this.busy) {
+      log.info(`dictation stop: ${owner ?? "any"} release with no session (state=${this.state})`);
+      return;
+    }
     if (owner && this.remoteSource) {
       // 手机端正按住说话：本机热键松手与它无关，这句只由手机端 stop/cancel 结束
       log.info(`dictation stop: ${owner} release ignored, phone session in progress`);
@@ -746,6 +769,7 @@ export class Dictation {
     }
     if (owner && (owner === "rewrite") !== this.rewriting) return;
     if (!this.session) {
+      log.info(`dictation stop: session not ready yet (stage=${this.stageName()}), deferred`);
       this.pendingEnd = "stop";
       return;
     }
@@ -1255,7 +1279,21 @@ export class Dictation {
       watchPastedText(
         text,
         (items) => this.learnCorrections(historyId, items),
-        () => this.deps.showToast(t("toast.learnInaccessible"), t("toast.learnInaccessibleBody"), undefined, 8000),
+        () => {
+          if (getSettings().learnInaccessibleDismissed) return;
+          this.deps.showToast(
+            t("toast.learnInaccessible"),
+            t("toast.learnInaccessibleBody"),
+            {
+              label: t("toast.dontShowAgain"),
+              run: () => {
+                setSettings({ learnInaccessibleDismissed: true });
+                this.deps.pushSettings();
+              },
+            },
+            8000,
+          );
+        },
       );
     }
 

@@ -18,6 +18,7 @@ declare const __COMMIT__: string;
 import { localizePersona } from "../shared/personas";
 import type { HistoryItem, Persona, SaveTextRequest, Settings, StatusPayload } from "../shared/types";
 import { Dictation, clearFailedAudio } from "./dictation";
+import { disposeEscBlock } from "./escblock";
 import { runningApps } from "./activeapp";
 import { chatgptLoggedIn, closeChatgptBridge, showChatgptLogin, testChatgpt } from "./chatgpt";
 import { closeBridge, ensureBridge, hasAppKey, onAppKeyCaptured, showBridge, testDoubao } from "./doubao";
@@ -243,6 +244,7 @@ const hotkeys = new HotkeyManager({
   onHoldEnd: (rewrite) => void dictation.stop(rewrite ? "rewrite" : "hold"),
   onToggle: () => dictation.toggleHandsFree(),
   onEscape: () => dictation.cancelByKey(),
+  onHoldStarved: () => showToast(t("toast.holdMissed"), t("toast.holdMissedBody")),
   onDoubleTap: () => dictation.toggleHandsFree(),
   onPersona: (index) => {
     const personas = getPersonas();
@@ -444,6 +446,10 @@ function registerIpc(): void {
     if ("localModel" in patch && next.localModel !== prevModel) {
       releaseSherpaWorker();
       stopLocalServer();
+      // 新模型已在本地则立即预热，切换后的第一句不再承担 ONNX 冷启动
+      if (next.asrProvider === "local" && isSherpaModel(next.localModel)) {
+        prewarmSherpa(next.localModel, next.language);
+      }
     }
     // 切走豆包 provider 时收掉隐藏预载的桥接窗口，不让其继续保持豆包连接
     if ("asrProvider" in patch && next.asrProvider !== "doubao") closeBridge();
@@ -634,6 +640,11 @@ function registerIpc(): void {
     if (result.downloaded) {
       showToast(t("toast.modelReady"), t("toast.modelReadyBody"));
       refreshTrayMenu();
+      // “已就绪”提示弹出时同步预热：用户看到提示后马上按住说话也不再整句等模型冷加载
+      const s = getSettings();
+      if (s.asrProvider === "local" && s.localModel === model && isSherpaModel(model)) {
+        prewarmSherpa(model, s.language);
+      }
     }
     return result;
   });
@@ -827,6 +838,7 @@ void app.whenReady().then(() => {
 app.on("before-quit", () => {
   quitting = true;
   hotkeys.stop();
+  disposeEscBlock();
   stopLocalServer();
   void stopRemoteMic();
   if (isMac) rmSync(PCM_PIPE, { force: true });

@@ -94,6 +94,8 @@ export interface Settings {
   appPersonas: AppPersonaRule[];
   /** 落字后观察输入框：用户手动改对的词自动学进词典（仅 Windows，纯本地） */
   autoLearn: boolean;
+  /** 用户已选「不再提示」：编辑器无障碍不可读时不再弹自动学习不可用提示 */
+  learnInaccessibleDismissed: boolean;
 }
 
 export interface AppPersonaRule {
@@ -240,5 +242,7 @@ export interface StatusPayload {
   appPersonaName?: string;
   /** 改写模式会话（F8 抓选区后开录）：悬浮条据此区分「改写」与普通听写/润色 */
   rewrite?: boolean;
+  /** 转写中但本地模型仍在冷加载：悬浮条显示「加载模型」而非「转写中」 */
+  loadingModel?: boolean;
   hotkeyHold: string;
 }

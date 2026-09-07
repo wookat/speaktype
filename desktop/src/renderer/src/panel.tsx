@@ -114,7 +114,7 @@ function Panel() {
           <span className="flex items-center gap-2 text-[13px] text-slate-300">
             <Loader2 size={16} className="animate-spin text-violet-400" />
             {status?.state === "transcribing"
-              ? t("panel.transcribing")
+              ? t(status.loadingModel ? "panel.loadingModel" : "panel.transcribing")
               : status?.rewrite
                 ? t("panel.rewriting")
                 : t("panel.polishing")}
