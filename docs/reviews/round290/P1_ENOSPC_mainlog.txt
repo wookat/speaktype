@@ -1,0 +1,4 @@
+﻿[2026-09-03 18:49:16.655] [info]  userData config already present, no migration needed
+[2026-09-03 18:49:16.670] [info]  SpeakType 0.17.0 starting (packaged=true)
+[2026-09-03 18:49:40.732] [error] uncaughtException Error: ENOSPC: no space left on device, write
+

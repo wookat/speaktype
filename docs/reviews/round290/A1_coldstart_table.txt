@@ -1,0 +1,6 @@
+﻿Cold-start table (zh_pad.wav, expected 帮我跟老板说那个方案需要再改一下明天上午之前给他答复; punctuation ignored)
+| run | launch->worker ms | worker->keydown ms | first text | complete? | warm text | complete? |
+| 1 | 5388 | 27317 | 帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复 | YES (0 head/0 tail loss) | same | YES |
+| 2 | 5314 | 18501 | 帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复 | YES | same | YES |
+| 3 | 5297 | 2708  | 帮我跟老板说，那个方案需要再改一下，明天上午之前给他答复 | YES | same | YES |
+finalize lines: cold durationMs=8891/8910/8895 voicedMs=4460/4460/4460 maxPeak=32768; warm 8890/8894/8896 voicedMs=4460/4460/4440
