@@ -1,0 +1,31 @@
+2026-09-04T13:52:50.081Z [hqtwp] >> GET /hf/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin range=bytes=100-199 mode=ok
+2026-09-04T13:52:50.116Z [19p7p] >> GET /cdn/ggml-tiny-q5_1.bin range=bytes=100-199 mode=ok
+2026-09-04T13:52:50.119Z [19p7p] << 206 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-range":"bytes 100-199/32152673","content-length":"100"}
+2026-09-04T13:52:50.126Z [19p7p] done sent=100
+2026-09-04T13:56:34.077Z [jny0t] << 404 {"content-type":"text/plain"}
+2026-09-04T14:04:41.968Z [gb6xj] << 200 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-length":"32152673"}
+2026-09-04T14:04:57.854Z [gb6xj] client closed after 23855104 bytes
+2026-09-04T14:05:51.728Z [eea8k] >> GET /hf/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin range=bytes=23855104- mode=ok
+2026-09-04T14:05:51.732Z [xyv52] >> GET /cdn/ggml-tiny-q5_1.bin range=bytes=23855104- mode=ok
+2026-09-04T14:05:51.733Z [xyv52] << 206 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-range":"bytes 23855104-32152672/32152673","content-length":"8297569"}
+2026-09-04T14:05:57.250Z [xyv52] done sent=8297569
+2026-09-04T14:07:42.307Z [dpbh8] << 200 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-length":"32152673"}
+2026-09-04T14:08:26.610Z [j3h43] >> GET /hf/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin range=bytes=11010048- mode=ok
+2026-09-04T14:08:26.652Z [xp0hi] >> GET /cdn/ggml-tiny-q5_1.bin range=bytes=11010048- mode=ok
+2026-09-04T14:08:26.653Z [xp0hi] << 206 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-range":"bytes 11010048-32152672/32152673","content-length":"21142625"}
+2026-09-04T14:08:40.730Z [xp0hi] done sent=21142625
+2026-09-04T14:09:47.838Z [24v1t] >> GET /hf/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin range=bytes=5000000- mode=ok
+2026-09-04T14:09:47.842Z [6d3zg] >> GET /cdn/ggml-tiny-q5_1.bin range=bytes=5000000- mode=ok
+2026-09-04T14:09:47.843Z [6d3zg] << 206 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-range":"bytes 5000000-32152672/32152673","content-length":"27152673"}
+2026-09-04T14:10:05.945Z [6d3zg] done sent=27152673
+2026-09-04T14:11:10.230Z [x4gwj] << 200 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-length":"32152673"}
+2026-09-04T14:11:31.646Z [x4gwj] done sent=32152673
+2026-09-04T14:12:56.587Z [ejrkm] << 503 {"content-type":"text/plain"}
+2026-09-04T14:12:56.592Z [c2wio] << 503 {"content-type":"text/plain"}
+2026-09-04T14:12:56.596Z [o3l6p] << 503 {"content-type":"text/plain"}
+2026-09-04T14:13:37.736Z [mndcb] << 404 {"content-type":"text/plain"}
+2026-09-04T14:13:37.739Z [6vifn] << 404 {"content-type":"text/plain"}
+2026-09-04T14:13:37.743Z [k4ttb] << 404 {"content-type":"text/plain"}
+2026-09-04T14:15:04.505Z [kyki1] (hanging)
+2026-09-04T14:17:21.873Z [6lc7w] << 200 {"content-type":"application/octet-stream","accept-ranges":"bytes","etag":"\"818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7\"","content-length":"32152673"}
+2026-09-04T14:17:43.288Z [6lc7w] done sent=32152673
