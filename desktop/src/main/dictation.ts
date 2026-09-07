@@ -207,6 +207,8 @@ export interface DictationDeps {
   pushSettings: () => void;
   /** 打开设置页并定位 tab：润色模型在 "model"，ASR/语音识别配置在 "voice" */
   openModelSettings: (tab?: "model" | "voice") => void;
+  /** 悬浮条已显示时按当前光标位置重新停靠（免按句间光标可能已换行/换位） */
+  redockPanel: () => void;
 }
 
 export class Dictation {
@@ -432,7 +434,11 @@ export class Dictation {
     const voiced = this.silero ? sileroMs > 0 : peak >= VAD_SILENCE_PEAK;
     this.voicedMs += this.silero ? sileroMs : peakVoicedMs;
     if (voiced) {
-      if (!this.firstVoiceAt) this.firstVoiceAt = now;
+      if (!this.firstVoiceAt) {
+        this.firstVoiceAt = now;
+        // 免按跨句悬浮条常显不会重新停靠：每句开口瞬间按当前光标重新避让
+        if (this.handsFree && this.mode === "toggle") this.deps.redockPanel();
+      }
       // Silero 的 isDetected() 在真实句尾后还会多亮 minSilenceDuration：把滞后扣回，
       // 否则静音判停相当于 vadSilenceMs+滞后，紧贴阈值的句间停顿（如 2.2s vs 2.0s）
       // 会漏切，下一句句头并入上一段（P3-2541 残余）
@@ -644,6 +650,21 @@ export class Dictation {
     unmuteAfterRecording();
   }
 
+  /** 当前会话所处阶段（日志用） */
+  private stageName(): string {
+    return this.session
+      ? "recording"
+      : this.finishing
+        ? "transcribing"
+        : this.rewriteAbort
+          ? "polishing"
+          : this.finalizing
+            ? "finalizing"
+            : this.busy
+              ? "connecting"
+              : "idle";
+  }
+
   /** 免按模式热键：未录音则进入连续聆听，录音中/聆听中则退出 */
   toggleHandsFree(): void {
     if (this.busy || this.handsFree) {
@@ -658,6 +679,11 @@ export class Dictation {
       this.handsFree = false;
       this.handsFreeEndedByKey = true; // 用户主动退出：本轮静音不再弹「没听清」
       if (wasHandsFree) {
+        log.info(
+          `dictation handsFree exit: byToggle stage=${this.stageName()} elapsedMs=${
+            this.busy ? Date.now() - this.startedAt : 0
+          }`,
+        );
         // stop() 只在旗标仍在时提示，这里已先清旗标，退出提示由本入口负责
         this.deps.showToast(t("toast.handsFreeEnd"), t("toast.handsFreeEndByToggle"));
         if (!this.busy) {
@@ -737,6 +763,11 @@ export class Dictation {
   cancel(byEsc = false): void {
     // 免按退出已有专属提示；普通取消给一条短提示，让用户能区分「已取消」与「识别失败」
     const wasHandsFree = this.handsFree;
+    log.info(
+      `dictation cancel: byEsc=${byEsc} stage=${this.stageName()} handsFree=${wasHandsFree} elapsedMs=${
+        this.busy ? Date.now() - this.startedAt : 0
+      }`,
+    );
     if (this.handsFree) {
       this.handsFree = false;
       this.deps.showToast(

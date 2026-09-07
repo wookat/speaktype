@@ -198,6 +198,9 @@ const dictation = new Dictation({
     showMain();
     mainWin?.webContents.send("goto", { page: "settings", tab });
   },
+  redockPanel: () => {
+    if (panelWin && !panelWin.isDestroyed() && panelWin.isVisible()) dockPanel(panelWin);
+  },
 });
 
 configureRemoteMic({

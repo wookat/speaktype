@@ -3,6 +3,7 @@ import { Check, FileAudio, Loader2 } from "lucide-react";
 import { api } from "../api";
 import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../lib/downloadError";
 import { useLocalModelStatus } from "../lib/useLocalModelStatus";
+import { localModelLabel } from "../lib/modelLabel";
 import type { Translator } from "../i18n";
 import type { LocaleKey } from "../../../shared/i18n";
 import type { Settings, TranscribeState } from "../../../shared/types";
@@ -207,7 +208,7 @@ function Transcribe(props: {
             </div>
           </div>
           {local?.busyModel && (
-            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: localModelLabel(local.busyModel, t, false) })}</div>
           )}
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">

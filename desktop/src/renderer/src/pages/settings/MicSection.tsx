@@ -4,6 +4,7 @@ import type { Translator } from "../../i18n";
 import type { RemoteMicInfo, Settings } from "../../../../shared/types";
 import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../../lib/downloadError";
 import { useLocalModelStatus } from "../../lib/useLocalModelStatus";
+import { localModelLabel } from "../../lib/modelLabel";
 import { Row } from "../../components/Row";
 import { Toggle } from "../../components/Toggle";
 
@@ -174,7 +175,7 @@ function RemoteMicRows(props: { t: Translator; s: Settings; update: (patch: Part
             </div>
           </div>
           {local?.busyModel && (
-            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+            <div className="mt-2 text-xs text-amber-600">{t("settings.localModelBusy", { model: localModelLabel(local.busyModel, t, false) })}</div>
           )}
           {local?.downloading && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">

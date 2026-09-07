@@ -28,7 +28,7 @@ const TOAST_HEIGHT = 120;
 const TOAST_CENTER_FROM_BOTTOM = 222;
 /** 悬浮条与工作区边缘的间距 */
 const PANEL_MARGIN = 12;
-/** 光标四周留的空白：悬浮条紧贴光标下方同样会挡到正在输入的那一行 */
+/** 光标上下留的空白：悬浮条紧贴光标下方同样会挡到正在输入的那一行 */
 const CARET_CLEARANCE = 24;
 
 function intersects(a: Electron.Rectangle, b: Electron.Rectangle): boolean {
@@ -192,8 +192,8 @@ export function createChatgptWindow(): BrowserWindow {
 }
 
 /**
- * 把悬浮条放到鼠标所在屏幕的底部（或用户固定的顶部/底部）居中；auto 模式下前台文本光标恰好在这块区域
- * （最大化的编辑器写到屏幕底部）时改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
+ * 把悬浮条放到鼠标所在屏幕的底部（或用户固定的顶部/底部）居中；auto 模式下前台文本光标所在的那一行
+ * 与这块区域重叠（最大化的编辑器写到屏幕底部）时改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
  */
 export function dockPanel(win: BrowserWindow): void {
   const point = screen.getCursorScreenPoint();
@@ -208,21 +208,25 @@ export function dockPanel(win: BrowserWindow): void {
     height: PANEL_HEIGHT,
   };
   if (position === "auto") {
-    const caret = panelCaretZone();
+    const caret = panelCaretZone(area);
     if (caret && intersects(caret, bounds)) bounds.y = top;
   }
   win.setBounds(bounds);
 }
 
-/** 前台光标矩形换成 DIP 并向四周扩出留白；无光标或转换失败返回 null */
-function panelCaretZone(): Electron.Rectangle | null {
+/**
+ * 前台光标所在的整行（横跨所在屏幕工作区，上下扩出留白）：光标在行尾时悬浮条同样会压住这一行左半段，
+ * 所以避让按行而不是按光标点判定。无光标、转换失败或光标不在这块屏幕上返回 null
+ */
+function panelCaretZone(area: Electron.Rectangle): Electron.Rectangle | null {
   const physical = foregroundCaretRect();
   if (!physical) return null;
   const dip = process.platform === "win32" ? screen.screenToDipRect(null, physical) : physical;
+  if (dip.x + dip.width <= area.x || dip.x >= area.x + area.width) return null;
   return {
-    x: dip.x - CARET_CLEARANCE,
+    x: area.x,
     y: dip.y - CARET_CLEARANCE,
-    width: dip.width + CARET_CLEARANCE * 2,
+    width: area.width,
     height: dip.height + CARET_CLEARANCE * 2,
   };
 }

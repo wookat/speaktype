@@ -9,6 +9,7 @@ import { StatCard } from "../components/StatCard";
 import { downloadPhaseText, humanDownloadError } from "../lib/downloadError";
 import { fmtDuration } from "../lib/format";
 import { useLocalModelStatus } from "../lib/useLocalModelStatus";
+import { localModelLabel } from "../lib/modelLabel";
 
 function Home(props: {
   t: Translator;
@@ -90,7 +91,7 @@ function Home(props: {
               </div>
             )}
             {local?.busyModel && (
-              <div className="mt-2 text-xs text-indigo-500">{t("settings.localModelBusy", { model: local.busyModel })}</div>
+              <div className="mt-2 text-xs text-indigo-500">{t("settings.localModelBusy", { model: localModelLabel(local.busyModel, t, false) })}</div>
             )}
             {downloadPhaseText(local, t) && (
               <div className="mt-2 text-xs text-indigo-500" role="status">

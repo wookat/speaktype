@@ -280,9 +280,10 @@ export const en: LocaleDict = {
   "settings.asrLocalHint":
     "Runs fully on this machine — no internet, no account, no API key; audio never leaves this computer. Download a model file once. The sensevoice and parakeet models show live captions while you talk; whisper models transcribe the whole utterance at once.",
   "settings.localModel": "Local model",
-  "settings.localModelHint": "sensevoice-small is the pick for Chinese: more accurate and faster than a same-sized whisper model, with punctuation built in. For English and European languages, parakeet-tdt-0.6b-v3 is the most accurate (no Chinese support).",
+  "settings.localModelFp32": "full precision",
+  "settings.localModelHint": "SenseVoice is the pick for Chinese, Japanese, Korean and Cantonese: more accurate and faster than a same-sized Whisper model, with punctuation built in. For English and 25 European languages, Parakeet is the most accurate (no Chinese support).",
   "settings.localModelHintWhisper": "The whisper models cover more languages: tiny is fastest but error-prone, base is balanced, small is slower and more accurate.",
-  "settings.localModelHintParakeetFp32": "Full-precision Parakeet: same languages as parakeet-tdt-0.6b-v3, but no longer drops the first word of a sentence (e.g. \"Please\" → \"Ple\") that the int8 build occasionally does. Costs a 2.5GB download and about 2.7GB of RAM while loaded — pick it only if you have the memory and see clipped first words.",
+  "settings.localModelHintParakeetFp32": "Full-precision Parakeet: same languages and speed as the standard Parakeet, but no longer drops the first word of a sentence (e.g. \"Please\" → \"Ple\") that the standard int8 build occasionally does. Costs a 2.5GB download and about 2.7GB of RAM while loaded — pick it only if you have the memory and see clipped first words.",
   "settings.localModelDownload": "Download model",
   "settings.localModelDownloading": "Downloading {{progress}}%",
   "settings.localModelVerifying": "Verifying…",

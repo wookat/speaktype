@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { downloadPhaseText, downloadingLabel, humanDownloadError } from "../../lib/downloadError";
 import { humanTestError } from "../../lib/testError";
+import { localModelLabel } from "../../lib/modelLabel";
 import { api } from "../../api";
 import type { Translator } from "../../i18n";
 import type { Settings } from "../../../../shared/types";
@@ -131,7 +132,7 @@ function VoiceTab(props: {
             >
               {localModels.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.id} ({m.size})
+                  {localModelLabel(m.id, t)}
                 </option>
               ))}
             </select>
@@ -169,7 +170,9 @@ function VoiceTab(props: {
               </>
             )}
             {local?.busyModel && !local.downloaded && (
-              <span className="text-sm text-slate-400">{t("settings.localModelBusy", { model: local.busyModel })}</span>
+              <span className="text-sm text-slate-400">
+                {t("settings.localModelBusy", { model: localModelLabel(local.busyModel, t, false) })}
+              </span>
             )}
             {!local?.downloading && (local?.downloaded || local?.partial != null) && (
               <button

@@ -274,9 +274,10 @@ export const zhCN = {
   "settings.asrLocalHint":
     "完全在本机识别，不联网、不需要账号和密钥，录音不离开这台电脑。首次使用需下载一个模型文件。sensevoice / parakeet 模型录音中实时显示字幕；whisper 系列为整句识别。",
   "settings.localModel": "本地模型",
-  "settings.localModelHint": "中文推荐 sensevoice-small：准确率和速度都明显好于同体积 whisper，且自带标点。英语及欧洲语言推荐 parakeet-tdt-0.6b-v3（不支持中文）。",
+  "settings.localModelFp32": "原精度",
+  "settings.localModelHint": "中文、日语、韩语、粤语推荐 SenseVoice：准确率和速度都明显好于同体积 Whisper，且自带标点。英语及 25 种欧洲语言推荐 Parakeet（不支持中文）。",
   "settings.localModelHintWhisper": "whisper 系列胜在语种更全：tiny 最快但易错，base 均衡，small 更准更慢。",
-  "settings.localModelHintParakeetFp32": "Parakeet 原精度版：语种与 parakeet-tdt-0.6b-v3 相同，但不再出现 int8 版偶发的句首吞字（如 \"Please\" 识成 \"Ple\"）。代价是 2.5GB 下载、加载后约占 2.7GB 内存——内存充足且遇到过句首缺字时再选它。",
+  "settings.localModelHintParakeetFp32": "Parakeet 原精度版：语种与识别速度和标准版 Parakeet 相同，但不再出现标准版（int8）偶发的句首吞字（如 \"Please\" 识成 \"Ple\"）。代价是 2.5GB 下载、加载后约占 2.7GB 内存——内存充足且遇到过句首缺字时再选它。",
   "settings.localModelDownload": "下载模型",
   "settings.localModelDownloading": "下载中 {{progress}}%",
   "settings.localModelVerifying": "校验中…",

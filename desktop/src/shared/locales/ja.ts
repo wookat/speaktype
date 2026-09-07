@@ -280,9 +280,10 @@ export const ja: LocaleDict = {
   "settings.asrLocalHint":
     "完全にこの PC 上で動作 — ネット接続・アカウント・API キー不要。音声はこの PC から出ません。モデルを一度ダウンロードすれば使えます。sensevoice / parakeet モデルは録音中にリアルタイム字幕を表示し、whisper 系は発話全体をまとめて認識します。",
   "settings.localModel": "ローカルモデル",
-  "settings.localModelHint": "中国語には sensevoice-small が最適です。同サイズの whisper より高精度かつ高速で、句読点も付きます。英語と欧州言語には parakeet-tdt-0.6b-v3 が最も高精度です（中国語非対応）。",
+  "settings.localModelFp32": "フル精度",
+  "settings.localModelHint": "中国語・日本語・韓国語・広東語には SenseVoice が最適です。同サイズの Whisper より高精度かつ高速で、句読点も付きます。英語と 25 の欧州言語には Parakeet が最も高精度です（中国語非対応）。",
   "settings.localModelHintWhisper": "whisper 系は対応言語が多く、tiny は最速だが誤りが多め、base はバランス型、small は低速で高精度です。",
-  "settings.localModelHintParakeetFp32": "Parakeet フル精度版：対応言語は parakeet-tdt-0.6b-v3 と同じで、int8 版でまれに起きる文頭の欠落（例：\"Please\" → \"Ple\"）が発生しません。代わりに 2.5GB のダウンロードと読み込み時約 2.7GB のメモリが必要です。メモリに余裕があり文頭欠落に遭遇した場合のみ選んでください。",
+  "settings.localModelHintParakeetFp32": "Parakeet フル精度版：対応言語と認識速度は標準版 Parakeet と同じで、標準版（int8）でまれに起きる文頭の欠落（例：\"Please\" → \"Ple\"）が発生しません。代わりに 2.5GB のダウンロードと読み込み時約 2.7GB のメモリが必要です。メモリに余裕があり文頭欠落に遭遇した場合のみ選んでください。",
   "settings.localModelDownload": "モデルをダウンロード",
   "settings.localModelDownloading": "ダウンロード中 {{progress}}%",
   "settings.localModelVerifying": "検証中…",
