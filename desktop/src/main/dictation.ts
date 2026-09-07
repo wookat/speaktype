@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow, clipboard, globalShortcut } from "electron";
 import { blockEscape, unblockEscape } from "./escblock";
@@ -23,7 +24,7 @@ import { muteForRecording, unmuteAfterRecording } from "./mute";
 import { copySelection, pasteText, sendBackspaces } from "./paste";
 import { deformatForTerminal, polishText, rewriteSelection, usesLlmPolish } from "./polish";
 import { SILERO_HANGOVER_MS, SileroVad } from "./vad";
-import { addHistory, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
+import { addHistory, addHistoryWithStats, addStats, findPersona, getHistory, getSettings, setSettings, updateHistoryItem } from "./store";
 import { watchPastedText, type Diff } from "./watchedit";
 
 /** 握手期先开麦并缓冲音频（200ms/帧，封顶约 30s），连上再补发，冷启动第一句才不丢字 */
@@ -139,23 +140,28 @@ function failedAudioDir(): string {
 }
 
 /** 保留策略：最多 20 段、最长 7 天、总大小不超 50MB，超出从最旧开始删 */
-function pruneFailedAudio(): void {
-  const all = readdirSync(failedAudioDir())
-    .filter((f) => f.endsWith(".wav"))
-    .map((f) => {
-      const st = statSync(join(failedAudioDir(), f));
-      return { f, at: st.mtimeMs, size: st.size };
-    })
-    .sort((a, b) => b.at - a.at);
+async function pruneFailedAudio(): Promise<void> {
+  const dir = failedAudioDir();
+  const all = await Promise.all(
+    (await readdir(dir))
+      .filter((f) => f.endsWith(".wav"))
+      .map(async (f) => {
+        const st = await stat(join(dir, f));
+        return { f, at: st.mtimeMs, size: st.size };
+      }),
+  );
+  all.sort((a, b) => b.at - a.at);
   const now = Date.now();
   let bytes = 0;
+  const dropped: string[] = [];
   all.forEach((item, i) => {
     if (i >= FAILED_AUDIO_MAX || now - item.at > FAILED_AUDIO_MAX_AGE_MS || bytes + item.size > FAILED_AUDIO_MAX_BYTES) {
-      rmSync(join(failedAudioDir(), item.f), { force: true });
+      dropped.push(join(dir, item.f));
     } else {
       bytes += item.size;
     }
   });
+  await Promise.all(dropped.map((p) => rm(p, { force: true })));
 }
 
 /** 清空历史时一并删掉落盘的失败录音 */
@@ -163,13 +169,15 @@ export function clearFailedAudio(): void {
   rmSync(failedAudioDir(), { recursive: true, force: true });
 }
 
-function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
+// finalize/重试路径上的落盘读盘都走 fs/promises：同步写 60s WAV、同步读 50MB 音频会卡住
+// 主进程的事件循环，热键应答、PCM 管道与托盘交互跟着一起停
+async function saveFailedAudio(id: string, frames: Int16Array[]): Promise<string | undefined> {
   if (!getSettings().keepFailedAudio) return undefined;
   try {
-    mkdirSync(failedAudioDir(), { recursive: true });
+    await mkdir(failedAudioDir(), { recursive: true });
     const file = join(failedAudioDir(), `${id}.wav`);
-    writeFileSync(file, pcmToWav(frames));
-    pruneFailedAudio();
+    await writeFile(file, pcmToWav(frames));
+    await pruneFailedAudio();
     return file;
   } catch (error) {
     log.warn("saveFailedAudio failed", error);
@@ -177,8 +185,8 @@ function saveFailedAudio(id: string, frames: Int16Array[]): string | undefined {
   }
 }
 
-function wavToFrames(file: string): Int16Array[] {
-  const buf = readFileSync(file);
+async function wavToFrames(file: string): Promise<Int16Array[]> {
+  const buf = await readFile(file);
   const data = buf.subarray(44);
   // 拷贝一份保证 2 字节对齐（Buffer 池的 byteOffset 可能是奇数）
   const copy = new Uint8Array(data.length - (data.length % 2));
@@ -835,9 +843,9 @@ export class Dictation {
     return true;
   }
 
-  private resolveFailedEntry(id: string, text: string, raw: string): void {
+  private async resolveFailedEntry(id: string, text: string, raw: string): Promise<void> {
     const entry = getHistory().find((h) => h.id === id);
-    if (entry?.audioFile && existsSync(entry.audioFile)) rmSync(entry.audioFile, { force: true });
+    if (entry?.audioFile && existsSync(entry.audioFile)) await rm(entry.audioFile, { force: true });
     updateHistoryItem(id, {
       text,
       raw,
@@ -860,11 +868,11 @@ export class Dictation {
     const persona = localizePersona(findPersona(settings.personaId), translator());
     try {
       const session = await this.createSession(settings);
-      for (const frame of wavToFrames(entry.audioFile)) session.pushPcm(frame);
+      for (const frame of await wavToFrames(entry.audioFile)) session.pushPcm(frame);
       const raw = await session.finish();
       if (!raw) return { ok: false, detail: t("toast.noSpeech") };
       const text = await polishText(settings, persona, raw);
-      this.resolveFailedEntry(id, text, raw);
+      await this.resolveFailedEntry(id, text, raw);
       addStats(text, entry.durationMs);
       clipboard.writeText(text);
       this.deps.broadcast(this.status());
@@ -1015,7 +1023,7 @@ export class Dictation {
       if (id === priorId) {
         updateHistoryItem(id, { at: Date.now(), error: message, provider: settings.asrProvider });
       } else {
-        const audioFile = saveFailedAudio(id, this.allFrames);
+        const audioFile = await saveFailedAudio(id, this.allFrames);
         addHistory({
           id,
           at: Date.now(),
@@ -1189,21 +1197,27 @@ export class Dictation {
     }
 
     const historyId = retriedId ?? randomUUID();
-    if (retriedId) this.resolveFailedEntry(retriedId, text, raw);
-    else
-      addHistory({
-        id: historyId,
-        at: Date.now(),
+    if (retriedId) {
+      await this.resolveFailedEntry(retriedId, text, raw);
+      addStats(text, durationMs);
+    } else {
+      addHistoryWithStats(
+        {
+          id: historyId,
+          at: Date.now(),
+          text,
+          raw,
+          personaName: persona.name,
+          personaId: persona.builtin ? persona.id : undefined,
+          durationMs,
+          failed,
+          provider: settings.asrProvider,
+          source: this.remoteSource ? "phone" : undefined,
+        },
         text,
-        raw,
-        personaName: persona.name,
-        personaId: persona.builtin ? persona.id : undefined,
         durationMs,
-        failed,
-        provider: settings.asrProvider,
-        source: this.remoteSource ? "phone" : undefined,
-      });
-    addStats(text, durationMs);
+      );
+    }
 
     // 自纠错学习：落字成功后盯一会儿目标输入框，用户手改的词自动学进词典（改写模式不学，文本不是转写结果）
     if (!rewriteTarget && settings.autoLearn && settings.autoPaste && !failed && pastedOk && !noTarget && /[\u4e00-\u9fff]|[A-Za-z]{3,}/.test(text)) {
