@@ -104,9 +104,14 @@ interface SherpaVad {
   isDetected(): boolean;
   isEmpty(): boolean;
   pop(): void;
+  reset(): void;
 }
 
 let sessionFailed = false; // 加载失败只报一次；重新下载成功后重置
+
+// ONNX 会话跨录音复用：每次 start() 都 new Vad 会重新加载 2.3MB 模型并初始化推理会话，
+// 免按模式句句白付冷启动；段队列每个窗口后排空，reset 清掉模型隐状态即可当全新检测器用
+let cachedVad: SherpaVad | null = null;
 
 /** 流式 Silero 检测器：喂 16k PCM，按 512 样本窗口统计人声毫秒 */
 export class SileroVad {
@@ -117,30 +122,36 @@ export class SileroVad {
   static create(): SileroVad | null {
     if (sessionFailed || !vadDownloaded()) return null;
     try {
-      const require2 = createRequire(import.meta.url);
-      const mod = require2("sherpa-onnx-node") as {
-        Vad: new (config: object, bufferSizeInSeconds: number) => SherpaVad;
-      };
-      const instance = new SileroVad();
-      instance.vad = new mod.Vad(
-        {
-          sileroVad: {
-            model: join(vadDir(), "silero_vad.onnx"),
-            threshold: SPEECH_PROB,
-            minSpeechDuration: 0.1,
-            minSilenceDuration: SILERO_HANGOVER_MS / 1000,
-            maxSpeechDuration: 30,
-            windowSize: WINDOW,
+      if (!cachedVad) {
+        const require2 = createRequire(import.meta.url);
+        const mod = require2("sherpa-onnx-node") as {
+          Vad: new (config: object, bufferSizeInSeconds: number) => SherpaVad;
+        };
+        cachedVad = new mod.Vad(
+          {
+            sileroVad: {
+              model: join(vadDir(), "silero_vad.onnx"),
+              threshold: SPEECH_PROB,
+              minSpeechDuration: 0.1,
+              minSilenceDuration: SILERO_HANGOVER_MS / 1000,
+              maxSpeechDuration: 30,
+              windowSize: WINDOW,
+            },
+            sampleRate: 16000,
+            numThreads: 1,
+            debug: 0,
           },
-          sampleRate: 16000,
-          numThreads: 1,
-          debug: 0,
-        },
-        10,
-      );
+          10,
+        );
+      } else {
+        cachedVad.reset();
+      }
+      const instance = new SileroVad();
+      instance.vad = cachedVad;
       return instance;
     } catch (error) {
       sessionFailed = true; // 加载失败只报一次，之后回退峰值门槛
+      cachedVad = null; // 拿不准实例是否完好，弃用，下次重新加载
       log.warn("silero vad load failed, falling back to peak threshold", error);
       return null;
     }
@@ -165,6 +176,7 @@ export class SileroVad {
         } catch (error) {
           log.warn("silero vad inference failed", error);
           this.vad = null;
+          cachedVad = null; // 推理已坏掉的实例不能留给下一次录音复用
           return 0;
         }
       }

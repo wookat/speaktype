@@ -421,16 +421,31 @@ export function getStats(): Stats {
   return historyStore.get("stats");
 }
 
-export function addStats(text: string, durationMs: number): void {
-  const current = getStats();
+/** 一句话的统计增量（savedMs 未迁移过的老数据顺带补算） */
+function nextStats(current: Stats, text: string, durationMs: number): Stats {
   const savedSoFar =
     current.savedMs ??
     legacySavedMs(current.words, resolveLanguage(getSettings().uiLanguage, app.getLocale() || "zh-CN"));
-  historyStore.set("stats", {
+  return {
     words: current.words + countWords(text),
     durationMs: current.durationMs + durationMs,
     sessions: current.sessions + 1,
     savedMs: savedSoFar + savedMsFor(text),
+  };
+}
+
+export function addStats(text: string, durationMs: number): void {
+  historyStore.set("stats", nextStats(getStats(), text, durationMs));
+}
+
+/**
+ * 落一条历史 + 计一次统计：historyStore.set 每次都同步整写全量 JSON（最多 500 条），
+ * 分开调 addHistory/addStats 会让每句话把同一份文件写两遍，这里合并成一次写盘
+ */
+export function addHistoryWithStats(item: HistoryItem, text: string, durationMs: number): void {
+  historyStore.set({
+    history: [item, ...getHistory()].slice(0, 500),
+    stats: nextStats(getStats(), text, durationMs),
   });
 }
 

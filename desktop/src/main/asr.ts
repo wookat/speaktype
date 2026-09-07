@@ -210,22 +210,40 @@ export function startLocalAsrSession(
   // 抢跑：录音一开始就把本地 server 拉起来，松手时通常已就绪
   if (!isSherpaModel(model)) ensureLocalServer(model).catch(() => undefined);
 
-  // sherpa 系是整句模型，流式字幕靠定时重解已录部分近似；超过上限后只解
-  // 最后一段滑窗，预览成本不随录音时长线性增长，长句字幕也不会冻结
+  // 流式字幕的浮点音频增量维护：帧到达时转换一次，预览 tick 只拼装尾部滑窗。
+  // 此前每个 tick 都对整段录音重新 pcmToFloat32，转换量随录音时长线性增长（免按长句
+  // 时主进程每秒白转数 MB 采样）；最终整句识别仍由 finish() 用完整 frames 转换
+  const wantPartials = !!onPartial && isSherpaModel(model);
+  const floatChunks: Float32Array[] = [];
+  let floatSamples = 0;
+  const appendFloatChunk = (frame: Int16Array): void => {
+    const f = new Float32Array(frame.length);
+    for (let i = 0; i < frame.length; i++) f[i] = frame[i]! / 32768;
+    floatChunks.push(f);
+    floatSamples += f.length;
+    // 头部超出滑窗需要的部分整块丢弃，保留量不随录音时长增长
+    while (floatChunks.length > 1 && floatSamples - floatChunks[0]!.length >= PARTIAL_MAX_SAMPLES) {
+      floatSamples -= floatChunks.shift()!.length;
+    }
+  };
   let timer: NodeJS.Timeout | null = null;
-  if (onPartial && isSherpaModel(model)) {
+  if (wantPartials) {
     let inFlight = false;
     let nextAt = 0;
     timer = setInterval(() => {
-      const samples = frames.reduce((sum, f) => sum + f.length, 0);
-      if (inFlight || samples < PARTIAL_MIN_SAMPLES) return;
+      if (inFlight || floatSamples < PARTIAL_MIN_SAMPLES) return;
       if (Date.now() < nextAt) return;
       inFlight = true;
       const started = Date.now();
-      const audio = pcmToFloat32(frames);
-      // slice 而非 subarray：worker postMessage 结构化克隆会拷整个底层 buffer
-      const window =
-        audio.length > PARTIAL_MAX_SAMPLES ? audio.slice(audio.length - PARTIAL_MAX_SAMPLES) : audio;
+      // 独立 buffer 拼出尾部滑窗：worker postMessage 结构化克隆不牵出整段录音
+      const window = new Float32Array(Math.min(floatSamples, PARTIAL_MAX_SAMPLES));
+      let off = window.length;
+      for (let i = floatChunks.length - 1; i >= 0 && off > 0; i--) {
+        const chunk = floatChunks[i]!;
+        const take = Math.min(chunk.length, off);
+        window.set(chunk.subarray(chunk.length - take), off - take);
+        off -= take;
+      }
       void transcribeSherpa(model, window, SAMPLE_RATE, settings.language || "auto")
         .then((text) => {
           // 解码在 worker 里，但仍串行；按上次耗时拉开间隔，别让预览霸占识别线程
@@ -248,12 +266,16 @@ export function startLocalAsrSession(
 
   return {
     pushPcm(frame: Int16Array): void {
-      if (!cancelled) frames.push(frame);
+      if (cancelled) return;
+      frames.push(frame);
+      if (wantPartials) appendFloatChunk(frame);
     },
     cancel(): void {
       cancelled = true;
       stopTimer();
       frames.length = 0;
+      floatChunks.length = 0;
+      floatSamples = 0;
       finishAbort.abort();
     },
     async finish(): Promise<string> {

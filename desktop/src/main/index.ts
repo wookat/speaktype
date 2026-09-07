@@ -7,6 +7,7 @@ import { basename, join } from "node:path";
 import { createServer } from "node:net";
 import { execFile } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import log from "electron-log/main.js";
@@ -470,7 +471,8 @@ function registerIpc(): void {
     });
     if (res.canceled || !res.filePath) return { ok: false, canceled: true };
     try {
-      writeFileSync(res.filePath, JSON.stringify(buildConfigExport(), null, 2), "utf8");
+      // 导出可能赶上大配置/词典：同步写会卡住主进程 IPC，改走 fs/promises
+      await writeFile(res.filePath, JSON.stringify(buildConfigExport(), null, 2), "utf8");
       return { ok: true };
     } catch (error) {
       log.error("config export failed", error);
@@ -487,8 +489,9 @@ function registerIpc(): void {
     });
     if (res.canceled || !res.filePath) return false;
     try {
-      // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码
-      writeFileSync(res.filePath, `\ufeff${req.content}`, "utf8");
+      // UTF-8 BOM：写字板等按 ANSI 猜编码的旧编辑器打开 CJK 不乱码；
+      // 转录导出可达数 MB，同步写会卡住主进程（托盘/热键/PCM 管道），改走 fs/promises
+      await writeFile(res.filePath, `\ufeff${req.content}`, "utf8");
       const savedPath = res.filePath;
       showToast(t("toast.exportSaved"), savedPath, {
         label: t("toast.exportReveal"),
@@ -510,7 +513,7 @@ function registerIpc(): void {
     if (res.canceled || !filePath) return { ok: false, canceled: true };
     let parsed: ReturnType<typeof parseConfigImport>;
     try {
-      parsed = parseConfigImport(readFileSync(filePath, "utf8"));
+      parsed = parseConfigImport(await readFile(filePath, "utf8"));
     } catch (error) {
       log.error("config import failed", error);
       return { ok: false, error: error instanceof Error ? error.message : String(error) };
