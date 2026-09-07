@@ -737,6 +737,22 @@ export class Dictation {
   cancel(byEsc = false): void {
     // 免按退出已有专属提示；普通取消给一条短提示，让用户能区分「已取消」与「识别失败」
     const wasHandsFree = this.handsFree;
+    const stage = this.session
+      ? "recording"
+      : this.finishing
+        ? "transcribing"
+        : this.rewriteAbort
+          ? "polishing"
+          : this.finalizing
+            ? "finalizing"
+            : this.busy
+              ? "connecting"
+              : "idle";
+    log.info(
+      `dictation cancel: byEsc=${byEsc} stage=${stage} handsFree=${wasHandsFree} elapsedMs=${
+        this.busy ? Date.now() - this.startedAt : 0
+      }`,
+    );
     if (this.handsFree) {
       this.handsFree = false;
       this.deps.showToast(

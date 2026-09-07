@@ -12,13 +12,14 @@ export const PARAKEET = "parakeet-tdt-0.6b-v3";
  */
 export const PARAKEET_FP32 = "parakeet-tdt-0.6b-v3-fp32";
 
+/** name 是面向用户的显示名（下拉项/提示里用），id 仍是配置与下载的唯一键 */
 export const LOCAL_MODELS = [
-  { id: SENSEVOICE, size: "234MB" },
-  { id: PARAKEET, size: "660MB" },
-  { id: PARAKEET_FP32, size: "2.5GB" },
-  { id: "tiny-q5_1", size: "32MB" },
-  { id: "base-q5_1", size: "60MB" },
-  { id: "small-q5_1", size: "190MB" },
+  { id: SENSEVOICE, name: "SenseVoice Small", size: "234MB" },
+  { id: PARAKEET, name: "Parakeet", size: "660MB" },
+  { id: PARAKEET_FP32, name: "Parakeet", size: "2.5GB" },
+  { id: "tiny-q5_1", name: "Whisper tiny", size: "32MB" },
+  { id: "base-q5_1", name: "Whisper base", size: "60MB" },
+  { id: "small-q5_1", name: "Whisper small", size: "190MB" },
 ] as const;
 
 /** 走 sherpa-onnx 进程内推理的模型（否则走 whisper-server 子进程） */
