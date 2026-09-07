@@ -76,7 +76,18 @@ function modelFiles(model: string): Array<[string, string, number?]> {
   return [[`ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`, modelPath(model)]];
 }
 
+// 刚下完的模型：几百 MB 文件落盘后的头几秒，existsSync/statSync 单次可达数百毫秒（CPU profile 实测
+// 一次 onHoldStart 内的模型文件检查累计 0.8s，托盘刷新再查一轮又 0.35s），全在主线程上，
+// 恰是用户看到「已就绪」立刻按住说话的窗口。下载已逐字节校验过，短期内直接信任结果，不再摸盘
+const READY_TRUST_MS = 30_000;
+const readyUntil = new Map<string, number>();
+
 function modelReady(model: string): boolean {
+  const until = readyUntil.get(model);
+  if (until !== undefined) {
+    if (Date.now() < until) return true;
+    readyUntil.delete(model);
+  }
   // 已知字节数的文件（sherpa 系）同时校验大小：损坏/截断的 onnx 会让原生层
   // 直接 abort 整个进程，这里判未就绪走重新下载引导
   return modelFiles(model).every(([, path, size]) => {
@@ -196,6 +207,7 @@ export async function downloadLocalModel(model: string): Promise<LocalModelStatu
         if (phase !== status.phase || source?.index !== status.source?.index) push({ phase, source });
       },
     );
+    readyUntil.set(model, Date.now() + READY_TRUST_MS);
     push({ downloading: false, downloaded: true, progress: 100, partial: undefined, phase: undefined, source: undefined });
     log.info(`local model ${model} downloaded`);
   } catch (error) {
@@ -237,6 +249,7 @@ export function deleteLocalModel(model: string): LocalModelStatus {
     rmSync(`${dest}.part.json`, { force: true });
   }
   if (isSherpaModel(model)) rmSync(join(modelsDir(), model), { recursive: true, force: true });
+  readyUntil.delete(model);
   lastError.delete(model);
   log.info(`local model ${model} deleted`);
   return localModelStatus(model);
@@ -264,7 +277,8 @@ let rec = null;
 let lang = null;
 parentPort.on("message", (msg) => {
   try {
-    if (!rec || lang !== msg.language) {
+    // Parakeet 自动检测语种，识别语言变化无需重建；只有 SenseVoice 把语言编进了模型配置
+    if (!rec || (workerData.engine !== "transducer" && lang !== msg.language)) {
       const modelConfig = workerData.engine === "transducer"
         ? {
             transducer: { encoder: workerData.encoder, decoder: workerData.decoder, joiner: workerData.joiner },
@@ -281,8 +295,10 @@ parentPort.on("message", (msg) => {
             provider: "cpu",
             debug: 0,
           };
+      const t0 = Date.now();
       rec = new mod.OfflineRecognizer({ modelConfig });
       lang = msg.language;
+      parentPort.postMessage({ loaded: Date.now() - t0 });
     }
     const stream = rec.createStream();
     stream.acceptWaveform({ sampleRate: msg.sampleRate, samples: msg.samples });
@@ -298,7 +314,21 @@ parentPort.on("message", (msg) => {
 
 let worker: Worker | null = null;
 let workerKey = "";
+let workerLang = "";
 let nextJobId = 1;
+/** worker 已起但模型尚未加载完（冷启动中）：悬浮条据此区分「加载模型」与「转写中」 */
+let modelLoading = false;
+
+export function isSherpaModelLoading(): boolean {
+  return modelLoading;
+}
+
+const modelLoadedListeners = new Set<() => void>();
+
+/** 模型冷加载完成回调：悬浮条从「加载模型」切回「转写中」 */
+export function onSherpaModelLoaded(listener: () => void): void {
+  modelLoadedListeners.add(listener);
+}
 // 模型常驻内存可观（数百 MB）：空闲一段时间后自动释放，下次使用重建
 const WORKER_IDLE_MS = 10 * 60 * 1000;
 let idleTimer: NodeJS.Timeout | null = null;
@@ -346,6 +376,7 @@ function ensureWorker(modelId: string): Worker {
     return worker;
   }
   workerKey = key;
+  workerLang = "";
   const require = createRequire(import.meta.url);
   const workerData =
     isParakeetModel(modelId)
@@ -358,8 +389,18 @@ function ensureWorker(modelId: string): Worker {
           tokens,
         }
       : { modulePath: require.resolve("sherpa-onnx-node"), engine: "sensevoice", model: paths[0], tokens };
-  worker = new Worker(workerSource, { eval: true, workerData });
-  worker.on("message", (msg: { id: number; text?: string; error?: string }) => {
+  const w = new Worker(workerSource, { eval: true, workerData });
+  worker = w;
+  modelLoading = true;
+  const startedAt = Date.now();
+  w.on("message", (msg: { id?: number; text?: string; error?: string; loaded?: number }) => {
+    if (msg.loaded !== undefined) {
+      if (worker === w) modelLoading = false;
+      log.info(`sherpa model loaded (${modelId}) in ${msg.loaded}ms, ${Date.now() - startedAt}ms after worker start`);
+      for (const listener of modelLoadedListeners) listener();
+      return;
+    }
+    if (msg.id === undefined) return;
     const job = pending.get(msg.id);
     if (!job) return;
     pending.delete(msg.id);
@@ -367,17 +408,22 @@ function ensureWorker(modelId: string): Worker {
     else job.resolve(collapseCjkSpaces(msg.text ?? ""));
     if (pending.size === 0) scheduleIdleShutdown();
   });
-  worker.on("error", (error) => {
+  // 被换掉的旧 worker 异步 exit 时不能清掉已接替的新 worker 引用（切模型后立即预热会撞上这一幕）
+  w.on("error", (error) => {
     log.warn("sherpa worker error", error);
+    if (worker !== w) return;
     for (const job of pending.values()) job.reject(error);
     pending.clear();
     worker = null;
+    modelLoading = false;
   });
-  worker.on("exit", () => {
+  w.on("exit", () => {
+    if (worker !== w) return;
     worker = null;
+    modelLoading = false;
   });
   log.info(`sherpa worker started (${modelId})`);
-  return worker;
+  return w;
 }
 
 /** 切换本地模型后旧 worker 不会再被用到：立即释放（数百 MB～GB 级），不等空闲计时 */
@@ -409,6 +455,11 @@ export async function transcribeSherpa(
 ): Promise<string> {
   if (!modelReady(modelId)) throw new Error(t("error.localModelMissing"));
   const w = ensureWorker(modelId);
+  if (workerLang !== language) {
+    // SenseVoice 语言变化会在 worker 内重建识别器，也算一次冷加载
+    if (!isParakeetModel(modelId)) modelLoading = true;
+    workerLang = language;
+  }
   const id = nextJobId++;
   return new Promise<string>((resolve, reject) => {
     pending.set(id, { resolve, reject });

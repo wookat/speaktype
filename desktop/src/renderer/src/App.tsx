@@ -14,6 +14,7 @@ import {
 import logoUrl from "./assets/logo.png";
 import { api, type InitPayload } from "./api";
 import { getT } from "./i18n";
+import { SENSEVOICE } from "../../shared/localModels";
 import { localizePersona } from "../../shared/personas";
 import type {
   HistoryItem,
@@ -110,6 +111,10 @@ export default function App() {
   const localized = personas.map((p) => localizePersona(p, t));
 
   const update = (patch: Partial<Settings>) => {
+    // SenseVoice 是中/日/韩/粤模型：从英文识别切过来时联动为自动检测，中文用户不进设置也不会被英文模式识别中文
+    if (patch.localModel === SENSEVOICE && settings.language === "en" && !("language" in patch)) {
+      patch = { ...patch, language: "auto" };
+    }
     setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
     void api.updateSettings(patch);
   };

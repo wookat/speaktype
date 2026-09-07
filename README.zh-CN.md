@@ -69,8 +69,8 @@
 
    | 模型 | 体积 | 适合 | 说明 |
    |---|---|---|---|
-   | **SenseVoice Small**（默认） | 234MB | 中文、粤语、日语、韩语、英语 | 实测每句约 0.27 秒，自带标点 |
-   | **Parakeet TDT 0.6B v3**（int8） | 660MB | 英语 + 25 种欧洲语言（不支持中文） | 英文准确率最高；int8 版偶发吞掉句首第一个词（"Please" → "Ple"） |
+   | **SenseVoice Small**（默认） | 240MB | 中文、粤语、日语、韩语、英语 | 实测每句纯识别约 0.27 秒（松手到落字端到端约 0.6 秒），自带标点 |
+   | **Parakeet TDT 0.6B v3**（int8） | 670MB | 英语 + 25 种欧洲语言（不支持中文） | 英文准确率最高；int8 版偶发吞掉句首第一个词（"Please" → "Ple"） |
    | **Parakeet 原精度**（fp32） | 2.5GB | 与 Parakeet 相同 | 解决句首吞词，代价是加载后占约 2.7GB 内存；实测识别速度与 int8 同量级。可选项，默认仍是 int8 |
    | **Whisper tiny / base / small**（whisper.cpp） | 32 / 60 / 190MB | 语种覆盖最广 | 仅 Windows；tiny 最快但易错，small 最慢最准 |
 

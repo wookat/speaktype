@@ -69,8 +69,8 @@ Most AI dictation tools are closed source, or route your voice through the vendo
 
    | Model | Size | Best for | Notes |
    |---|---|---|---|
-   | **SenseVoice Small** (default) | 234MB | Chinese, Cantonese, Japanese, Korean, English | ~0.27s per utterance in our tests, punctuation built in |
-   | **Parakeet TDT 0.6B v3** (int8) | 660MB | English + 25 European languages (no Chinese) | Highest accuracy for English; the int8 build occasionally clips the first word of a sentence ("Please" → "Ple") |
+   | **SenseVoice Small** (default) | 240MB | Chinese, Cantonese, Japanese, Korean, English | ~0.27s model inference per utterance (release-to-text end-to-end ≈0.6s) in our tests, punctuation built in |
+   | **Parakeet TDT 0.6B v3** (int8) | 670MB | English + 25 European languages (no Chinese) | Highest accuracy for English; the int8 build occasionally clips the first word of a sentence ("Please" → "Ple") |
    | **Parakeet full precision** (fp32) | 2.5GB | Same languages as Parakeet | Fixes the clipped-first-word issue at the cost of ~2.7GB RAM while loaded; same speed as int8 in our measurements. Optional — int8 stays the default |
    | **Whisper tiny / base / small** (whisper.cpp) | 32 / 60 / 190MB | Broadest language coverage | Windows only; tiny is fastest but error-prone, small is slowest and most accurate |
 

@@ -120,7 +120,18 @@ function Dictionary(props: { t: Translator; settings: Settings; update: (patch: 
           onChange={(v) => props.update({ autoLearn: v })}
         />
         {props.settings.autoLearn && (
-          <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">{t("dict.autoLearnEditors")}</div>
+          <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            {t("dict.autoLearnEditors")}
+            {props.settings.learnInaccessibleDismissed && (
+              <button
+                type="button"
+                className="ml-2 whitespace-nowrap text-violet-600 underline-offset-2 hover:underline"
+                onClick={() => props.update({ learnInaccessibleDismissed: false })}
+              >
+                {t("dict.autoLearnHintRestore")}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
