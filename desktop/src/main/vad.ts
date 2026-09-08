@@ -2,6 +2,7 @@ import { app } from "electron";
 import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import log from "electron-log/main.js";
 import type { VadStatus } from "../shared/types";
 import { downloadFiles } from "./download";
@@ -9,12 +10,13 @@ import { downloadFiles } from "./download";
 /**
  * 增强人声检测（Silero VAD v5，走 sherpa-onnx 内建 VAD）。
  * 与 SenseVoice/增强标点共用同一套 onnxruntime，避免双 ORT 版本冲突；
- * 模型（~2.3MB）不进安装包，首次启用时按需下载到 userData\vad，
- * 未下载或加载失败时上层回退到峰值门槛。
+ * 模型（~2.3MB）随安装包内置在 resources/vad；旧版本从 userData\vad 下载的副本仍可用，
+ * 内置文件缺失时才走下载源。加载失败时上层回退到峰值门槛。
  */
 
-const FILES = ["silero_vad.onnx"] as const;
-// 与安装包同一发布分支托管；jsdelivr 作为国内可达的镜像源
+const MODEL = "silero_vad.onnx";
+const FILES = [MODEL] as const;
+// 下载兜底源（同名分支仅托管 vad/ 目录）；jsdelivr 作为国内可达的镜像源
 const SOURCES = [
   "https://github.com/wookat/speaktype/raw/dist-v0.1.0/vad",
   "https://cdn.jsdelivr.net/gh/wookat/speaktype@dist-v0.1.0/vad",
@@ -36,8 +38,24 @@ function vadDir(): string {
   return join(app.getPath("userData"), "vad");
 }
 
+function bundledModel(): string {
+  // 打包后在 resources/vad；开发态直接用 desktop/resources/vad
+  const dir = app.isPackaged
+    ? join(process.resourcesPath, "vad")
+    : join(fileURLToPath(new URL(".", import.meta.url)), "../../resources/vad");
+  return join(dir, MODEL);
+}
+
+/** 可用的模型路径：内置优先，其次旧版下载副本；都没有返回 null */
+export function vadModelPath(): string | null {
+  const bundled = bundledModel();
+  if (existsSync(bundled)) return bundled;
+  const downloaded = join(vadDir(), MODEL);
+  return existsSync(downloaded) ? downloaded : null;
+}
+
 export function vadDownloaded(): boolean {
-  return FILES.every((f) => existsSync(join(vadDir(), f)));
+  return vadModelPath() !== null;
 }
 
 // 旧版 VAD 增强包独立带过一套 ORT runtime（约 33MB），现已不加载，启动时顺手清掉
@@ -120,7 +138,8 @@ export class SileroVad {
   private pendingLen = 0;
 
   static create(): SileroVad | null {
-    if (sessionFailed || !vadDownloaded()) return null;
+    const model = vadModelPath();
+    if (sessionFailed || !model) return null;
     try {
       if (!cachedVad) {
         const require2 = createRequire(import.meta.url);
@@ -130,7 +149,7 @@ export class SileroVad {
         cachedVad = new mod.Vad(
           {
             sileroVad: {
-              model: join(vadDir(), "silero_vad.onnx"),
+              model,
               threshold: SPEECH_PROB,
               minSpeechDuration: 0.1,
               minSilenceDuration: SILERO_HANGOVER_MS / 1000,

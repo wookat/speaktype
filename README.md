@@ -47,7 +47,7 @@ Most AI dictation tools are closed source, or route your voice through the vendo
 | 🎭 **Personas** | `Alt+1..9` to switch: default / auto-translate / report-to-boss / CLI / custom prompt — and optionally switch automatically per foreground app |
 | 📖 **Hotword correction** | Add names and product terms; homophone and near-homophone errors are fixed locally via pinyin matching. Corrections you make by hand are learned automatically (Windows) |
 | ✍️ **Select and rewrite** | Select text, hold `F8` and say "translate to English" / "make it formal" — the selection is replaced in place; if you switch windows meanwhile, the result waits in the clipboard instead of landing in the wrong app |
-| 🧠 **Enhanced voice detection** | Optional Silero VAD neural network (~35MB, on-device) for accurate auto-stop and hallucination filtering in noise |
+| 🧠 **Enhanced voice detection** | Optional Silero VAD neural network (built in, on-device) for accurate auto-stop and hallucination filtering in noise |
 | 🔤 **Punctuation & numbers** | Rule-based sentence punctuation out of the box, an optional on-device punctuation model (~281MB add-on), and Chinese spoken-number formatting (三点半 → 3:30) |
 | 🔁 **Retryable failures** | Failed recordings are kept locally (max 20 clips / 7 days / 50MB, can be disabled); retry from History without re-speaking |
 | 🎵 **File transcription** | Drop an audio/video file (mp3, wav, m4a, ogg, flac, mp4… up to 3h) → offline segmented transcript with timestamps → export TXT, timestamped TXT, SRT or VTT |

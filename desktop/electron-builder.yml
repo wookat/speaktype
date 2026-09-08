@@ -26,6 +26,10 @@ electronLanguages:
   - zh-TW
   - ja
   - ko
+# Silero VAD 模型（2.3MB）随包内置，两端共用，不再依赖运行时下载
+extraResources:
+  - from: resources/vad
+    to: vad
 asarUnpack:
   - "**/*.node"
   - node_modules/koffi/**
