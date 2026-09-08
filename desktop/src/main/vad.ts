@@ -162,6 +162,7 @@ export class SileroVad {
           },
           10,
         );
+        log.info("silero vad loaded", model);
       } else {
         cachedVad.reset();
       }
