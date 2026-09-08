@@ -151,7 +151,7 @@ npm run pack:mac   # macOS arm64 + x64 dmg/zip → release/（见 docs/macos.md�
 
 技术栈：Electron + React 19 + Tailwind 4 + lucide-react；全局热键 uiohook-napi（macOS 点按组合键走 `globalShortcut`）；落字 Windows 用 koffi `SendInput`、macOS 用 `osascript` ⌘V；离线识别 SenseVoice / Parakeet（sherpa-onnx）与 whisper.cpp（Windows）；增强 VAD Silero；手机麦克风走可自部署的 Cloudflare Worker 中转。详见 [desktop/README.md](desktop/README.md)。
 
-仓库里还有一个更早形态的 [Chrome 浏览器扩展](docs/browser-extension.md)（网页内按住说话落字）。
+更早形态的 Chrome 浏览器扩展（网页内按住说话落字，含配套 `worker/` 中转）已从主线移除，归档在 tag [`archive/browser-extension`](https://github.com/wookat/speaktype/tree/archive/browser-extension)（[说明文档](https://github.com/wookat/speaktype/blob/archive/browser-extension/docs/browser-extension.md)）。
 
 欢迎 [Issue](https://github.com/wookat/speaktype/issues) 与 Pull Request，贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。本仓库有意不跑 CI，验收标准是本地 `typecheck` + `build` + 打包版实测。
 

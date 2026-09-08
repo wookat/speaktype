@@ -151,7 +151,7 @@ npm run pack:mac   # macOS arm64 + x64 dmg/zip → release/ (see docs/macos.md)
 
 Stack: Electron + React 19 + Tailwind 4 + lucide-react; global hotkeys via uiohook-napi (plus `globalShortcut` for tap combos on macOS); typing via koffi `SendInput` on Windows / `osascript` ⌘V on macOS; offline recognition via SenseVoice / Parakeet (sherpa-onnx) and whisper.cpp (Windows); enhanced VAD via Silero; phone microphone via a Cloudflare Worker relay you can self-host. See [desktop/README.md](desktop/README.md).
 
-An earlier [Chrome extension form](docs/browser-extension.md) lives in this repo too.
+The earlier Chrome extension form (push-to-talk inside web pages, with its `worker/` Cloudflare proxy) has been removed from `main`; it is archived at tag [`archive/browser-extension`](https://github.com/wookat/speaktype/tree/archive/browser-extension) ([docs](https://github.com/wookat/speaktype/blob/archive/browser-extension/docs/browser-extension.md)).
 
 Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). This repository intentionally runs no CI; acceptance is local `typecheck` + `build` + packaged-build testing.
 
