@@ -35,6 +35,8 @@ type Page = "home" | "history" | "personas" | "dictionary" | "transcribe" | "set
 
 export default function App() {
   const [init, setInit] = useState<InitPayload | null>(null);
+  // init 失败时 t 还不可用（翻译依赖 init 数据），错误卡片只能硬编码双语
+  const [initError, setInitError] = useState(false);
   const [page, setPage] = useState<Page>("home");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -59,6 +61,10 @@ export default function App() {
       setStatus(data.status);
       setDoubaoReady(data.doubaoReady);
       setStats(data.stats);
+    }).catch((error) => {
+      // 初始化异常若不兜底，init 永远为 null、渲染层静默白屏且无任何线索
+      console.error("app init failed", error);
+      setInitError(true);
     });
     const offStatus = api.onStatus((payload) => {
       setStatus(payload);
@@ -106,6 +112,13 @@ export default function App() {
     [settings?.uiLanguage, init?.systemLocale],
   );
 
+  if (initError) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-600 dark:text-slate-300">
+        初始化失败，请重启应用重试 / Initialization failed, please restart the app
+      </div>
+    );
+  }
   if (!init || !settings || !status || !t) return null;
 
   const localized = personas.map((p) => localizePersona(p, t));

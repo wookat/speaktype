@@ -40,6 +40,19 @@ function load(win: BrowserWindow, page: string): void {
   else void win.loadFile(join(rendererDir, `${page}.html`));
 }
 
+/**
+ * 外链协议白名单：只把 http/https 交给系统默认浏览器。页面内容（含第三方站点）
+ * 能诱导打开任意协议，file:/shell:/自定义协议经 openExternal 会执行本地程序。
+ */
+export function safeOpenExternal(url: string): void {
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === "http:" || protocol === "https:") void shell.openExternal(url);
+  } catch {
+    /* 非法 URL 静默忽略 */
+  }
+}
+
 export function createMainWindow(visible = true): BrowserWindow {
   const saved = getWindowBounds();
   const win = new BrowserWindow({
@@ -85,7 +98,7 @@ export function createMainWindow(visible = true): BrowserWindow {
   win.on("unmaximize", persistLater);
   if (visible) win.on("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    safeOpenExternal(url);
     return { action: "deny" };
   });
   load(win, "index");
@@ -164,6 +177,10 @@ export function createBridgeWindow(): BrowserWindow {
     width: 1080,
     height: 760,
     title: "豆包语音（SpeakType 桥接）",
+    // sandbox 必须关：项目 type=module，electron-vite 产出的 doubao.mjs 是含顶层
+    // import 的 ESM，沙箱化 preload 加载器只认 CJS，开了会在运行时报
+    // "Cannot use import statement outside a module"。要沙箱化得先把 preload
+    // 构建输出整体改成 .cjs（chatgpt 窗口可开 sandbox 是因为它根本没有 preload）
     webPreferences: { preload: doubaoPreload, sandbox: false, backgroundThrottling: false },
   });
   void win.loadURL(DOUBAO_URL);

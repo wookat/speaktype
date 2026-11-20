@@ -470,10 +470,16 @@ function ensureWorker(modelId: string): Worker {
     worker = null;
     modelLoading = false;
   });
-  w.on("exit", () => {
+  w.on("exit", (code) => {
     if (worker !== w) return;
     worker = null;
     modelLoading = false;
+    // 原生层 abort 这类「直接死」只触发 exit 不触发 error：在途任务不 reject 的话
+    // transcribeSherpa 的 Promise 永不 settle，听写永久卡在「识别中」
+    if (pending.size > 0) {
+      for (const job of pending.values()) job.reject(new Error(`sherpa worker exited (${code})`));
+      pending.clear();
+    }
   });
   log.info(`sherpa worker started (${modelId})`);
   return w;

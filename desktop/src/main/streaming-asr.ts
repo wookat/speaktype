@@ -151,8 +151,10 @@ export function onStreamingCaptionsLoaded(listener: () => void): void {
 interface SessionState {
   id: number;
   onPartial: (text: string) => void;
-  /** ready 前缓存的浮点帧；started 消息到达后统一补喂并清空 */
+  /** 建流前缓存的浮点帧；started 消息到达后按序补喂并清空 */
   pending: Float32Array[];
+  /** started 消息已到（worker 已建流）：此前新帧必须走缓存，避免插到缓存旧帧之前（乱序） */
+  started: boolean;
   finishResolve: ((text: string | null) => void) | null;
   finishTimer: NodeJS.Timeout | null;
   failed: boolean;
@@ -198,8 +200,13 @@ function onWorkerMessage(msg: WorkerMessage): void {
   const s = activeSession;
   if (!s || msg.id !== s.id) return; // 迟到消息按 session 丢弃
   if (msg.type === "started") {
-    // 模型冷加载期间缓存的帧此刻补喂，草稿从整段音频的头部开始（不丢第一句）
+    // 模型冷加载期间缓存的帧此刻按序补喂，草稿从整段音频的头部开始（不丢第一句）；
+    // started 置位要先于刷缓存，补喂期间到达的新帧才不会插队
+    s.started = true;
     for (const f of s.pending.splice(0)) postPush(s.id, f);
+    // 收尾在建流窗口内已被调用（resolve 已挂）：缓存帧刷完后补发 finish，
+    // 否则 finish 抢在缓存帧之前被 worker 处理，草稿丢掉头部
+    if (s.finishResolve) worker?.postMessage({ type: "finish", id: s.id });
     return;
   }
   if (msg.type === "partial") {
@@ -238,7 +245,7 @@ export function startStreamingCaptions(onPartial: (text: string) => void): Strea
   if (!streamingModelReady()) return null;
   if (!worker && !spawnWorker()) return null;
   const id = nextSessionId++;
-  const state: SessionState = { id, onPartial, pending: [], finishResolve: null, finishTimer: null, failed: false };
+  const state: SessionState = { id, onPartial, pending: [], started: false, finishResolve: null, finishTimer: null, failed: false };
   activeSession = state;
   if (idleTimer) {
     clearTimeout(idleTimer);
@@ -250,7 +257,9 @@ export function startStreamingCaptions(onPartial: (text: string) => void): Strea
       if (activeSession !== state || state.failed) return;
       const f = new Float32Array(frame.length);
       for (let i = 0; i < frame.length; i++) f[i] = frame[i]! / 32768;
-      if (workerReady) postPush(state.id, f);
+      // 以 started（worker 已建流）而不是 ready 为界：ready 与 started 之间的窗口内
+      // 直发会排到缓存旧帧之前（帧乱序），必须等 started 补喂完再直发
+      if (state.started) postPush(state.id, f);
       else state.pending.push(f);
     },
     finish(): Promise<string | null> {
@@ -260,11 +269,18 @@ export function startStreamingCaptions(onPartial: (text: string) => void): Strea
         // 流式收尾与终稿解码并行：这里只挂超时兜底，正常路径由 final 消息 resolve
         state.finishTimer = setTimeout(() => settleActiveSession("streaming finish timeout"), FINISH_TIMEOUT_MS);
         state.finishTimer.unref();
-        worker?.postMessage({ type: "finish", id: state.id });
+        // 未建流前不发 finish：它会抢在缓存帧之前被 worker 处理（草稿丢尾巴），
+        // 由 started 消息到达时补发（见 onWorkerMessage）
+        if (state.started) worker?.postMessage({ type: "finish", id: state.id });
       });
     },
     discard(): void {
       if (activeSession !== state) return;
+      // finish() 已发起、final 消息未回来就被弃流：把挂起的收尾 Promise resolve 成
+      // null。worker 已弃流不会再回 final，不 resolve 的话调用方 await 永久挂起
+      //（空录音/Esc 取消时 asr.ts 卡死的根因）
+      state.finishResolve?.(null);
+      state.finishResolve = null;
       if (state.finishTimer) clearTimeout(state.finishTimer);
       activeSession = null;
       worker?.postMessage({ type: "discard", id: state.id });

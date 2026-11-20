@@ -132,6 +132,9 @@ function macSetMute(muted: boolean): void {
 
 let mutedByUs = false;
 let flagPath = "";
+// macOS 异步静音代数：macGetMute 回调在途时录音已结束/已解除过静音的话，旧回调不得
+// 再把系统静回去（否则短句结束后系统被永久静音）。unmuteAfterRecording 递增使旧回调作废
+let muteGen = 0;
 
 function setFlag(on: boolean): void {
   if (!flagPath) return;
@@ -156,8 +159,11 @@ export function initMuteRecovery(userDataDir: string): void {
 export function muteForRecording(): void {
   if (mutedByUs) return;
   if (isMac) {
+    const gen = ++muteGen;
     void macGetMute().then((cur) => {
       if (cur !== false) return;
+      // 等待期间已解除过静音（gen 已被 unmute 递增）：不能再静回去
+      if (gen !== muteGen) return;
       mutedByUs = true;
       setFlag(true);
       macSetMute(true);
@@ -172,6 +178,9 @@ export function muteForRecording(): void {
 
 /** 录音结束：只解除本应用施加的静音 */
 export function unmuteAfterRecording(): void {
+  // 先作废在途的 macGetMute 回调再判 mutedByUs：短句竞态下回调尚未把 mutedByUs
+  // 置位，若先 return 回调晚到仍会静音系统
+  muteGen++;
   if (!mutedByUs) return;
   mutedByUs = false;
   setFlag(false);

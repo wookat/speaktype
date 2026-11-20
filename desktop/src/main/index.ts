@@ -1,4 +1,6 @@
-// 必须最先 import：完全重置的 userData 擦除要在任何 store/日志初始化之前
+// 必须最先 import：完全重置的 userData 擦除要在任何 store/日志初始化之前。
+// 便携版的 userData 重定向在 ./migrate 才生效、等不到那里：reset.ts 删除前会
+// 自行完成重定向，确保 --factory-reset 只删 exe 旁的 SpeakType-data
 import "./reset";
 // 在任何 electron-store 实例化（会立即写出默认 speaktype.json）之前完成旧配置迁移
 import "./migrate";
@@ -79,6 +81,7 @@ import {
   createToastWindow,
   dockPanel,
   dockToast,
+  safeOpenExternal,
 } from "./windows";
 
 log.initialize();
@@ -742,7 +745,10 @@ function registerIpc(): void {
     else win.maximize();
   });
   ipcMain.handle("window:close", () => BrowserWindow.getFocusedWindow()?.close());
-  ipcMain.handle("open:external", (_e, url: string) => shell.openExternal(url));
+  // 渲染层请求的外链同样只放行 http/https（协议白名单见 windows.ts safeOpenExternal）
+  ipcMain.handle("open:external", (_e, url: string) => {
+    safeOpenExternal(url);
+  });
   ipcMain.handle("log:open", () => shell.showItemInFolder(log.transports.file.getFile().path));
 
   // PCM 帧走命名管道（Node net）而非 Chromium IPC：实测逐帧结构化拷贝（无论
@@ -787,6 +793,9 @@ function registerIpc(): void {
           ? t("error.micNotFound")
           : message;
     showToast(t("toast.micUnavailable"), body);
+  });
+  ipcMain.on("recorder:opened", (_e, info: { label: string; auto: boolean; fallback?: boolean }) => {
+    log.info(`recorder: opened mic "${info.label}" (auto=${info.auto}${info.fallback ? ", fallback=dead-zero" : ""})`);
   });
 }
 

@@ -341,6 +341,9 @@ const installBtn = document.getElementById("install");
 const unpair = document.getElementById("unpair");
 let room = ${room ? JSON.stringify(room) : "localStorage.getItem('speaktype-room') || ''"};
 let ws = null, ctx = null, stream = null, node = null, holding = false, fails = 0;
+// 开麦/恢复 AudioContext 进行中，以及期间收到的提前松手/取消：对齐桌面 recorder.ts 的
+// starting/stopWhileStarting，防止异步开麦期间松手导致按钮卡在录音态
+let starting = false, endedWhileStarting = false;
 // busy 提示短暂锁定：避免随后的 status 广播（idle/transcribing）马上冲掉提示，用户根本来不及看清；
 // 锁定期内被丢弃的最后一条文案存入 heldText，到期后补放，避免会话末尾的 idle 被吞后 busy 文案永久残留
 let busyHold = 0, busyTimer = null, heldText = null;
@@ -394,7 +397,9 @@ function connect() {
   };
   ws.onmessage = (ev) => {
     if (typeof ev.data !== "string") return;
-    const m = JSON.parse(ev.data);
+    let m;
+    // 中转原样互透字节，偶发坏帧不能让 JSON.parse 抛异常断掉整页消息处理
+    try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (m.type === "pong") { pongSeen = true; pongMissed = 0; return; }
     if (m.type === "status") {
       if (holding) {
@@ -500,9 +505,18 @@ async function openMic() {
 
 async function startHold(ev) {
   ev.preventDefault();
-  if (holding || talk.disabled) return;
-  if (!(await openMic())) return;
-  if (ctx.state === "suspended") await ctx.resume();
+  if (holding || starting || talk.disabled) return;
+  starting = true;
+  endedWhileStarting = false;
+  try {
+    if (!(await openMic())) return;
+    if (ctx.state === "suspended") await ctx.resume();
+  } finally {
+    starting = false;
+  }
+  // 开麦/恢复 AudioContext 期间已松手或取消：start 尚未发出（桌面无会话可结束），
+  // 直接不进入录音态，否则按钮永久卡在录音中没人收尾（对齐桌面 recorder.ts 的做法）
+  if (endedWhileStarting) return;
   holding = true;
   acked = false;
   talk.classList.add("rec");
@@ -513,6 +527,8 @@ async function startHold(ev) {
 }
 /** cancel: true 取消 / false 结束 / null 仅复位（电脑端已自行结束会话，无需再发） */
 function endHold(cancel) {
+  // 开麦进行中：holding 未置位、start 未发出，记下提前松手让 startHold 自行中止
+  if (starting) { endedWhileStarting = true; return; }
   if (!holding) return;
   holding = false;
   talk.classList.remove("rec");

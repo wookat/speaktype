@@ -185,6 +185,8 @@ export class Dictation {
   private queueDropped = false;
   private buffered: Int16Array[] = [];
   private busy = false;
+  /** 改写准备期（抓选区的 ~300ms 窗口）：busy 已占位但会话未建，松手/取消记入 pendingEnd，startRewrite 返回后直接中止复位 */
+  private preparing = false;
   private pendingEnd: "stop" | "cancel" | null = null;
   /**
    * 上一句还在转写/落字时用户又按下了热键：排队而不是静默丢弃。
@@ -464,15 +466,43 @@ export class Dictation {
       this.deps.openModelSettings();
       return;
     }
-    const selection = await copySelection();
-    if (!selection.trim()) {
-      this.deps.showToast(t("toast.rewriteNoSelection"), t("toast.rewriteNoSelectionBody"));
-      return;
+    // 准备期提前占位：copySelection 有 ~300ms 窗口，期间松开改写键/按 Esc 会被
+    // stop/cancel 的 !busy 分支直接忽略，返回后照样开录、卡死在 recording 没人收尾。
+    // 占位后松手/取消记入 pendingEnd，下方返回时按意图直接中止复位
+    this.busy = true;
+    this.preparing = true;
+    // 清掉上一流程可能残留的意图：下方 earlyEnd 判定只应反映本准备期窗口内的松手/取消
+    this.pendingEnd = null;
+    this.report("connecting");
+    let started = false;
+    try {
+      const selection = await copySelection();
+      const earlyEnd = this.pendingEnd;
+      this.pendingEnd = null;
+      if (earlyEnd === null && !selection.trim()) {
+        this.deps.showToast(t("toast.rewriteNoSelection"), t("toast.rewriteNoSelectionBody"));
+        return;
+      }
+      if (earlyEnd === "cancel") {
+        // cancel() 走 pendingEnd 记录路径时来不及给提示，这里补上取消反馈
+        this.deps.showToast(t("toast.canceled"), t("toast.canceledBody"), undefined, 2500);
+        return;
+      }
+      if (earlyEnd === "stop") return; // 用户自己松的改写键，无需提示
+      this.rewriteTarget = selection;
+      this.rewriteWin = foregroundWindowKey();
+      this.rewriting = true;
+      // 释放占位交给 start() 重新接管（释放到 start() 置位之间无 await，无插空窗口）
+      this.busy = false;
+      started = true;
+      await this.start("hold");
+    } finally {
+      this.preparing = false;
+      if (!started) {
+        this.busy = false;
+        this.report("idle");
+      }
     }
-    this.rewriteTarget = selection;
-    this.rewriteWin = foregroundWindowKey();
-    this.rewriting = true;
-    await this.start("hold");
   }
 
   /** remote=true 时音频由手机端经 remotemic 推流，不开本机麦克风 */
@@ -561,6 +591,9 @@ export class Dictation {
       this.busy = false;
       this.pendingEnd = null;
       this.session = null;
+      // 免按进入（toggleHandsFree 先置旗标再 start）失败时一并复位：否则下次按热键
+      // 被误判为「退出免按」，连续两次按热键都进不去听写
+      this.handsFree = false;
       // 改写意图随本次会话作废，不能残留到下一次普通听写
       this.rewriteTarget = null;
       this.rewriteWin = null;
@@ -733,6 +766,12 @@ export class Dictation {
       log.info(`dictation stop: ${owner ?? "any"} release with no session (state=${this.state})`);
       return;
     }
+    if (this.preparing) {
+      // 改写准备期（抓选区）松手：会话未建，记下意图由 startRewrite 返回后中止复位；
+      // 长按键此刻没被按住，不该由它替改写键松手
+      if (owner === null || owner === "rewrite") this.pendingEnd = "stop";
+      return;
+    }
     if (owner && this.remoteSource) {
       // 手机端正按住说话：本机热键松手与它无关，这句只由手机端 stop/cancel 结束
       log.info(`dictation stop: ${owner} release ignored, phone session in progress`);
@@ -850,6 +889,8 @@ export class Dictation {
     if (!failed || Date.now() - failed.at > RETRY_WINDOW_MS || failed.frames.length === 0) return false;
     this.busy = true;
     this.partial = "";
+    // 清掉可能残留的旧意图：建连期间的松手/取消从这一次重新记
+    this.pendingEnd = null;
     const settings = getSettings();
     try {
       this.report("connecting");
@@ -860,6 +901,8 @@ export class Dictation {
       this.maxPeak = failed.maxPeak;
       this.voicedMs = MIN_VOICED_MS; // 该段音频进入过 ASR，已通过有声门槛
       this.allFrames = failed.frames;
+      // 建连窗口内按过 Esc/松手：按当时意图立即收尾，不再无视地跑完整识别
+      if (await this.flushPendingEnd()) return true;
       await this.finalize();
     } catch (error) {
       this.busy = false;
@@ -892,6 +935,8 @@ export class Dictation {
     }
     const settings = getSettings();
     const persona = localizePersona(findPersona(settings.personaId), translator());
+    // 重跑整句识别要几秒到几十秒：全程占住 busy，期间的新听写/再次重试都被挡下
+    this.busy = true;
     try {
       const session = await this.createSession(settings);
       for (const frame of await wavToFrames(entry.audioFile)) session.pushPcm(frame);
@@ -906,6 +951,11 @@ export class Dictation {
       return { ok: true, detail: text };
     } catch (error) {
       return { ok: false, detail: humanizeAsrError(error instanceof Error ? error.message : String(error)) };
+    } finally {
+      this.busy = false;
+      // 重跑期间按 Esc 会在 cancel() 的「无会话」分支记下 pendingEnd="cancel"，本流程
+      // 不消费它；不清掉会残留到下一次会话入口（如 startRewrite 的准备期提前取消判定）
+      this.pendingEnd = null;
     }
   }
 
