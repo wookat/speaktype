@@ -297,19 +297,21 @@ export function startLocalAsrSession(
     },
     async finish(): Promise<string> {
       stopTimer();
+      // 空录音/已取消：直接弃流返回，不发起流式收尾——先 finish() 再 discard() 的话，
+      // worker 已按 discard 弃流不会再回 final，await 收尾 Promise 会永久挂起
+      if (cancelled || frames.length === 0) {
+        streaming?.discard();
+        return "";
+      }
       // 流式收尾与终稿解码并行：finish() 先发（毫秒级收尾+2s 超时兜底），
       // 终稿照常跑完整质量管线；只有终稿失败且草稿非空时草稿才顶上落字
       const streamingFinal = streaming ? streaming.finish() : Promise.resolve(null);
-      if (cancelled || frames.length === 0) {
-        streaming?.discard();
-        await streamingFinal;
-        return "";
-      }
       // 终稿路径原样搬运（sherpa 整句 / whisper-server），只在外面包一层兜底判定
       const runFinal = async (): Promise<string> => {
         if (isSherpaModel(model)) {
-          // sherpa 系直接出最终文本，不再过繁→简以免误伤专名
-          return transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto");
+          // sherpa 系直接出最终文本，不再过繁→简以免误伤专名；推理无法真正中断，
+          // 包一层 abortable 让 Esc 至少立即跳出等待（与下方 ensureLocalServer 同款）
+          return abortable(transcribeSherpa(model, pcmToFloat32(frames), SAMPLE_RATE, settings.language || "auto"), finishAbort.signal);
         }
         const url = await abortable(ensureLocalServer(model), finishAbort.signal);
         const wav = pcmToWav(frames);
@@ -338,6 +340,12 @@ export function startLocalAsrSession(
           });
         }
         return outcome.text;
+      }
+      if (cancelled) {
+        // 终稿期间按 Esc：用户已放弃本次输入，不等草稿落字，立即弃流返回空串
+        //（finishAbort 已把 runFinal 打失败，此时再等 streamingFinal 属无谓挂起）
+        streaming?.discard();
+        return "";
       }
       const draft = await streamingFinal;
       const resolved = resolveCaptionFallback(outcome, draft);

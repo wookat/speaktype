@@ -1,7 +1,9 @@
 import { app } from "electron";
 import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import log from "electron-log/main.js";
+// 便携目录公式与 reset.ts 共用：--factory-reset 先于本模块执行，删除目标必须同源
+import { portableUserDataDir } from "./reset";
 
 /**
  * 绿色免安装版：electron-builder 的 portable 目标把程序解到临时目录运行，
@@ -9,10 +11,9 @@ import log from "electron-log/main.js";
  * 拷走整个文件夹即可带走全部设置、词典与历史。
  */
 export function usePortableUserData(): void {
-  const exe = process.env["PORTABLE_EXECUTABLE_FILE"];
-  if (!exe) return;
+  const dir = portableUserDataDir();
+  if (!dir) return;
   try {
-    const dir = join(dirname(exe), "SpeakType-data");
     mkdirSync(dir, { recursive: true });
     app.setPath("userData", dir);
     log.info("portable mode, userData at", dir);

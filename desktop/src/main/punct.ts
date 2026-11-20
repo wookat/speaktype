@@ -134,8 +134,14 @@ function ensureWorker(): Worker {
     pending.clear();
     if (worker === w) worker = null;
   });
-  w.on("exit", () => {
+  w.on("exit", (code) => {
     if (worker === w) worker = null;
+    // 原生层崩溃只触发 exit 不触发 error：在途任务不 reject 的话 punctuate 的
+    // Promise 永不 settle，上游补标点管线永久挂起（与 localasr.ts 同款兜底）
+    if (pending.size > 0) {
+      for (const job of pending.values()) job.reject(new Error(`punct worker exited (${code})`));
+      pending.clear();
+    }
   });
   log.info("punct worker started");
   return w;

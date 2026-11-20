@@ -1,5 +1,6 @@
 import { ipcRenderer } from "electron";
 import { type Socket, connect } from "node:net";
+import { isVirtualMic, pickAutoMic, sortMicDevices, type MicDeviceItem } from "../shared/mic";
 
 /**
  * 隐藏录音窗口专用 preload：开麦、AudioWorklet 采集 16kHz/mono/PCM16、200ms 一帧。
@@ -60,6 +61,24 @@ let pcmSock: Socket | null = null;
 let starting = false;
 /** 开麦尚未完成就收到 stop（短按即松/取消）：开完立即关，不让麦克风悬空开着 */
 let stopWhileStarting = false;
+/** 自动检测模式下已证实连续输出全 0 的死麦 deviceId */
+const deadAutoIds = new Set<string>();
+/** 自动检测模式下已优选出的非虚拟物理麦 deviceId */
+let autoPreferredId = "";
+
+navigator.mediaDevices?.addEventListener?.("devicechange", () => {
+  deadAutoIds.clear();
+  autoPreferredId = "";
+});
+
+async function listRealAudioInputs(): Promise<MicDeviceItem[]> {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return sortMicDevices(
+    devices
+      .filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default" && d.deviceId !== "communications")
+      .map((d) => ({ deviceId: d.deviceId, label: d.label || d.deviceId.slice(0, 8) })),
+  );
+}
 
 function ensurePipe(): Socket {
   if (pcmSock && !pcmSock.destroyed) return pcmSock;
@@ -80,10 +99,33 @@ async function start(deviceId = ""): Promise<void> {
   stopWhileStarting = false;
   try {
     const base = { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    const initialId = deviceId || (autoPreferredId && !deadAutoIds.has(autoPreferredId) ? autoPreferredId : "");
     stream = await navigator.mediaDevices
-      .getUserMedia({ audio: deviceId ? { ...base, deviceId: { exact: deviceId } } : base })
+      .getUserMedia({ audio: initialId ? { ...base, deviceId: { exact: initialId } } : base })
       // 选中的设备可能已拔掉，回退到系统默认麦克风
       .catch(() => navigator.mediaDevices.getUserMedia({ audio: base }));
+
+    // 自动检测模式：若系统默认设备落在虚拟声卡/降噪壳或已知死麦上，改选最优真实物理麦
+    if (!deviceId) {
+      const track = stream.getAudioTracks()[0];
+      const trackLabel = track?.label ?? "";
+      const trackId = track?.getSettings?.().deviceId ?? "";
+      if (isVirtualMic(trackLabel) || (trackId && deadAutoIds.has(trackId))) {
+        const devices = await listRealAudioInputs();
+        const preferred = pickAutoMic(devices, trackLabel, deadAutoIds);
+        if (preferred) {
+          for (const t of stream.getTracks()) t.stop();
+          stream = await navigator.mediaDevices
+            .getUserMedia({ audio: { ...base, deviceId: { exact: preferred.deviceId } } })
+            .catch(() => navigator.mediaDevices.getUserMedia({ audio: base }));
+          autoPreferredId = preferred.deviceId;
+        }
+      }
+    }
+
+    const openedLabel = stream.getAudioTracks()[0]?.label ?? "unknown";
+    ipcRenderer.send("recorder:opened", { label: openedLabel, auto: !deviceId });
+
     ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
     const url = URL.createObjectURL(new Blob([WORKLET], { type: "text/javascript" }));
     await ctx.audioWorklet.addModule(url);
@@ -91,11 +133,61 @@ async function start(deviceId = ""): Promise<void> {
     source = ctx.createMediaStreamSource(stream);
     node = new AudioWorkletNode(ctx, "pcm-collector");
     ensurePipe();
+    let zeroFrames = 0;
+    let switchedDead = false;
     node.port.onmessage = (ev: MessageEvent<{ pcm: Int16Array; peak: number }>) => {
       const pcm = ev.data.pcm;
+      const peak = ev.data.peak;
+      if (peak > 0) {
+        zeroFrames = 0;
+      } else if (!deviceId && !switchedDead) {
+        zeroFrames++;
+        if (zeroFrames >= 3) {
+          switchedDead = true;
+          const currentCtx = ctx;
+          const currentNode = node;
+          const oldStream = stream;
+          const oldSource = source;
+          const currentTrack = oldStream?.getAudioTracks()[0];
+          const currentLabel = currentTrack?.label ?? "";
+          const currentId = currentTrack?.getSettings?.().deviceId ?? "";
+          void (async () => {
+            if (currentId) deadAutoIds.add(currentId);
+            const devices = await listRealAudioInputs();
+            for (const d of devices) {
+              if (currentLabel && d.label === currentLabel) deadAutoIds.add(d.deviceId);
+            }
+            if (ctx !== currentCtx || node !== currentNode || !currentCtx || !currentNode) return;
+            autoPreferredId = "";
+            const next = pickAutoMic(devices, currentLabel, deadAutoIds);
+            if (!next) return;
+            const newStream = await navigator.mediaDevices
+              .getUserMedia({ audio: { ...base, deviceId: { exact: next.deviceId } } })
+              .catch(() => null);
+            if (!newStream) return;
+            if (ctx !== currentCtx || node !== currentNode) {
+              for (const t of newStream.getTracks()) t.stop();
+              return;
+            }
+            const newSource = currentCtx.createMediaStreamSource(newStream);
+            newSource.connect(currentNode);
+            oldSource?.disconnect();
+            for (const t of oldStream?.getTracks() ?? []) t.stop();
+            stream = newStream;
+            source = newSource;
+            autoPreferredId = next.deviceId;
+            zeroFrames = 0;
+            ipcRenderer.send("recorder:opened", {
+              label: newStream.getAudioTracks()[0]?.label || next.label,
+              auto: true,
+              fallback: true,
+            });
+          })();
+        }
+      }
       const frame = Buffer.allocUnsafe(8 + pcm.byteLength);
       frame.writeUInt32LE(pcm.byteLength, 0);
-      frame.writeFloatLE(ev.data.peak, 4);
+      frame.writeFloatLE(peak, 4);
       Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength).copy(frame, 8);
       // 每帧重取：连接意外断开时自动重连，坏帧不阻塞后续
       ensurePipe().write(frame);
@@ -147,14 +239,9 @@ async function enumerate(): Promise<void> {
   try {
     // 未授权过时 label 为空，先开一下麦再枚举
     const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    const list = await listRealAudioInputs();
     for (const track of probe.getTracks()) track.stop();
-    ipcRenderer.send(
-      "recorder:devices",
-      devices
-        .filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default" && d.deviceId !== "communications")
-        .map((d) => ({ deviceId: d.deviceId, label: d.label || d.deviceId.slice(0, 8) })),
-    );
+    ipcRenderer.send("recorder:devices", list);
   } catch {
     ipcRenderer.send("recorder:devices", []);
   }

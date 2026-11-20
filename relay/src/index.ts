@@ -17,11 +17,25 @@ export interface Env {
 
 const ROOM_RE = /^[0-9a-f]{12}$/;
 
+/** 对端正在关闭时 send 会抛：单帧丢弃即可，断连收尾由各自的 close 监听处理 */
+function sendQuietly(dst: WebSocket, data: string | ArrayBuffer): void {
+  try {
+    dst.send(data);
+  } catch {
+    /* 目标连接正在关闭 */
+  }
+}
+
 /** 直通转发：workerd 里二进制帧可能以 Blob 到达，直接 send(Blob) 会被字符串化，需转回 ArrayBuffer */
 async function forward(dst: WebSocket | null, data: unknown): Promise<void> {
   if (dst?.readyState !== WebSocket.READY_STATE_OPEN) return;
-  if (typeof data === "string" || data instanceof ArrayBuffer) dst.send(data);
-  else dst.send(await (data as Blob).arrayBuffer());
+  if (typeof data === "string" || data instanceof ArrayBuffer) {
+    sendQuietly(dst, data);
+    return;
+  }
+  const buf = await (data as Blob).arrayBuffer();
+  // arrayBuffer() 期间对端可能恰好关闭：转完必须重验再发，向已关闭连接 send 会抛
+  if (dst.readyState === WebSocket.READY_STATE_OPEN) sendQuietly(dst, buf);
 }
 
 export class Room {

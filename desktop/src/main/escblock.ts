@@ -113,6 +113,12 @@ function loadWin32(): EscBlockApi {
       if (worker !== w) return;
       worker = null;
       threadId = 0;
+      // 异常退出时钩子已随之丢失：wanted 置回未安装，下次 blockEscape 才会重建
+      // 线程重装钩子；否则 install() 的 wanted 短路让钩子永远装不回来
+      if (wanted) {
+        wanted = false;
+        log.warn("escblock worker exited unexpectedly, hook lost until next install");
+      }
     });
   };
 
