@@ -150,6 +150,8 @@ function cancelRecorderRecycle(): void {
   recorderRecycleTimer = null;
 }
 
+let lastPanelState: StatusPayload["state"] = "idle";
+
 function broadcast(payload: StatusPayload): void {
   if (payload.state === "idle" || payload.state === "error") scheduleRecorderRecycle();
   else cancelRecorderRecycle();
@@ -157,11 +159,24 @@ function broadcast(payload: StatusPayload): void {
     if (win && !win.isDestroyed()) win.webContents.send("status", payload);
   }
   broadcastToPhones(payload);
+  const prevState = lastPanelState;
+  lastPanelState = payload.state;
   if (!panelWin || panelWin.isDestroyed()) return;
-  if (payload.state === "idle" && !payload.partial) panelWin.hide();
-  else if (!panelWin.isVisible()) {
+  if (payload.state === "idle" && !payload.partial) {
+    panelWin.hide();
+    return;
+  }
+  // 首次显示，或从空闲/上一句收尾进入新一轮录音：强制重停靠并刷新置顶 Z-order，
+  // 防止锁屏/全屏应用把悬浮条压在下面，或上一句 1.2s 停留期内跨屏切窗不跟过去
+  const enteringActive =
+    (payload.state === "connecting" || payload.state === "recording") &&
+    prevState !== "connecting" &&
+    prevState !== "recording";
+  if (!panelWin.isVisible() || enteringActive) {
     dockPanel(panelWin);
+    panelWin.setAlwaysOnTop(true, "screen-saver");
     panelWin.showInactive();
+    panelWin.moveTop();
   }
 }
 
@@ -177,7 +192,9 @@ function showToast(
   toastAction = action?.run ?? null;
   toastWin.webContents.send("toast", { title, body, actionLabel: action?.label });
   dockToast(toastWin);
+  toastWin.setAlwaysOnTop(true, "screen-saver");
   toastWin.showInactive();
+  toastWin.moveTop();
   if (toastTimer) clearTimeout(toastTimer);
   // 带操作按钮的 toast 停留久一点，给用户点击时间
   toastTimer = setTimeout(() => toastWin?.hide(), durationMs ?? (action ? 6000 : 4000));

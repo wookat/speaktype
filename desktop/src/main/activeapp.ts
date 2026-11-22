@@ -23,6 +23,7 @@ interface Win32Api {
   foregroundPid(): number | null;
   hasPasteTarget(): boolean;
   caretRect(): ScreenRect | null;
+  windowRect(): ScreenRect | null;
 }
 
 function loadWin32(): Win32Api | null {
@@ -51,6 +52,8 @@ function loadWin32(): Win32Api | null {
     );
     koffi.struct("POINT", { x: "int32", y: "int32" });
     const ClientToScreen = user32.func("bool ClientToScreen(uintptr hWnd, _Inout_ POINT *pt)");
+    koffi.struct("ACTIVEAPP_RECT", { left: "int32", top: "int32", right: "int32", bottom: "int32" });
+    const GetWindowRect = user32.func("bool GetWindowRect(void *hWnd, _Out_ ACTIVEAPP_RECT *rect)");
     const emptyThreadInfo = () => ({
       cbSize: koffi.sizeof(GUITHREADINFO),
       flags: 0,
@@ -133,6 +136,21 @@ function loadWin32(): Win32Api | null {
         const br = { x: r, y: b };
         if (!ClientToScreen(info.hwndCaret, tl) || !ClientToScreen(info.hwndCaret, br)) return null;
         return { x: tl.x, y: tl.y, width: br.x - tl.x, height: br.y - tl.y };
+      },
+      windowRect() {
+        const hwnd = GetForegroundWindow();
+        if (!hwnd) return null;
+        const classBuf = new Uint16Array(64);
+        GetClassNameW(hwnd, classBuf, classBuf.length);
+        const cls = decode(classBuf);
+        // 桌面壳窗口横跨多屏，不能用来定位当前打字所在的显示器
+        if (cls === "Progman" || cls === "WorkerW") return null;
+        const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+        if (!GetWindowRect(hwnd, rect)) return null;
+        const width = rect.right - rect.left;
+        const height = rect.bottom - rect.top;
+        if (width <= 0 || height <= 0) return null;
+        return { x: rect.left, y: rect.top, width, height };
       },
     };
   } catch (error) {
@@ -237,6 +255,16 @@ export function foregroundCaretRect(): ScreenRect | null {
   if (isMac) return null;
   try {
     return win32?.caretRect() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** 前台活动窗口的屏幕矩形（物理像素）；桌面壳或取不到时返回 null */
+export function foregroundWindowRect(): ScreenRect | null {
+  if (isMac) return null;
+  try {
+    return win32?.windowRect() ?? null;
   } catch {
     return null;
   }
