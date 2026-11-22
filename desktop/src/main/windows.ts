@@ -2,7 +2,7 @@ import { BrowserWindow, nativeTheme, screen, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getSettings, getWindowBounds, setWindowBounds } from "./store";
-import { foregroundCaretRect } from "./activeapp";
+import { foregroundCaretRect, foregroundWindowRect, type ScreenRect } from "./activeapp";
 
 function isDarkTheme(): boolean {
   const theme = getSettings().theme;
@@ -209,12 +209,29 @@ export function createChatgptWindow(): BrowserWindow {
 }
 
 /**
- * 把悬浮条放到鼠标所在屏幕的底部（或用户固定的顶部/底部）居中；auto 模式下前台文本光标所在的那一行
+ * 决定悬浮条/提示应停靠在哪块屏幕：
+ * 多屏下优先跟随前台文本光标，其次跟随前台活动窗口中心（避免在副屏打字、鼠标停在主屏时提示跑偏），
+ * 取不到前台矩形时回退到鼠标指针所在屏幕。
+ */
+function targetDisplayWorkArea(): Electron.Rectangle {
+  const anchor: ScreenRect | null = foregroundCaretRect() ?? foregroundWindowRect();
+  if (anchor) {
+    const dip = process.platform === "win32" ? screen.screenToDipRect(null, anchor) : anchor;
+    const center = {
+      x: Math.round(dip.x + dip.width / 2),
+      y: Math.round(dip.y + dip.height / 2),
+    };
+    return screen.getDisplayNearestPoint(center).workArea;
+  }
+  return screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+}
+
+/**
+ * 把悬浮条放到正在输入的那块屏幕底部（或用户固定的顶部/底部）居中；auto 模式下前台文本光标所在的那一行
  * 与这块区域重叠（最大化的编辑器写到屏幕底部）时改停顶部，不挡住正在落字的那一行。取不到光标（自绘光标的应用）保持原位
  */
 export function dockPanel(win: BrowserWindow): void {
-  const point = screen.getCursorScreenPoint();
-  const area = screen.getDisplayNearestPoint(point).workArea;
+  const area = targetDisplayWorkArea();
   const position = getSettings().panelPosition;
   const top = area.y + PANEL_MARGIN;
   const bottom = Math.round(area.y + area.height - PANEL_HEIGHT - PANEL_MARGIN);
@@ -249,8 +266,7 @@ function panelCaretZone(area: Electron.Rectangle): Electron.Rectangle | null {
 }
 
 export function dockToast(win: BrowserWindow): void {
-  const point = screen.getCursorScreenPoint();
-  const area = screen.getDisplayNearestPoint(point).workArea;
+  const area = targetDisplayWorkArea();
   win.setBounds({
     x: Math.round(area.x + (area.width - TOAST_WIDTH) / 2),
     y: Math.round(area.y + area.height - TOAST_CENTER_FROM_BOTTOM - TOAST_HEIGHT / 2),
